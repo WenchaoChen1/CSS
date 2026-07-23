@@ -27,13 +27,25 @@
 │   ├── dev\    backend.env + frontend.env      (本地,已就绪)
 │   ├── test\   backend.env + frontend.env      (AWS test,已就绪,含真实凭证勿提交)
 │   └── uat\    backend.env.example + frontend.env.example   (模板)
-└── bin\
-    ├── 打镜像推ECR.ps1           ← 需求1: 打镜像(7 个镜像 build + push)
-    ├── 本地dev.ps1               ← 需求2: 本地 dev 环境 compose 启动/运维
-    ├── deploy.sh                 ← 需求2: EC2 端 test/uat/prod 三栈启动/运维
-    ├── 同步部署文件到EC2.ps1      ← EC2 需要的 5+1 个文件一键同步
-    └── 连接EC2.ps1               ← SSH 到 test EC2
+├── bin\
+│   ├── 打镜像推ECR.ps1           ← 需求1: 打镜像(7 个镜像 build + push;自动补建 ECR 仓库)
+│   ├── 创建ECR仓库.ps1           ← 单独/预先在目标账号建齐 7 个 ECR 仓库(幂等)
+│   ├── 本地dev.ps1               ← 需求2: 本地 dev 环境 compose 启动/运维
+│   ├── deploy.sh                 ← 需求2: EC2 端 test/uat/prod 三栈启动/运维
+│   ├── 同步部署文件到EC2.ps1      ← EC2 需要的文件一键同步(目标机从 env 读)
+│   └── 连接EC2.ps1               ← SSH 到目标环境 EC2(目标机从 env 读)
+└── 迁移\                        ← 从 dev 旧组织(021213872872)迁数据到 larry 新组织
+    ├── README.md
+    ├── 源环境.env.example        ← dev 各环境 SSH + dev/larry AWS profile 配置模板
+    ├── 拉取数据库.ps1            ← SSH docker exec pg_dump 拉库到本地
+    ├── 拉取docker-env.ps1        ← 采集各容器环境变量 + 磁盘 .env 清单
+    └── 拉取S3.ps1               ← dev 账号 S3 下载,可选回推 larry 新桶
 ```
+
+**多环境 / 多账号可配置性（本次重做重点）**：镜像仓库和部署目标全部参数化到 `env\<env>\backend.env`——
+换组织/账号改 `AWS_ACCOUNT_ID`+`AWS_REGION`+`ECR_REGISTRY`(+`AWS_PROFILE` 指向该账号的本地凭证);
+test/uat/prod **推不同仓库**改 `ECR_REPO_PREFIX`/`ECR_FRONTEND_PREFIX`(如 `css-prod-backend`);
+部署目标机改 `DEPLOY_HOST`/`DEPLOY_USER`/`DEPLOY_KEY`/`DEPLOY_PATH`。脚本一律以 env 文件为准,无硬编码。
 
 **技术要点（为什么项目能零修改）**：
 - 所有 compose 的 build context 指向 `apps\` 下的项目目录（compose 统一带 `--project-directory .` 从部署包根运行，脚本已封装）。
@@ -45,16 +57,18 @@
 
 ## 二、首次准备（一次性）
 
-1. 把项目放进 `apps\`（两个目录名必须是 `CSS_backend-main` / `CSS_frontend-main`）：
+1. 把项目放进 `apps\`（两个目录名必须是 `CSS_backend-main` / `CSS_frontend-main`）。
+   **推荐用目录联接指向工作区里已连 GitHub 的活仓库**（换代码只需在活仓库 `git pull`,部署包自动跟随）：
    ```powershell
    cd C:\github-code\chain-serve\部署包\apps
-   # 方式 A:复制
-   Copy-Item -Recurse C:\github-code\chain-serve\v20260705\CSS_backend-main  .\CSS_backend-main
-   Copy-Item -Recurse C:\github-code\chain-serve\v20260705\CSS_frontend-main .\CSS_frontend-main
-   # 方式 B:目录联接(不占空间,换版本删掉重指即可)
-   New-Item -ItemType Junction -Path .\CSS_backend-main  -Target C:\github-code\chain-serve\v20260705\CSS_backend-main
-   New-Item -ItemType Junction -Path .\CSS_frontend-main -Target C:\github-code\chain-serve\v20260705\CSS_frontend-main
+   # 方式 A(推荐):junction 指向活仓库(本会话已建好,通常无需再执行)
+   New-Item -ItemType Junction -Path .\CSS_backend-main  -Target C:\github-code\chain-serve\CSS_backend-main
+   New-Item -ItemType Junction -Path .\CSS_frontend-main -Target C:\github-code\chain-serve\CSS_frontend-main
+   # 方式 B:复制(占空间,与活仓库脱钩)
+   Copy-Item -Recurse C:\github-code\chain-serve\CSS_backend-main  .\CSS_backend-main
+   Copy-Item -Recurse C:\github-code\chain-serve\CSS_frontend-main .\CSS_frontend-main
    ```
+   > 重建/换指向前先删旧链接：`cmd /c rmdir .\CSS_backend-main`（只删链接,不动源目录）。`apps\` 已被根 `.gitignore` 整体排除。
 2. env 已就绪：`env\dev\`、`env\test\` 是从现行真实配置生成的，可直接用。uat/prod 从 example 复制填值。
 3. AWS 侧前置（已配好则跳过）：aws cli 凭证（ECR push 权限）、`css-non-prod-key.pem`、EC2 安全组放行本机 IP——细节见 `发布包\发布手册.md` 第一节或 `aws-ops.local.md`。
 
@@ -90,7 +104,7 @@
 - 验证：`http://localhost:8080/docs`（后端 Swagger）；2FA 码在 `http://localhost:8085` kafka-ui → Topics → sms_send；pgAdmin `:8006`。
 - **前端本地开发两种方式**：
   - 零项目修改：`front` 起容器（改代码/改 `env\dev\frontend.env` 后重跑 `front` 重建，约 1-2 分钟，无热更新）；
-  - 要 HMR 热更新：只能在项目里跑 `npm run dev`，且需要给项目 `vite.config.ts` 打 dev 反代补丁 + 项目根放 `.env`——这是唯一做不到零修改的场景（补丁内容见 `v20260705\手动迁移操作文档.md` 步骤 4）。
+  - 要 HMR 热更新：只能在项目里跑 `npm run dev`，且需要给项目 `vite.config.ts` 打 dev 反代补丁 + 项目根放 `.env`——这是唯一做不到零修改的场景（vite 反代 /api /ws /notifications 到 :8080,`VITE_API_BASE_URL=/api`,详见前端仓库 `vite.config.ts` 与本项目 `本地运行指南.md`）。
 
 ### AWS test / uat / prod（RDS + ECR + EC2 三栈）
 
@@ -136,4 +150,4 @@ cd /opt/css
 
 ## 七、故障排查 / 更多细节
 
-常见故障表（ECR 登录 400、kafka 登录 500、password salt、RDS 密码轮换三处更新等 14 条）见 `C:\github-code\chain-serve\发布包\发布手册.md` 第六节，全部仍然适用（仅文件路径按本包换算：`deploy/.env.test` → `env/test/backend.env`）。数据库策略（css_dev 用快照 pg_restore 重建、勿对旧混合库跑新版 alembic）见 `v20260705\手动迁移操作文档.md` 第四节。
+常见故障表（ECR 登录 400、kafka 登录 500、password salt、RDS 密码轮换三处更新等 14 条）见 `C:\github-code\chain-serve\发布包\发布手册.md` 第六节，全部仍然适用（仅文件路径按本包换算：`deploy/.env.test` → `env/test/backend.env`）。从 dev 旧组织迁移数据（DB / docker env / S3）见本包 `迁移\README.md`；数据库快照与 alembic 注意事项见项目根 `CLAUDE.md`。

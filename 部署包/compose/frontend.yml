@@ -17,7 +17,7 @@ x-logging: &logging
 
 services:
   frontend:
-    image: ${ECR_REGISTRY:?缺 ECR_REGISTRY}/css-frontend/app:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY:?缺 ECR_REGISTRY}/${ECR_FRONTEND_PREFIX:-css-frontend}/app:${IMAGE_TAG:-latest}
     build:
       context: ./apps/CSS_frontend-main
       additional_contexts:
