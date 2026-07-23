@@ -1,0 +1,45 @@
+# ========== AWS 前端栈(frontend):SPA 静态文件 + 同源反代 ==========
+# 部署源外置版:构建用 dockerfile_inline(等价原 Dockerfile.novalidate),
+# VITE_* env 与 nginx 配置来自部署包(additional_contexts),项目本体零修改、零文件放入。
+# 前端 nginx(config/frontend-nginx.conf)把 /api、/ws、/notifications
+# 反代到共享网络上 backend 栈的 nginx 服务 -> 浏览器只访问 :80 一个源,无 CORS。
+#
+# ⚠️ VITE_* 配置是【构建时】烤进镜像的(取 env/${DEPLOY_ENV}/frontend.env),
+#    改前端 env 必须重新 build-push 前端镜像,重启容器没用。
+# ⚠️ 跳过 tsc(源码存在既有 TS 类型错误);修复后可把 npx vite build 改回 npm run build。
+# 用法(走脚本): ./bin/deploy.sh <env> deploy frontend
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+
+services:
+  frontend:
+    image: ${ECR_REGISTRY:?缺 ECR_REGISTRY}/css-frontend/app:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/CSS_frontend-main
+      additional_contexts:
+        envcfg: ./env/${DEPLOY_ENV:?缺 DEPLOY_ENV}
+        cfg: ./config
+      dockerfile_inline: |
+        FROM node:21-alpine AS build
+        WORKDIR /app
+        COPY package.json package-lock.json ./
+        RUN npm install --legacy-peer-deps && npm cache clean --force
+        COPY . .
+        COPY --from=envcfg frontend.env .env
+        RUN npx vite build && ls dist/
+        FROM nginx:alpine
+        COPY --from=build /app/dist /usr/share/nginx/html
+        COPY --from=cfg frontend-nginx.conf /etc/nginx/conf.d/default.conf
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    logging: *logging
+
+networks:
+  default:
+    name: css-${DEPLOY_ENV:?缺 DEPLOY_ENV}-net
+    external: true

@@ -1,0 +1,213 @@
+# ========== AWS 后端服务栈(backend):app / messenger / notifications / worker / nginx
+#            + sms_sender / email_sender / ai_assistant + OCR 三件套 ==========
+# 部署源外置版:build context 全部指向 apps/ 下的项目目录,项目本体零修改。
+# 前提:
+#   - infra 栈已先启动(kafka/redis/rabbitmq/ocr-redis 在共享网络上;没起也只是这里重启重试)
+#   - Postgres 在 RDS(POSTGRES_HOST / OCR_*_DATABASE_URL 指向 RDS,本栈无 db 容器)
+#   - 镜像来自 ECR(先 bin/打镜像推ECR.ps1);EC2 上只 pull 不 build,apps/ 不需要存在
+# 用法(走脚本): ./bin/deploy.sh <env> deploy backend
+# 注意:跨栈的 depends_on 已移除(compose 不支持跨项目依赖),
+#       依赖 infra 的服务靠 restart: always 自动重试直到中间件可用。
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+
+x-env-file: &env-file
+  env_file:
+    - ${ENV_FILE:?请设置 ENV_FILE=env/<test|uat|prod>/backend.env(bin 下脚本会自动设置)}
+
+services:
+  # ---------- 核心应用(共用一个 app 镜像;只有 app 带 build,其余纯引用) ----------
+  app:
+    image: ${ECR_REGISTRY:?缺 ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/app:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/CSS_backend-main/core_app
+      dockerfile: ./src/Dockerfile
+    ulimits:
+      nofile: { soft: 4096, hard: 4096 }
+    restart: always
+    depends_on:
+      worker:
+        condition: service_started
+    # --preload:master 只 import 一次再 fork worker(避免每个 worker 重复 import 重型模块树,
+    #           这曾在 2 vCPU 机器上导致 8 个 worker 同时冷启动抢 CPU→30s 超时→SIGKILL 崩溃循环)。
+    # --timeout 120:给冷启动/慢请求留余量,防止 gunicorn 默认 30s 误杀。
+    command: >
+      gunicorn
+        --workers ${APP_WORKERS_NUMBER:-2}
+        --worker-class uvicorn.workers.UvicornWorker
+        --bind 0.0.0.0:${APP_INTERNAL_PORT:-8000}
+        --preload
+        --timeout 120
+        --graceful-timeout 30
+        app.internal.main:app
+    logging: *logging
+    <<: *env-file
+
+  messenger-app:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/app:${IMAGE_TAG:-latest}
+    ulimits:
+      nofile: { soft: 4096, hard: 4096 }
+    restart: always
+    command: >
+      gunicorn
+        --workers ${MESSENGER_APP_WORKERS_NUMBER:-1}
+        --worker-class uvicorn.workers.UvicornWorker
+        --bind 0.0.0.0:${MESSENGER_APP_INTERNAL_PORT:-8001}
+        --preload
+        --timeout 120
+        --graceful-timeout 30
+        app.internal.messenger_app:app
+    logging: *logging
+    <<: *env-file
+
+  notifications-app:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/app:${IMAGE_TAG:-latest}
+    ports:
+      - "${NOTIFICATIONS_APP_INTERNAL_PORT:-8002}:${NOTIFICATIONS_APP_INTERNAL_PORT:-8002}"
+    ulimits:
+      nofile: { soft: 4096, hard: 4096 }
+    restart: always
+    command: >
+      gunicorn
+        --workers ${NOTIFICATIONS_APP_WORKERS_NUMBER:-2}
+        --worker-class uvicorn.workers.UvicornWorker
+        --bind 0.0.0.0:${NOTIFICATIONS_APP_INTERNAL_PORT:-8002}
+        --preload
+        --timeout 120
+        --graceful-timeout 30
+        app.internal.notifications_app:app
+    logging: *logging
+    <<: *env-file
+
+  worker:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/app:${IMAGE_TAG:-latest}
+    ulimits:
+      nofile: { soft: 4096, hard: 4096 }
+    restart: always
+    command: arq app.internal.worker.app.Worker
+    healthcheck:
+      test: ["CMD", "arq", "app.internal.worker.app.Worker", "--check"]
+      interval: 1m
+      timeout: 30s
+      retries: 10
+      start_period: 30s
+    logging: *logging
+    <<: *env-file
+
+  nginx:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/nginx:${IMAGE_TAG:-latest}
+    build: ./apps/CSS_backend-main/core_app/nginx
+    restart: always
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - app
+    volumes:
+      - nginx_log_volume:/var/log/nginx
+    environment:
+      - APP_INTERNAL_PORT=${APP_INTERNAL_PORT:-8000}
+      - MESSENGER_APP_INTERNAL_PORT=${MESSENGER_APP_INTERNAL_PORT:-8001}
+      - NOTIFICATIONS_APP_INTERNAL_PORT=${NOTIFICATIONS_APP_INTERNAL_PORT:-8002}
+    logging: *logging
+
+  # ---------- Kafka 消费者(独立镜像) ----------
+  sms_sender:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/sms-sender:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/CSS_backend-main
+      dockerfile: ./sms_sender/Dockerfile
+    restart: always
+    logging: *logging
+    <<: *env-file
+
+  email_sender:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/email-sender:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/CSS_backend-main
+      dockerfile: ./email_sender/Dockerfile
+    restart: always
+    logging: *logging
+    <<: *env-file
+
+  # ---------- ai_assistant(Node/OpenAI) ----------
+  ai_assistant:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/ai-assistant:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/CSS_backend-main/ai_assistant
+      # 内联覆盖项目自带的 alpine Dockerfile(项目零修改):
+      # 用 Debian(glibc) 而非 alpine(musl) —— canvas 在 glibc 有预编译二进制;即使回退源码编译,
+      # alpine/musl 下 node-gyp 走 unofficial-builds.nodejs.org,该域名在国内网络 DNS 解析失败(EAI_AGAIN)。
+      # 若上游修复了 alpine 构建问题,删除本 dockerfile_inline 即回退项目自带 Dockerfile。
+      dockerfile_inline: |
+        FROM node:18-bookworm-slim
+        RUN apt-get update && apt-get install -y --no-install-recommends \
+              build-essential python3 pkg-config \
+              libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
+              fontconfig fonts-dejavu-core \
+            && rm -rf /var/lib/apt/lists/*
+        WORKDIR /app
+        COPY package*.json ./
+        RUN npm install --omit=dev
+        COPY . .
+        EXPOSE 2025
+        CMD ["node", "server.js"]
+    restart: always
+    ports:
+      - "2025:2025"
+    # 不能挂整个 env 文件:server.js 读 process.env.PORT(||2025),env 里的 PORT=8080 是 nginx 的,
+    # 混入会让它监听 8080 而端口映射还是 2025 -> 全部拒连。只给它需要的三个变量。
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - API_KEY=${API_KEY}
+      - APP_URL=${APP_URL:-}
+    logging: *logging
+
+  # ---------- Catalog OCR 微服务(DB 在 RDS,Redis 在 infra 栈的 ocr-redis) ----------
+  ocr-migrator:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/catalog-ocr:${IMAGE_TAG:-latest}
+    build:
+      context: ./apps/CSS_backend-main
+      dockerfile: ./catalog_ocr_service/Dockerfile
+    restart: "no"
+    command: alembic upgrade head
+    logging: *logging
+    <<: *env-file
+
+  ocr-api:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/catalog-ocr:${IMAGE_TAG:-latest}
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8080
+    ports:
+      - "${OCR_API_PORT:-8088}:8080"
+    depends_on:
+      ocr-migrator:
+        condition: service_completed_successfully
+    volumes:
+      - ocr_uploads:/tmp/catalog_ocr/uploads
+    logging: *logging
+    <<: *env-file
+
+  ocr-worker:
+    image: ${ECR_REGISTRY}/${ECR_REPO_PREFIX:-css-backend}/catalog-ocr:${IMAGE_TAG:-latest}
+    restart: always
+    command: arq app.worker.worker.Worker
+    depends_on:
+      ocr-migrator:
+        condition: service_completed_successfully
+    volumes:
+      - ocr_uploads:/tmp/catalog_ocr/uploads
+    logging: *logging
+    <<: *env-file
+
+volumes:
+  nginx_log_volume:
+  ocr_uploads:
+
+networks:
+  default:
+    name: css-${DEPLOY_ENV:?缺 DEPLOY_ENV}-net
+    external: true
