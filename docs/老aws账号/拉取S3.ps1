@@ -7,7 +7,7 @@
 #   .\拉取S3.ps1 -Bucket chain-serve-test       # 只拉单个桶
 #   .\拉取S3.ps1 -PushToDst -DstBucket css-test-storage   # 下载后回推到 larry 新桶
 # 前置: 源环境.env 已配;dev 账号 profile(SRC_AWS_PROFILE=css-src)已 aws configure。
-# 产物: _s3\<bucket>\ 下与桶同构的文件。
+# 产物: 备份\s3\<bucket>\ 下与桶同构的文件。
 # ============================================================
 param(
   [string]$Bucket,
@@ -35,7 +35,7 @@ else {
   if (-not $raw) { Write-Error "源环境.env 缺 SRC_S3_BUCKETS,或用 -Bucket 指定单桶"; exit 1 }
   $Buckets = $raw.Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ }
 }
-if (-not $OutDir) { $OutDir = Join-Path $Root "_s3" }
+if (-not $OutDir) { $OutDir = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")) "备份\s3" }
 
 # 验证 dev 账号身份
 $acct = aws sts get-caller-identity --profile $SrcProfile --query Account --output text 2>$null

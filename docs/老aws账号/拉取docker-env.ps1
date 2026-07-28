@@ -4,8 +4,8 @@
 #           ② 服务器磁盘上的 .env 文件(常见部署目录下)。
 # 用法: .\拉取docker-env.ps1 [-Source preprod|dev|stage] [-OutDir 路径]
 # 前置: 源环境.env 已配;~/.ssh/wenchao 私钥(会提示口令)。
-# 产物: _env\<source>\<容器名>.env(每容器一份) + _env\<source>\_磁盘env清单.txt。
-# 注意: 导出的 env 含真实凭证,仅落本地用于迁移,勿提交(_env\ 已被 .gitignore 排除)。
+# 产物: 备份\docker镜像\<source>\<容器名>.env(每容器一份) + _磁盘env清单.txt。
+# 注意: 导出的 env 含真实凭证,仅落本地用于迁移,勿提交(备份\ 已被 .gitignore 排除)。
 # ============================================================
 param(
   [ValidateSet("preprod","dev","stage")][string]$Source = "preprod",
@@ -24,7 +24,7 @@ $DHost = Get-SrcVar "${U}_HOST"; $DUser = Get-SrcVar "${U}_USER"; $DKey = Get-Sr
 if (-not $DHost -or -not $DKey) { Write-Error "源环境.env 缺 ${U}_HOST / ${U}_KEY"; exit 1 }
 if (-not $DUser) { $DUser = "ubuntu" }
 if (-not (Test-Path $DKey)) { Write-Error "找不到私钥 $DKey"; exit 1 }
-if (-not $OutDir) { $OutDir = Join-Path $Root "_env\$Source" }
+if (-not $OutDir) { $OutDir = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")) "备份\docker镜像\$Source" }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $target = "$DUser@$DHost"
 

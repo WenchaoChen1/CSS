@@ -10,9 +10,24 @@ This is a **CSS (Chain Serve)** monorepo-style workspace containing two independ
 |------|------------|
 | `CSS_backend-main/` | Python / FastAPI backend (Poetry, Docker Compose, Alembic) |
 | `CSS_frontend-main/` | React 19 + TypeScript + Vite SPA |
-| `postgres_backup_20260628.sql` | A ~6.8 MB Postgres dump (snapshot, not loaded automatically) |
+| `备份/` | 数据库/S3/docker-env 迁移产物（含旧快照，gitignore；原根目录 postgres_backup_20260628.sql 已归档移除） |
 
 The two projects have **separate toolchains, CI pipelines, and `.env` files**. Work on them independently — `cd` into the relevant project before running commands.
+
+---
+
+## 环境 → AWS 账号映射（重要，先读）
+
+本项目有**两个 AWS 账号**，六个环境按名称固定归属，**切勿混淆**：
+
+| 环境 | AWS 账号 | 区域 | 角色 |
+|------|----------|------|------|
+| `staging` / `dev` / `preprod` | **老账号 `021213872872`** | eu-central-1 | 原团队遗留环境（全容器、无 RDS）→ **数据迁移的来源** |
+| `test` / `uat` / `prod` | **新账号 larry `582797602427`** | us-east-1 | 我方新建环境（EC2 + ECR + RDS + S3）→ **部署目标** |
+
+- **老账号（迁移源）**：只有 `preprod`(3.74.51.100) 已开通 SSH；`dev`/`staging` 待开通。用 `docs/老aws账号/` 的脚本把 DB / docker env / S3 拉到本机 `备份/`。
+- **新账号（部署目标，2026-07-28 实查）**：旧默认 VPC 的 test 机 `i-08e110b5a5425980d` 已删除；现有网关机 `css-nonprod-gw`(i-08b0ef319d08eae38, EIP 3.225.148.166, 堡垒+NAT+反代) + RDS `css-non-prod`(PG16.14, db.t4g.micro, 新 VPC 私有子网)。**test/uat/prod 的应用 EC2 均未创建**；非生产 RDS test+uat 共用（css-non-prod 已于 2026-07-28 在新 VPC 重建并载入 test 数据；css-prod 等 Paid plan；新库名 css-<env>-main/-ocr 见 docs/新aws账号/04、05）。
+- 脚本按账号分放（2026-07-28）：`docs/新aws账号/`=新账号资源创建/推镜像（01-vpc~10），`docs/老aws账号/`=老账号数据拉取；**`部署包/` 已整体退役并入 `CSS_backend-main/deploy/`**（compose 编排、本地 dev、EC2 端 deploy.sh；env 配置 2026-07-28 再迁出到工作区根 `deploy-env/`）；CI/CD 已落新组织两仓库（`.github/workflows/cicd.yml`），手册在 `docs/新aws账号/`（总流程在其 README，组件手册在 08/09 文件夹）。
 
 ---
 
@@ -34,13 +49,13 @@ This codebase is being **taken over from another team**. Critical context that i
 
 The app/alembic target whichever DB `POSTGRES_DB` names (see `config/postgres_settings.py`; `migrations/env.py` reuses the same settings), so alembic only ever touches the named DB. Postgres is exposed on host `localhost:5432` (postgres/postgres) via the Windows override.
 
-**`css_dev` data was imported best-effort from `css_dump` via dblink** (`db_compare/import_snapshot_to_css_dev.sql` + `reconcile_*.sql`), copying only columns common to both schemas with FK checks off. Because the schemas diverged, `css_dev` has these **deliberate divergences from the pure code schema** (dev-only):
+**`css_dev` data was imported best-effort from `css_dump` via dblink**（原 `db_compare/` 调和脚本，**该目录已于 2026-07-28 删除**——main 已是 preprod 代码，旧 css_dev 调和流程作废）, copying only columns common to both schemas with FK checks off. Because the schemas diverged, `css_dev` has these **deliberate divergences from the pure code schema** (dev-only):
 - `businesstype` enum gained value `MANUFACTURER` (snapshot had it).
 - `company.user_id` had its `NOT NULL` dropped (snapshot rows have no owner; that's a code-only user_management column).
 - `company_audit_log` is **empty** (its id column is uuid in code but integer in the snapshot — unresolved type divergence).
 - The 14 snapshot-only `manufacturer_*` / `payment_method` / `product_attribute*` tables do **not** exist in `css_dev` (no code tables for them), so that data was dropped.
 
-To rebuild `css_dev` from scratch: `DROP DATABASE css_dev; CREATE DATABASE css_dev;` → `alembic upgrade head` (with `-e POSTGRES_DB=css_dev`) → run the three `db_compare/*.sql` scripts in order (`import_snapshot_to_css_dev.sql`, `reconcile_failed_tables.sql`, `reconcile_company.sql`).
+~~To rebuild `css_dev` from scratch via `db_compare/*.sql`~~ **已作废（2026-07-28）**：`db_compare/` 已删除；旧 css_dev 对应旧代码线，勿在其上跑新迁移。开发库以 preprod 备份恢复或空库 `alembic upgrade head` 重建（见 `备份/数据库/`）。
 
 Compare the two to discover which migrations are missing from GitHub:
 ```
@@ -48,7 +63,7 @@ docker exec css-backend__db pg_dump -U postgres --schema-only --no-owner postgre
 docker exec css-backend__db pg_dump -U postgres --schema-only --no-owner css_dump > schema_dump.sql
 ```
 
-### `.env` files (already generated)
+### `.env` files（⚠️ 上游遗留模型说明——本地 dev 已改走工作区 `deploy-env/dev/backend.env` + `本地dev.ps1`，本节仅供参照上游 Makefile 流程）
 
 Both projects need a `.env` (now present, generated from each `.env.example`). Two musts:
 - The backend `.env` is a **runtime `env_file`, NOT baked into the image** — editing it needs only a container restart, not a rebuild.
@@ -57,14 +72,13 @@ Both projects need a `.env` (now present, generated from each `.env.example`). T
 
 ### Redeploy after a backend code change
 
-Code IS baked into the image (`COPY src/ .`), so **code** changes need a rebuild (env changes do not). Pass the dev env override `deploy/docker-compose.dev.yml` (it folds in json-file logging, exposed 5432, and a local Kafka — **Kafka is required for auth**: the auth DI eagerly starts a producer against `kafka:9092`, so login 500s without it):
+Code IS baked into the image (`COPY src/ .`), so **code** changes need a rebuild (env changes do not). 本地 dev（2026-07-28 统一模型）：栈=`deploy/compose/dev.yml`（含本地 Postgres/kafka/kafka-ui/pgadmin——**Kafka is required for auth**: the auth DI eagerly starts a producer against `kafka:9092`, so login 500s without it），配置=工作区根 `deploy-env/dev/backend.env`（2026-07-28 env 整体迁出仓库），入口：
 ```
-docker compose --env-file .env -f core_app/docker-compose.yml -f deploy/docker-compose.dev.yml build app worker messenger-app notifications-app
-docker compose --env-file .env -f core_app/docker-compose.yml -f deploy/docker-compose.dev.yml up -d
+.\deploy\windows\本地dev.ps1 [up|down|build|rebuild|migrate|ps|logs|restart|front]
 ```
-A `redeploy.ps1` at the backend root wraps this. Environments: **dev is local** (`deploy/docker-compose.dev.yml` + `deploy/{windows,linux}/dev.*`); **test / uat / prod deploy to AWS** (EC2 + ECR + RDS + S3) as **three independent compose stacks** — `deploy/docker-compose.{infra,backend,frontend}.yml` (separate projects `css-<env>-{infra,backend,frontend}` sharing docker network `css-<env>-net`, so each deploys independently) — driven by `deploy/aws/{build-push.sh,build-push.ps1,deploy.sh}` (`deploy.sh <env> deploy [stack]`) + per-env `deploy/.env.<env>` (templates: `deploy/.env.<env>.example`). The AWS stacks have **no db/ocr-db/pgadmin containers** (Postgres lives in RDS: databases `css_<env>` + `ocr_<env>`). The frontend image bakes `VITE_*` from `CSS_frontend-main/.env.<env>` at **build time** (uses `Dockerfile.novalidate` — tsc currently fails on 16 pre-existing type errors). The old root `docker-compose.{dev,test,prod}.yml` and `deploy/docker-compose.prod.yml` + old test/prod scripts were removed (2026-07-06); the `Makefile` now composes only the root `docker-compose.yml`. See `deploy/README.md`.
+仓库根 `redeploy.ps1` 是它的薄封装（rebuild）。**test / uat / prod 走 CI/CD**（GitHub Actions → ECR 双 tag `<env>-vN` 版本号+`<env>` 浮动，lifecycle 保 5 → 部署暂为手动 `docs/新aws账号/09-ssm-run-command/deploy-env.sh`），编排=`deploy/compose/{infra,backend,frontend}.yml`（独立项目 `css-<env>-*` 共享网络 `css-<env>-net`），运行时配置唯一事实源=SSM Parameter Store `/css/<env>/backend.env`（deploy.sh 自动渲染；本地底稿在工作区 `deploy-env/<env>/`）。AWS 栈无 db/pgadmin 容器（Postgres 在 RDS；新库名规范 `css-<env>-main`/`css-<env>-ocr`）。前端镜像构建期烤入 `VITE_*`（来自 `/css/<env>/frontend.env`，用 `Dockerfile.novalidate`——tsc 尚有 16 个存量类型错误）。手册见工作区 `docs/新aws账号/`（README 总流程 + 08/09 组件手册）；deploy 结构见 `deploy/README.md`。
 
-### Windows host notes
+### Windows host notes（同上：core_app compose + 根 .env 属上游遗留模型，本地 dev 一律走 deploy/windows/本地dev.ps1）
 
 No `make` / `pg_restore` / `sudo` on the host (Docker Desktop only). Use `docker compose` native commands — the `Makefile` is Linux-only (its `makemigrations` / `poetry_*` targets call `sudo chown` and will not run here). Run compose from `CSS_backend-main/` and pass `--env-file .env` so `${VAR}` interpolation resolves (the core stack lives in `core_app/docker-compose.yml`; the root `docker-compose.yml` additionally `include`s the OCR + ai_assistant services, which need extra API keys).
 

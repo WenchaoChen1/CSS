@@ -4,7 +4,7 @@
 # 用法: .\拉取数据库.ps1 [-Source preprod|dev|stage] [-Database 库名] [-Container 容器名] [-AllDatabases]
 #   缺省自动发现 postgres 容器与其 POSTGRES_DB;-AllDatabases 用 pg_dumpall 导整实例(含角色)。
 # 前置: 复制 源环境.env.example -> 源环境.env 填好;~/.ssh/wenchao 私钥(带 passphrase,会提示输入)。
-# 产物: _data\<source>\  下的 .dump(custom 格式,用 pg_restore 恢复)或 .sql.gz(pg_dumpall)。
+# 产物: 备份\数据库\<source>\ 下的 .dump(custom 格式,用 pg_restore 恢复)或 .sql.gz(pg_dumpall)。
 # 说明: 这是"准备好待运行"的脚本;首次跑请留意打印的 container/user/db 是否正确,不对就用 -Container/-Database 覆盖。
 # ============================================================
 param(
@@ -27,7 +27,7 @@ $DHost = Get-SrcVar "${U}_HOST"; $DUser = Get-SrcVar "${U}_USER"; $DKey = Get-Sr
 if (-not $DHost -or -not $DKey) { Write-Error "源环境.env 缺 ${U}_HOST / ${U}_KEY(该环境 SSH 权限可能尚未开通)"; exit 1 }
 if (-not $DUser) { $DUser = "ubuntu" }
 if (-not (Test-Path $DKey)) { Write-Error "找不到私钥 $DKey"; exit 1 }
-if (-not $OutDir) { $OutDir = Join-Path $Root "_data\$Source" }
+if (-not $OutDir) { $OutDir = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..\..")) "备份\数据库\$Source" }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 $ts = Get-Date -Format "yyyyMMdd_HHmmss"
