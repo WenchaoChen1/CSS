@@ -7,6 +7,8 @@
 # ===== 前后端代码文件夹（各自绑定官方仓库，独立管理，不在本工作区提交）=====
 /CSS_backend-main/
 /CSS_frontend-main/
+# Terraform 基础设施仓库（绑定 WenchaoChen1/css-terraform，独立管理）
+/css-terraform/
 
 # ===== 凭证 / 环境变量（含真实密钥，严禁提交）=====
 # 约定：*.local / *.local.* 后缀即为含真实凭证的私有文件
