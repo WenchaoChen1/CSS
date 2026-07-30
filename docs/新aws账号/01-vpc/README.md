@@ -1,5 +1,8 @@
 # 01-vpc —— 网络骨架（VPC / 子网 / IGW / 路由 / S3 端点 / 安全组）
 
+> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：非生产网络/SG 已由 css-terraform 接管（css-non-prod/network + 各环境 sg stack）：create-vpc.sh 勿再执行；旧共用 css-non-prod-app-sg/alb-sg 已退役删除，现为每环境独立 css-<env>-app-sg/alb-sg。
+> 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
+
 一条命令建出一组环境的全套零成本网络：VPC + 2 公有 2 私有子网（跨 1a/1b 两 AZ）+ IGW + 公私路由表 + S3 Gateway 端点 + 安全组，全部打 `Group` 标签，幂等可重复执行。
 
 ## 怎么用

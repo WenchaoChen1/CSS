@@ -1,5 +1,8 @@
 # 02-ecr —— ECR 镜像仓库创建（每环境独立，21 个）
 
+> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：已由 css-terraform 接管（<group>/<env>/ecr stack）：create-ecr.sh 废弃勿再执行。
+> 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
+
 一条命令按环境建齐 ECR 私有仓库：**每环境独立前缀** `<env>/css-xxx`，3 环境 × 7 仓库 = **21 个**；全部开启推送扫描（scanOnPush），并挂 lifecycle 策略——每仓库只保留最近 5 个镜像。幂等可重复执行。
 
 ## 怎么用

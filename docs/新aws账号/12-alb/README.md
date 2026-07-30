@@ -1,5 +1,8 @@
 # 12-alb —— 系统入口 ALB（Web 只经 ALB 访问）
 
+> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：已由 css-terraform 接管（各环境 alb stack，删除保护已开）：create-alb.sh 废弃；两个 revoke 脚本为历史记录。
+> 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
+
 **访问规范（2026-07-28 拍板，2026-07-29 收口完成）**：
 
 1. 所有 EC2 的 **SSH/IP 直连一律只经堡垒机**（nonprod=`css-non-prod-gw` EIP 3.225.148.166、prod=`css-prod-bastion`，仅放行管理 IP 221.214.0.190/32）；

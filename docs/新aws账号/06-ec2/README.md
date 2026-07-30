@@ -1,5 +1,8 @@
 # 06-ec2 —— 服务器（应用机 / 网关堡垒机）与 SSH 密钥 💰
 
+> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：机器创建/删除已由 css-terraform 接管（network 的网关机 + 各环境 ec2 stack）：create-app-ec2.sh/create-gateway.sh/delete-ec2.sh 废弃；setup-ssh-key.sh、create-instance-keys.sh 仍有效（密钥不进 TF）。
+> 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
+
 四个脚本，覆盖"建机 → 装密钥 → 删机"全流程。**访问铁律**：应用机全在私有子网、无公网 IP，
 SSH 只能经堡垒机跳，Web 只能经 ALB（见 [12-alb](../12-alb/README.md)）。
 

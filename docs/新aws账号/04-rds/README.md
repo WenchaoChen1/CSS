@@ -1,5 +1,8 @@
 # 04-rds —— 创建 RDS PostgreSQL 实例 💰
 
+> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：实例层已由 css-terraform 接管（css-non-prod/database）：create/resize/delete-rds.sh 废弃；库级操作（05-数据同步）不变。
+> 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
+
 创建两个 RDS PostgreSQL 16 实例（各自 VPC 的私有子网，不可公网访问，主密码由 Secrets Manager 托管）：非生产 `css-non-prod`（t4g.micro，✅ 已建）、生产 `css-prod`（t4g.medium，Multi-AZ + 备份 7 天 + 删除保护，等 Paid plan）。
 
 ## 怎么用

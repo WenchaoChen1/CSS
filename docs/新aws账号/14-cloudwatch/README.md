@@ -1,5 +1,8 @@
 # 14-cloudwatch —— 监控告警 + 日志收集（两者均已落地 ✅）
 
+> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：test/uat 监控已由 css-terraform 接管（各环境 monitoring stack）：create-monitoring.sh/setup-logs.sh 废弃。
+> 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
+
 `create-monitoring.sh <test|uat|prod> [告警邮箱] [--with-agent]`
 一条命令给一个环境配齐：**告警（Alarms）→ 通知（SNS 邮件）→ 仪表盘（Dashboard）**。
 资源带 `Group` + `CssEnv` 双标签，幂等可重复执行。
