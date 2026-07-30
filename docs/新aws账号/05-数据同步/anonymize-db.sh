@@ -105,7 +105,7 @@ PY
 )
 awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }
 # SSM 的 DescribeInstanceInformation 不允许标签过滤与其它过滤混用，先用 EC2 按标签取实例再核对在线
-ID=$(awsq ec2 describe-instances --filters "Name=tag:CssEnv,Values=css-$ENV_NAME" "Name=instance-state-name,Values=running" \
+ID=$(awsq ec2 describe-instances --filters "Name=tag:Environment,Values=css-$ENV_NAME" "Name=instance-state-name,Values=running" \
   --query 'Reservations[0].Instances[0].InstanceId')
 if [ "$ID" != "None" ] && [ -n "$ID" ]; then
   ONLINE=$(awsq ssm describe-instance-information --filters "Key=InstanceIds,Values=$ID" --query 'InstanceInformationList[0].PingStatus')

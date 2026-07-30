@@ -1,6 +1,6 @@
 # 13-s3 —— 各环境应用存储桶
 
-> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：test/uat/prod 应用桶已由 css-terraform 接管（各环境 s3 stack）：create-s3.sh 废弃；css-dbsync/css-dev 桶暂仍脚本管理。
+> ⚠️ **2026-07-30 起本目录创建类脚本已删除**（本 README 保留作资源说明/运维参考）：test/uat/prod 应用桶已由 css-terraform 接管（各环境 s3 stack）：create-s3.sh 废弃；css-dbsync/css-dev 桶暂仍脚本管理。
 > 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
 
 应用上传的发票 / 目录 / 图片等文件存这里（后端 `S3_STORAGE_BUCKET_NAME`）。一环境一个桶，互不可见。

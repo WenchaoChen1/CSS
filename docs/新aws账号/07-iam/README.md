@@ -1,6 +1,6 @@
 # 07-iam —— CI/CD 与运行时 IAM（OIDC + 三环境隔离角色）
 
-> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：三环境角色/用户已由 css-terraform 接管（各环境 iam stack）：create-iam.sh 勿再执行；OIDC provider 待 global stack 纳管；create-app-s3-user.sh --new-key 发 key 流程仍有效。
+> ⚠️ **2026-07-30 起本目录创建类脚本已删除**（本 README 保留作资源说明/运维参考）：三环境角色/用户已由 css-terraform 接管（各环境 iam stack）：create-iam.sh 勿再执行；OIDC provider 待 global stack 纳管；create-app-s3-user.sh --new-key 发 key 流程仍有效。
 > 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
 
 一条命令建齐 CI/CD 与运行所需的全部 IAM（零成本）：GitHub OIDC provider + 每环境一套完全隔离的三件套——部署角色 `css-deploy-<env>`（GitHub Actions 假扮）、EC2 实例角色 `css-ec2-<env>`、应用 S3 用户 `css-app-<env>`（由 `create-app-s3-user.sh` 单独维护，缺省不生成 key）。幂等：存在即复用，策略覆盖式刷新。

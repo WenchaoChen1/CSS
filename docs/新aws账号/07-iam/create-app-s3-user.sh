@@ -37,11 +37,11 @@ if aws iam get-user --user-name "$USER" >/dev/null 2>&1; then
   echo "用户已存在: $USER"
 else
   aws iam create-user --user-name "$USER" \
-    --tags Key=Group,Value="$GROUP" Key=CssEnv,Value="css-$ENV_NAME" >/dev/null
+    --tags Key=EnvironmentGroup,Value="$GROUP" Key=Environment,Value="css-$ENV_NAME" >/dev/null
   echo "用户创建: $USER"
 fi
 # 标签补齐（老用户可能建的时候没打全）
-aws iam tag-user --user-name "$USER" --tags Key=Group,Value="$GROUP" Key=CssEnv,Value="css-$ENV_NAME" >/dev/null
+aws iam tag-user --user-name "$USER" --tags Key=EnvironmentGroup,Value="$GROUP" Key=Environment,Value="css-$ENV_NAME" >/dev/null
 
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 if command -v cygpath >/dev/null 2>&1; then TMPF=$(cygpath -m "$TMP"); else TMPF="$TMP"; fi

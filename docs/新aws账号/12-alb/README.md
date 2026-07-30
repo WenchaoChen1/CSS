@@ -1,6 +1,6 @@
 # 12-alb —— 系统入口 ALB（Web 只经 ALB 访问）
 
-> ⚠️ **2026-07-30 起本目录创建类脚本已废弃**：已由 css-terraform 接管（各环境 alb stack，删除保护已开）：create-alb.sh 废弃；两个 revoke 脚本为历史记录。
+> ⚠️ **2026-07-30 起本目录创建类脚本已删除**（本 README 保留作资源说明/运维参考）：已由 css-terraform 接管（各环境 alb stack，删除保护已开）：create-alb.sh 废弃；两个 revoke 脚本为历史记录。
 > 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
 
 **访问规范（2026-07-28 拍板，2026-07-29 收口完成）**：

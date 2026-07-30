@@ -6,7 +6,7 @@
 #   2) cron 每 5 分钟自愈检查：backend 冒烟(/api/docs)失败即执行 deploy.sh <env> up 兜底重拉。
 # 重新部署新版本仍走 CI/CD（GitHub Actions → SSM → deploy.sh deploy）；本脚本解决的是
 # "机器重启/进程意外挂掉后服务自动恢复"，不引入新的发布入口。
-# 用法: ./setup-autodeploy.sh <test|uat|prod>     （前置：机器已是 SSM 部署目标[标签 CssEnv=css-<env>]，见 09-ssm-run-command）
+# 用法: ./setup-autodeploy.sh <test|uat|prod>     （前置：机器已是 SSM 部署目标[标签 Environment=css-<env>]，见 09-ssm-run-command）
 set -euo pipefail
 
 ENV_NAME="${1:?用法: setup-autodeploy.sh <test|uat|prod>}"

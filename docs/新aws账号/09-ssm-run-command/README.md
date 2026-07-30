@@ -5,11 +5,11 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ## 一、本文件夹的脚本
 
 ```bash
-# ① 把一台 EC2 配置成 SSM 部署目标（挂角色/补权限 + 打 CssEnv=css-<env> 标签 + 等 Online）
+# ① 把一台 EC2 配置成 SSM 部署目标（挂角色/补权限 + 打 Environment=css-<env> 标签 + 等 Online）
 #    仅手工建的机器需要；06-ec2 脚本建的机器（css-test-app / css-uat-app）已自带角色与标签
 bash docs/新aws账号/09-ssm-run-command/setup-ssm.sh test <instance-id>
 
-# ② 对某环境远程执行任意命令（按 CssEnv 标签定位，JSON 安全编码，回显输出）
+# ② 对某环境远程执行任意命令（按 Environment 标签定位，JSON 安全编码，回显输出）
 bash docs/新aws账号/09-ssm-run-command/run.sh test 'docker ps --format "{{.Names}} {{.Status}}"'
 
 # ③ 手动部署一个环境（CI 目前只推镜像，部署由本脚本执行）
@@ -26,24 +26,24 @@ bash docs/新aws账号/09-ssm-run-command/deploy-env.sh test [all|core|infra|bac
 ```
 workflow / 本机（已持 css-deploy-<env> 或管理员凭证）
   └─ run.sh <env> '<命令>'
-       ① describe-instance-information：找 标签 CssEnv=css-<env> 且 Ping=Online 的实例
+       ① describe-instance-information：找 标签 Environment=css-<env> 且 Ping=Online 的实例
        ② send-command（文档 AWS-RunShellScript，root 身份执行）
        ③ 每 5s 轮询直到终态 → 回显 stdout/stderr，失败退出非 0 → workflow 红
 ```
 
-权限收口在 IAM：`css-deploy-<env>` 的 `ssm:SendCommand` 带条件 `ssm:resourceTag/CssEnv=css-<env>`——**test 的流水线在 IAM 层面就发不到 uat/prod 的机器**。
+权限收口在 IAM：`css-deploy-<env>` 的 `ssm:SendCommand` 带条件 `ssm:resourceTag/Environment=css-<env>`——**test 的流水线在 IAM 层面就发不到 uat/prod 的机器**。
 
-**为什么网关机的 `CssEnv` 必须是 `css-shared`**：`run.sh`/`deploy-env.sh` 用 `--filters "Key=tag:CssEnv,Values=css-<env>"` 定位部署目标机，IAM 条件也按同一标签放行。网关机 `css-non-prod-gw` 若打成 `css-test`，就会被 test 的部署命令选中——deploy.sh 跑到网关机上去。打 `css-shared`（跨环境共享资源专用值）既满足"每资源必有 Group+CssEnv 标签"，又永远不会被任何环境的部署命中；成本分摊上这部分（VPC/子网/网关机/RDS 实例本身等）是 test/uat 共担的基础设施。
+**为什么网关机的 `Environment` 必须是 `css-shared`**：`run.sh`/`deploy-env.sh` 用 `--filters "Key=tag:Environment,Values=css-<env>"` 定位部署目标机，IAM 条件也按同一标签放行。网关机 `css-non-prod-gw` 若打成 `css-test`，就会被 test 的部署命令选中——deploy.sh 跑到网关机上去。打 `css-shared`（跨环境共享资源专用值）既满足"每资源必有 Group+Environment 标签"，又永远不会被任何环境的部署命中；成本分摊上这部分（VPC/子网/网关机/RDS 实例本身等）是 test/uat 共担的基础设施。
 
 **每台应用机的前置（两处，新机一次性；控制台路径）**：
 1. **实例角色**：EC2 → Instances → 勾选实例 → **Actions → Security → Modify IAM role** → 选 `css-ec2-<env>`（角色含 SSM 托管策略 + ECR 只读 + 读本环境参数）；
-2. **标签**：实例页 **Tags** 页签 → `Key=CssEnv, Value=css-test|css-uat|css-prod` + `Key=Group, Value=css-non-prod|css-prod`（值必须带 `css-` 前缀，setup-ssm.sh 会自动打）。
+2. **标签**：实例页 **Tags** 页签 → `Key=Environment, Value=css-test|css-uat|css-prod` + `Key=Group, Value=css-non-prod|css-prod`（值必须带 `css-` 前缀，setup-ssm.sh 会自动打）。
 3. 机器必须能**出站**（私网机器经网关机 NAT / NAT 网关）；角色刚变更后 Agent 刷新凭证可能要几分钟。
 
 验证就绪：
 
 ```bash
-aws ssm describe-instance-information --filters "Key=tag:CssEnv,Values=css-test" --query "InstanceInformationList[].{id:InstanceId,ping:PingStatus}" --output table
+aws ssm describe-instance-information --filters "Key=tag:Environment,Values=css-test" --query "InstanceInformationList[].{id:InstanceId,ping:PingStatus}" --output table
 ```
 
 ## 三、可视化页面
@@ -53,7 +53,7 @@ aws ssm describe-instance-information --filters "Key=tag:CssEnv,Values=css-test"
 | **命令执行历史**（每次部署都有记录，含 deploy.sh 完整输出） | Systems Manager → **Run Command** → Command history：`https://us-east-1.console.aws.amazon.com/systems-manager/run-command/complete-commands?region=us-east-1`，点 Command ID → 选实例 → Output |
 | 哪些机器 SSM 在线 | **Fleet Manager**：`https://us-east-1.console.aws.amazon.com/systems-manager/fleet-manager/managed-nodes?region=us-east-1`（Ping status 应为 Online） |
 | 网页版终端上机（代替 SSH） | **Session Manager** → Start session：`https://us-east-1.console.aws.amazon.com/systems-manager/session-manager?region=us-east-1`；命令行 `aws ssm start-session --target <实例id>` |
-| 机器的角色/标签 | EC2 实例页 → Security 页签（IAM Role）、Tags 页签（CssEnv/Group） |
+| 机器的角色/标签 | EC2 实例页 → Security 页签（IAM Role）、Tags 页签（Environment/Group） |
 
 与堡垒机的关系：部署**不经过堡垒机**；堡垒机 `css-non-prod-gw`（EIP 3.225.148.166）是给人用的（SSH 跳板、psql 隧道）。SSM 与堡垒机互为备份通道。
 
@@ -137,6 +137,15 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 - ⚠️ 耦合键成对改：`API_KEY`==`VITE_X_API_KEY`（一个在 backend.env、一个在 frontend.env）、`CATALOG_OCR_API_KEY`==`OCR_API_KEY`；`PASSWORD_SALT` 迁移必须原样搬运。
 - **dev 环境不走 Parameter Store**：`deploy-env/dev/backend.env` 由本地 compose 直接 `--env-file` 读（入口 `.\deploy\windows\本地dev.ps1`），改完 restart 即生效。
 - 在控制台直接 Edit 参数值也行（见下节），但会与本地底稿失联——下次谁跑 put-params 就把控制台改动覆盖回去。**推荐永远从本地底稿走**。
+
+### Terraform 纳管说明（2026-07-30）
+
+- 参数的【壳】（名称/类型/tier/标签）由 css-terraform 管理（uat 已建壳，test 暂不纳管——存量参数含密钥不 import）；
+  参数的【值】永远不进 Terraform——你自己用控制台改、aws cli `put-parameter --overwrite`、
+  或本目录旁的 put-params.sh 推送均可，Terraform 不会产生任何 diff（壳上有 ignore_changes[value]）。
+- ⚠️ 唯一别动的是壳属性（tier / KMS key）：改壳会让 Terraform 用占位值重写参数，真值会丢。
+- 标签键 2026-07-30 已切换：`Environment`（原 CssEnv）+ `EnvironmentGroup`（原 Group），
+  本目录脚本与 IAM 条件已同步更新。
 
 ## 六、在 AWS 控制台哪里看这些配置
 

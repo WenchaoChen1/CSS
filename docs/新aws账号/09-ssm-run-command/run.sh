@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 经 AWS SSM Run Command 在目标环境 EC2 上执行命令（免 SSH/22 端口），等待完成并回显输出。
-# 目标机按标签 CssEnv=css-<env> 定位（且 SSM Online）。命令经 JSON 安全编码，支持引号/多行/特殊字符。
+# 目标机按标签 Environment=css-<env> 定位（且 SSM Online）。命令经 JSON 安全编码，支持引号/多行/特殊字符。
 # 用法: ./run.sh <test|uat|prod> '<shell 命令>'   （与 Backend 仓库 deploy/aws/ssm-run.sh 同源）
 set -euo pipefail
 
@@ -10,9 +10,9 @@ REGION="${AWS_REGION:-us-east-1}"
 PY=$(command -v python3 || command -v python) || { echo "需要 python"; exit 1; }
 
 IDS=$(aws ssm describe-instance-information --region "$REGION" \
-  --filters "Key=tag:CssEnv,Values=css-$ENV_NAME" \
+  --filters "Key=tag:Environment,Values=css-$ENV_NAME" \
   --query 'InstanceInformationList[?PingStatus==`Online`].InstanceId' --output text | tr -d '\r')
-[ -n "$IDS" ] || { echo "[FAIL] 没有 SSM Online 且标签 CssEnv=css-$ENV_NAME 的实例"; exit 1; }
+[ -n "$IDS" ] || { echo "[FAIL] 没有 SSM Online 且标签 Environment=css-$ENV_NAME 的实例"; exit 1; }
 echo "目标实例: $IDS"
 
 # 用 python 生成 JSON 参数，命令内容任意字符都安全

@@ -66,7 +66,7 @@
 = sha256 + env 里的 `PASSWORD_SALT` + **10 万次迭代**。**盐必须与运行环境一致**，否则改完仍然登录不上——历史踩过这个坑
 （导入的用户用的是原团队的 salt，而 env 里是随机 salt，结果登录全挂）。密码明文只在本机参与计算，不进 AWS 日志。
 
-**执行链路**：本机算哈希 → SSM Run Command 发到该环境应用机（按标签 `CssEnv=css-<env>` 定位，机器在 VPC 内能连 RDS）
+**执行链路**：本机算哈希 → SSM Run Command 发到该环境应用机（按标签 `Environment=css-<env>` 定位，机器在 VPC 内能连 RDS）
 → 机器上读 `/opt/css-cicd/env/<env>/backend.env` 取库连接 → `docker run postgres:16 psql` 生成并在**单事务**里执行全部 UPDATE → 前后各抽样校验。
 
 **test 实测结果（2026-07-29）**：未加前缀的邮箱残留 **0 条**；**188 个账号**哈希统一，且与本机计算值一致。
@@ -85,7 +85,7 @@
    - 建库/同步本身在控制台看不到库列表，这里确认实例 Available、连接数曲线（Monitoring 页签）在同步期间有波动。
 2. **Systems Manager → Session Manager**（上 VPC 内机器执行用）：
    - 直达：<https://us-east-1.console.aws.amazon.com/systems-manager/session-manager>
-   - Start session 选中应用机（标签 `CssEnv=css-<env>`），免 SSH 密钥直接开 shell 跑本目录脚本。
+   - Start session 选中应用机（标签 `Environment=css-<env>`），免 SSH 密钥直接开 shell 跑本目录脚本。
 3. 库级核对靠 psql：`docker run --rm -e PGPASSWORD=... postgres:16 psql -h <host> -U postgres -l` 看库列表；抽查表数/行数。
 
 ## 状态/注意

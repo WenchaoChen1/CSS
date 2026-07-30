@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 把一台 EC2 配置成 SSM Run Command 可达的部署目标（挂实例角色 + 打 CssEnv 标签 + 验证 Online）。
+# 把一台 EC2 配置成 SSM Run Command 可达的部署目标（挂实例角色 + 打 Environment 标签 + 验证 Online）。
 # CI/CD 的部署命令就是经 SSM 送达（免 SSH/22/pem）；用 docs/新aws账号/06-ec2 建的新机已自动配好，
 # 本脚本用于：给已有机器补配（如现有 test 机）、或排查一台机器为什么 SSM 不可达。
 # 用法: ./setup-ssm.sh <test|uat|prod> <instance-id>
@@ -34,10 +34,10 @@ else
   echo "已给 $ROLE_NAME 补挂 AmazonSSMManagedInstanceCore + /css/$ENV_NAME/* 读取"
 fi
 
-# ---- 2) 标签（SSM 按 CssEnv 定位部署目标；IAM 条件也校验它）----
+# ---- 2) 标签（SSM 按 Environment 定位部署目标；IAM 条件也校验它）----
 aws ec2 create-tags --region "$REGION" --resources "$INSTANCE" \
-  --tags "Key=CssEnv,Value=css-$ENV_NAME" "Key=Group,Value=$GROUP"
-echo "标签已打: CssEnv=css-$ENV_NAME Group=$GROUP"
+  --tags "Key=Environment,Value=css-$ENV_NAME" "Key=EnvironmentGroup,Value=$GROUP"
+echo "标签已打: Environment=css-$ENV_NAME EnvironmentGroup=$GROUP"
 
 # ---- 3) 等待并验证 SSM Online（角色变更后 Agent 最长几分钟才刷新凭证）----
 echo "等待 SSM Online（最长 5 分钟）..."
