@@ -17,12 +17,12 @@ REGION="us-east-1"
 [ -f "$OCR_DUMP" ]  || { echo "文件不存在: $OCR_DUMP"; exit 1; }
 
 case "$ENV_NAME" in
-  test|uat) GW_NAME=css-nonprod-gw;   RDS_ID=css-non-prod ;;
+  test|uat) GW_NAME=css-non-prod-gw;   RDS_ID=css-non-prod ;;
   prod)     GW_NAME=css-prod-bastion; RDS_ID=css-prod ;;
   *) echo "环境必须是 test|uat|prod"; exit 1 ;;
 esac
 if [ "$ENV_NAME" = "prod" ]; then
-  read -r -p "⚠️ 即将【覆盖恢复生产库】css-prod-main/css-prod-ocr，输入 prod 确认: " ok
+  read -r -p "[WARN] 即将【覆盖恢复生产库】css-prod-main/css-prod-ocr，输入 prod 确认: " ok
   [ "$ok" = "prod" ] || { echo "已取消"; exit 1; }
 fi
 

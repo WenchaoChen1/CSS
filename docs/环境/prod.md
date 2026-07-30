@@ -36,7 +36,7 @@
 
 1. `git checkout main && git merge uat && git push neworg main`；
 2. 流水线自动：lint → 测试 → build → push ECR（`prod-vN`）；
-3. **停在 deploy job**：GitHub Environment `production`（Required reviewers）等你审批；
+3. **停在 deploy job**：GitHub Environment **`main`**（environment 名与分支名相同，2026-07-29 起弃用 `production`；Required reviewers 需 Team+ 计划，Free 下改由"手动 Run workflow"充当人工闸）等你审批；
 4. 审批后：migrate job（**RDS 快照 → 核对 alembic_version → upgrade**）→ deploy job（SSM → prod 应用机）→ 健康检查冒烟；
 5. 回滚：`workflow_dispatch` 选上一个 `prod-vN` tag 重新部署，分钟级。
 

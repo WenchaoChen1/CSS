@@ -107,7 +107,7 @@ worker 现有 **6 个 arq cron**（每日安全码 ×2、`check_unregistered_cli
 - **镜像**：同 ECR（不可变 tag + 扫描）；GitHub 托管 runner 经 **OIDC** 假设 AWS 角色构建推送（免静态密钥）。
 - **部署**（方案一是 SSM 触发 `deploy.sh`，本方案替换为）：`aws ecs update-service --force-new-deployment`（滚动）或 **CodeDeploy 蓝绿**（两 target group 切流，零停机）。
 - **迁移**：`deploy` 前独立 job `aws ecs run-task` 跑一次性 migrate 任务（先打 RDS 快照 + `alembic_version` 核对）。
-- **审批**：生产部署走 GitHub Environment `production` + Required reviewers。
+- **审批**：生产部署走 GitHub Environment `main` + Required reviewers（2026-07-29 起 environment 名=分支名 test/uat/main）。
 - **IaC**：全栈 Terraform/CDK（VPC/ALB/ECS/RDS/ElastiCache/MQ/SQS/EventBridge/IAM/CloudFront/WAF），prod 从第一天纳管，杜绝控制台手改。
 
 ---

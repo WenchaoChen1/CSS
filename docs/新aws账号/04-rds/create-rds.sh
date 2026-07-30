@@ -11,12 +11,13 @@ awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }
 
 case "$GROUP" in
   nonprod) VPC_NAME=css-non-prod; DB_ID=css-non-prod; CLASS=db.t4g.micro
-           MULTI_AZ=""; RETENTION=1; PROTECT="--no-deletion-protection"; SG_NAME=css-nonprod-rds-sg ;;
+           MULTI_AZ=""; RETENTION=1; PROTECT="--no-deletion-protection"; SG_NAME=css-non-prod-rds-sg ;;
   prod)    VPC_NAME=css-prod;     DB_ID=css-prod;       CLASS=db.t4g.medium
            MULTI_AZ="--multi-az"; RETENTION=7; PROTECT="--deletion-protection"; SG_NAME=css-prod-rds-sg ;;
   *) echo "未知组"; exit 1 ;;
 esac
-case "$GROUP" in prod) EXTRA_TAGS='Key=CssEnv,Value=css-prod' ;; *) EXTRA_TAGS="" ;; esac
+# 非生产实例是 test+uat 共用一个 RDS → CssEnv=css-shared（不能写某一个环境名）
+case "$GROUP" in prod) EXTRA_TAGS='Key=CssEnv,Value=css-prod' ;; *) EXTRA_TAGS='Key=CssEnv,Value=css-shared' ;; esac
 
 VPC_ID=$(awsq ec2 describe-vpcs --filters "Name=tag:Name,Values=$VPC_NAME" --query 'Vpcs[0].VpcId')
 PRI1=$(awsq ec2 describe-subnets --filters "Name=tag:Name,Values=$VPC_NAME-private-1a" --query 'Subnets[0].SubnetId')
@@ -30,7 +31,7 @@ if ! aws --region "$REGION" rds describe-db-subnet-groups --db-subnet-group-name
     --db-subnet-group-name "$SUBNET_GROUP" \
     --db-subnet-group-description "$VPC_NAME private subnets" \
     --subnet-ids "$PRI1" "$PRI2" \
-    --tags Key=Group,Value="$VPC_NAME" >/dev/null
+    --tags Key=Group,Value="$VPC_NAME" Key=CssEnv,Value=css-shared >/dev/null
   echo "子网组创建: $SUBNET_GROUP"
 fi
 

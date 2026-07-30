@@ -44,7 +44,7 @@ Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填
 ## 6. 一次性 GitHub 配置（两仓库都要，未配置前 workflow 会在 AWS 凭证步失败）
 
 1. ~~Repository variables~~ **已免配**（2026-07-28 起角色 ARN/ECR 地址写死于 workflow）。
-2. ~~Environments 审批~~ **GitHub Free 私有仓库不支持环境审批**——生产闸改为 workflow 内置手动触发（push main 只构建；部署 prod = Actions → Run workflow）。环境无需任何配置；误建的 `main` 环境可删。
+2. ~~Environments 审批~~ **GitHub Free 私有仓库不支持环境审批**——生产闸改为 workflow 内置手动触发（push main 只构建；部署 prod = Actions → Run workflow）。Environments 用 `test` / `uat` / **`main`** 三个（2026-07-29 起环境名与分支名一律相同，生产环境就叫 `main`，不再用 `production`），三个都已存在、**里面什么都不用填**。
 3. charles221900 账号 **Settings → Emails** 验证 `charles@shinypathway.com`（提交头像关联）。
 
 ## 7. 待办 / 已知限制

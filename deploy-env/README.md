@@ -18,6 +18,8 @@ deploy-env/
   改这里的文件只是改"底稿"，要生效必须执行 `docs/新aws账号/11-parameter-store/put-params.sh <env>` 上传，
   再重新部署（后端变量）或重新构建前端镜像（`VITE_*` 是构建期烤入）。
 - **本地 dev**：`CSS_backend-main\deploy\windows\本地dev.ps1` 直接读 `dev/backend.env`，改完 `up` 即生效（无需 rebuild）。
+- **dev 的 S3 已直连真实 AWS S3**：桶 `css-dev-582797602427`（us-east-1），密钥属专用 IAM 用户
+  `css-app-dev`（内联策略只授权本桶）——本地开发也直传真实桶，不再使用 `localhost:9000` 的 MinIO。
 - 耦合键约束：`API_KEY == VITE_X_API_KEY`、`CATALOG_OCR_API_KEY == OCR_API_KEY`，改一处必须同步另一处。
 - RDS master 密码轮换（Secrets Manager 90 天）后：更新 `POSTGRES_PASSWORD` + 两个 `OCR_*_URL` 内嵌密码，重新 put-params。
 

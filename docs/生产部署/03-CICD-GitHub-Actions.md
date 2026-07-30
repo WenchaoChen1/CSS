@@ -53,8 +53,10 @@ EC2 自动执行 deploy.sh（增强版）
 |------|-------------|---------------|----------|------|
 | push `test` 分支 | 构建 6 后端镜像 → 部署 infra+backend 栈 | 构建前端镜像 → 部署 frontend 栈 | **test**（非生产 VPC 的 test 服务器，§5.0） | 无，全自动 |
 | push `uat` 分支 | 同上 | 同上 | **uat**（非生产 VPC 的 uat 服务器，§5.0） | 无（可选加） |
-| push `main` 分支 | 构建镜像（自动）→ 部署 **prod**（人工审批） | 同左 | **prod**（生产 VPC，§5.0） | **GitHub Environment `production` Required reviewers** |
+| push `main` 分支 | 构建镜像（自动）→ 部署 **prod**（人工审批） | 同左 | **prod**（生产 VPC，§5.0） | **GitHub Environment `main` Required reviewers** |
 | `workflow_dispatch` 手动 | 选环境 + 选镜像 tag 部署（回滚入口） | 同左 | 任意 | prod 仍需审批 |
+
+> 📌 **2026-07-29 拍板：GitHub environment 名 = 分支名，一律相同——`test` / `uat` / `main`。** 原先生产用的 `production` 是唯一例外命名，已废弃；两仓库 workflow 的 `environment:` 表达式与 `07-iam` 的 OIDC 信任策略（`repo:ORG/REPO:environment:main`）均已改名并重跑生效。注意区分：**部署环境（`DEPLOY_ENV`）仍叫 `prod`**，改名的只是 GitHub environment 这一个标识。
 
 - 你草图里的 `develop` 分支在新仓库里不存在——日常开发对应 **`test` 分支**（dev 环境目前只在本地 Docker，不进 CI/CD）。
 - 老仓库→新仓库的定时合并走**专用中间分支 `upstream-sync`**（2026-07-28 拍板）：老 main 先合到它、解冲突后再合入 `test`（触发 CI 验证），逐级晋级 `uat` → `main`。`upstream-sync` 分支本身不触发部署。
@@ -204,10 +206,13 @@ AWS 账号 `582797602427` / us-east-1，新建两套 VPC，环境彻底隔离。
 ```
 VPC css-non-prod（10.20.0.0/16）
 ├── 公有子网 ×2（跨 2 AZ）
-│   └── EC2 网关机（t4g.nano ≈$3/月，绑 EIP）—— 一台三职：
+│   ├── ALB css-test ✅ + ALB css-uat ✅（2026-07-29：每环境一个，名字=环境名；旧共享 ALB 与 Host 分流已作废）
+│   │   css-test-524317374.us-east-1.elb.amazonaws.com / css-uat-1366981991.us-east-1.elb.amazonaws.com
+│   └── EC2 网关机（t4g.micro，绑 EIP 3.225.148.166）—— 2026-07-29 起只剩两职：
 │       ① 堡垒：22 ← 仅 221.214.0.190/32，SSH ProxyJump 进私网
 │       ② NAT：test/uat 出网（ECR/S3/SSM/第三方 API）经它转发（省 NAT 网关 $32/月）
-│       ③ 反代：nginx :80→test:80、:8080→uat:80（80/8080 ← 仅 221.214.0.190/32）
+│          ⚠️ SG 里的 `10.20.0.0/16 全协议` 是 NAT 回程，删了 test/uat 断网
+│       ~~③ 反代 nginx :80/:8080~~ 已停用禁用、SG 规则已撤（12-alb/revoke-gw-proxy.sh）
 └── 私有子网 ×2（跨 2 AZ，RDS 子网组要求）
     ├── EC2 test 应用服务器（Linux，t3.large 2c8G，跑 test 三栈，无公网 IP）
     ├── EC2 uat  应用服务器（Linux，t3.large 2c8G，跑 uat  三栈，无公网 IP）
@@ -253,23 +258,24 @@ VPC css-prod（10.10.0.0/16）
 | | 项 | 估算 |
 |---|------|------|
 | 非生产 | test t3.large + uat t3.large | ~$120 |
-| | 网关机 t4g.nano（堡垒+NAT+反代三合一） | ~$3 |
+| | 网关机 t4g.micro（堡垒 + NAT 两职；反代已收） | ~$6 |
 | | RDS css-non-prod（t4g.micro，✅ 已建） | ~$15 |
-| | EIP/EBS/杂项 | ~$18 |
-| | **小计** | **~$155/月** |
+| | **ALB ×2**（`css-test` + `css-uat`，✅ 已建，每环境一个） | ~$40 |
+| | 公网 IPv4（EIP 1 + ALB 节点 4）/EBS/S3/杂项 | ~$34 |
+| | **小计** | **~$215/月** |
 | 生产 | EC2 c5.xlarge（可先 c5.large ~$70 观察负载） | ~$140 |
 | | 堡垒机 t4g.nano | ~$3 |
 | | NAT 网关（+流量） | ~$35 |
 | | RDS css-prod（t4g.medium Multi-AZ + 备份） | ~$120 |
-| | ALB | ~$20 |
+| | ALB `css-prod` | ~$20 |
 | | 公网 IPv4×4 / S3 / CloudWatch / 杂项 | ~$40 |
 | | **小计** | **~$355/月**（预留实例可再降 30%+） |
 
-> ⚠️ **账号计划阻断（2026-07-28 实查）**：账号 `582797602427` 目前是 **FREE plan**，剩余 credits **$53.87**（2027-01-03 到期）。本拓扑月费约 **$510**，Free plan 撑不过几天且部分计费资源可能被直接拒建。**必须先在控制台升级为 Paid plan**（Billing → 升级，绑付款方式——需账号所有者操作），再创建 EC2/RDS/NAT/ALB/EIP。零成本资源（VPC/子网/SG/IAM/OIDC/Parameter Store/S3 端点）不受影响，可先行创建。
+> ⚠️ **账号计划阻断（2026-07-28 实查）**：账号 `582797602427` 目前是 **FREE plan**，剩余 credits **$53.87**（2027-01-03 到期）。本拓扑月费约 **$570**（2026-07-29 ALB 改每环境一个后 +$40+）。Free plan 撑不过几天且部分计费资源可能被直接拒建。**必须先在控制台升级为 Paid plan**（Billing → 升级，绑付款方式——需账号所有者操作），再创建 EC2/RDS/NAT/ALB/EIP。零成本资源（VPC/子网/SG/IAM/OIDC/Parameter Store/S3 端点）不受影响，可先行创建。
 
 ### 5.1 test —— push 即上（全自动）
 
-**基础设施**：非生产 VPC 的 test 服务器（⏳ 待建，06-ec2）+ RDS `css-non-prod` 的 `css-test-main`/`css-test-ocr` 库（✅ 已建成并载入 preprod 数据）。（过渡期方案已作废：旧默认 VPC 的 test EC2 `i-08e110b5a5425980d` 与旧 RDS 实例均已于 2026-07-28 删除。）
+**基础设施**：非生产 VPC 的 test 服务器 `css-test-app`（✅ `i-0b3e73ed51811b69c`，10.20.10.10，三栈已部署）+ RDS `css-non-prod` 的 `css-test-main`/`css-test-ocr` 库（✅ 已载入 preprod 数据并于 2026-07-29 脱敏）+ 入口 ALB `css-test`（✅ `css-test-524317374.us-east-1.elb.amazonaws.com`）+ S3 桶 `css-test-582797602427`（✅）。（过渡期方案已作废：旧默认 VPC 的 test EC2 `i-08e110b5a5425980d` 与旧 RDS 实例均已于 2026-07-28 删除。）
 
 **一次典型发布**：
 1. 你（或定时任务把老仓库合并过来后）`git push neworg test`；
@@ -291,7 +297,7 @@ VPC css-prod（10.10.0.0/16）
 **发布流**：
 1. uat 验证 OK → `git checkout main && git merge uat && git push neworg main`；
 2. workflow 自动跑完 lint/测试/build/push（镜像 `prod-vN` 已就绪在 ECR）；
-3. **流水线停在 deploy job**——GitHub Environment `production` 配了 Required reviewers，你在 GitHub 页面上点 Approve 才继续；
+3. **流水线停在 deploy job**——GitHub Environment **`main`**（§2 命名规则：environment 名=分支名）配了 Required reviewers，你在 GitHub 页面上点 Approve 才继续；
 4. 审批通过 → migrate job（快照 + alembic_version 核对 + upgrade）→ deploy job（SSM → prod 应用机）→ 冒烟；
 5. 出问题 → `workflow_dispatch` 选上一个 `prod-vN` tag 重新部署即回滚（分钟级）。
 
@@ -332,11 +338,11 @@ jobs:
       - run: ./deploy/aws/build-push.sh $DEPLOY_ENV $DEPLOY_ENV-v$GITHUB_RUN_NUMBER   # 双 tag 增强版（<env>-vN + <env>）
   migrate:
     needs: build-push
-    environment: ${{ env.DEPLOY_ENV == 'prod' && 'production' || env.DEPLOY_ENV }}  # prod 带审批
+    environment: ${{ env.DEPLOY_ENV == 'prod' && 'main' || env.DEPLOY_ENV }}  # environment 名=分支名；prod → main
     steps: [快照(非test) → SSM 执行 deploy.sh migrate]
   deploy:
     needs: migrate
-    environment: ${{ env.DEPLOY_ENV == 'prod' && 'production' || env.DEPLOY_ENV }}
+    environment: ${{ env.DEPLOY_ENV == 'prod' && 'main' || env.DEPLOY_ENV }}
     steps:
       - 上传部署包(compose+deploy.sh) → SSM send-command 执行增强版 deploy.sh → wait 结果
 ```
@@ -370,7 +376,7 @@ jobs:
 
 ### GitHub 侧
 
-两仓库各建 Environments：`test`、`uat`、`production`（后者配 **Required reviewers**）；仓库级 Variables 配 `AWS_ROLE_ARN_TEST/UAT/PROD` + `ECR_REGISTRY` 四个（值见 docs/环境/配置速查.md）。分支保护：`main` 禁止直推可选开启（与"定时合并"流程协调后再定）。
+两仓库各建 Environments：`test`、`uat`、`main`（**2026-07-29 起 environment 名=分支名 test/uat/main**，弃用 `production`；最后一个配 **Required reviewers**——Free 私有仓库不提供，实际改为 workflow 内置手动触发闸）；仓库级 Variables 配 `AWS_ROLE_ARN_TEST/UAT/PROD` + `ECR_REGISTRY` 四个（值见 docs/环境/配置速查.md）。分支保护：`main` 禁止直推可选开启（与"定时合并"流程协调后再定）。
 
 ---
 
@@ -398,7 +404,7 @@ jobs:
 | 密钥明文 `.env` 人肉流转 | Parameter Store SecureString + 实例角色按环境隔离读取 |
 | 可变镜像 tag 无回滚 | `<env>-vN` 不可变版本 tag + lifecycle（每仓库保留 5 个）+ dispatch 回滚 |
 | 部署无验证、down+up 停机 | `--wait` + 冒烟；（真零停机留给方案二 ECS） |
-| 误发生产 | `production` Environment Required reviewers |
+| 误发生产 | `main` Environment Required reviewers（environment 名=分支名） |
 | 迁移卡发布 | 迁移独立 job；uat/prod 先快照；prod 加 alembic_version 核对 |
 
 ---
@@ -409,7 +415,7 @@ jobs:
 |------|------|------|
 | **一：test 跑通全链**（先做） | 仓库侧 7 项准备（✅ 已全部完成，2026-07-28） → AWS 侧 1-4 → 两仓库 workflow 上线 → 在**现有** test EC2 上 push test 分支验证全绿 | 现有资源即可，**零新增基础设施** |
 | **二：css-non-prod VPC 落地** | 建非生产 VPC（✅）+ 网关机（✅）+ 新建 RDS css-non-prod 并 05-数据同步迁数据（✅ test 两库已载入）+ 退役默认 VPC 旧 EC2/RDS（✅ 已删）→ 建 test/uat 应用机（06-ec2，⏳）→ 部署 test（现阶段手动 deploy-env.sh）→ 上线 uat（`css-uat-main`/`css-uat-ocr` 库 + `/css/uat/*` 参数，同 workflow 直接生效） | 阶段一流水线全绿 |
-| **三：css-prod VPC 上线** | 建生产 VPC 全套（§5.0 + 01-方案一硬化表）→ `production` Environment 审批 → 首次全量部署 + 数据迁移（`docs/老aws账号/`） | prod 子网模式拍板（§11） |
+| **三：css-prod VPC 上线** | 建生产 VPC 全套（§5.0 + 01-方案一硬化表）→ `main` Environment 审批（名=分支名）→ 首次全量部署 + 数据迁移（`docs/老aws账号/`） | prod 子网模式拍板（§11） |
 
 ---
 

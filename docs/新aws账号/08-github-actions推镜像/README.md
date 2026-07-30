@@ -2,16 +2,19 @@
 
 > GitHub Actions 自动推镜像/部署的**完整手册**：脚本用途、页面怎么找、配置什么、日常怎么用、出错怎么查。
 > workflow 本体在两仓库 `.github/workflows/cicd.yml`（名字 **CICD**，push `test`/`uat`/`main` 自动：构建 → 双 tag 推每环境独立 ECR 仓库——不可变版本号 `<env>-vN` + 浮动 `<env>`）。
-> ⚠️ **现状（2026-07-28）：CI 只推镜像**——migrate/deploy job 已在 workflow 里注释；部署 = 手动执行 [`../09-ssm-run-command/deploy-env.sh <env>`](../09-ssm-run-command/README.md)。本文涉及"CI 自动部署/SSM 部署"的流程描述均为**恢复注释后的目标态**。
+> ✅ **现状（2026-07-28 晚）：自动部署已启用**——AWS 侧 RDS/网关机/test+uat 应用机就绪后，migrate 与 deploy job 已取消注释：
+> push `test`/`uat` → 构建镜像 + alembic 迁移 + SSM 部署；push `main` → **只构建镜像**，生产部署要人为 Run workflow（就是人工闸）。
+> 手动兜底/回滚仍可用 [`../09-ssm-run-command/deploy-env.sh <env>`](../09-ssm-run-command/README.md)。
 > 具体值（ARN/registry/标签）统一见 [../../环境/配置速查.md](../../环境/配置速查.md)。以下"仓库页"指 `github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend`（Frontend 仓库同样操作一遍）。
 
 ## 〇、本文件夹的脚本
 
-`setup-github-actions.sh <backend|frontend|all>`：用 gh CLI 一键做下面 §1 的仓库配置（Environments + production 审批人；4 个 Variables 自 2026-07-28 起已写死进 workflow，脚本中该步骤变为冗余无害）。前置 `winget install GitHub.cli` + `gh auth login`（charles221900）。不装 gh 就照 §1 手动点页面，效果一样。
+`setup-github-actions.sh <backend|frontend|all>`：用 gh CLI 一键做下面 §1 的仓库配置（幂等创建 `test`/`uat`/`main` 三个 Environments；4 个 Variables 自 2026-07-28 起已写死进 workflow，脚本中该步骤变为冗余无害）。前置 `winget install GitHub.cli` + `gh auth login`（charles221900）。三个环境你已手工建齐，**脚本现在跑不跑都一样**；不装 gh 就照 §1 手动点页面，效果相同。
 
 ## 一、需要配置的页面（一次性）
 
-> **2026-07-28 简化**：原来的 4 个 Repository variables（角色 ARN×3 + ECR 地址）为非敏感固定值，**已直接写死进两个仓库的 workflow 文件**，①不再需要配置。剩下真正必须手动做的只有 ②production 审批人（否则 prod 部署没有人工闸）和 ③邮箱验证（仅影响头像）。
+> **2026-07-28 简化**：原来的 4 个 Repository variables（角色 ARN×3 + ECR 地址）为非敏感固定值，**已直接写死进两个仓库的 workflow 文件**，①不再需要配置。
+> **2026-07-29 再简化**：GitHub environment 名统一为**与分支同名**——`test` / `uat` / **`main`**（原先生产叫 `production`，是三者中唯一的例外命名，已废弃）。你手工建的三个环境**正好就是这三个名字**，②因此也不用动。真正还需要手动做的只剩 ③邮箱验证（仅影响头像）。
 > ⚠️ 推镜像**仍然需要 IAM 权限**：workflow 经 OIDC 用 GitHub 签发的身份证明向 AWS 换取几分钟过期的临时凭证（角色信任策略只认这两个仓库的对应分支，`07-iam` 配置）；写死的 ARN 只是角色名字，权限全在 AWS 侧控制。
 
 ### ① Repository variables（已免配，留档说明）
@@ -21,15 +24,28 @@
 
 原需配置 `AWS_ROLE_ARN_TEST/UAT/PROD`、`ECR_REGISTRY` 四个变量（值见配置速查 §2），现已写死于 workflow `env:` 段与 `role-to-assume`，无需操作。这四个都不是密钥——OIDC 方案下 GitHub 不存任何 AWS 密钥。
 
-### ② production 生产闸（2026-07-28 起：手动触发模式，无需页面配置）
+### ② Environments：**已就位，什么都不用改**（2026-07-29 定稿）
 
-> **实测限制**：GitHub Free 计划的**私有仓库不支持环境审批**（Configure 页没有 Required reviewers 区域）。因此生产闸改为 **workflow 内置的手动触发模式**：
-> - push `main` → 只跑 lint + 构建镜像（`prod-vN` 推入 ECR，随时可发）；**不会自动部署生产**；
-> - 真要部署生产 = 人为去 Actions → CICD → **Run workflow** → environment 选 `prod` →（可选 image_tag）→ 运行——这一步就是人工审批。
-> 加上 main 分支已配"需 PR 才能合并"，代码闸 + 部署闸齐全。若将来升级 GitHub Team（$4/人/月），可改回环境 Required reviewers 模式。
+**怎么找**：仓库页 → **Settings** → 左侧 **Environments**。
+直达：`https://github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend/settings/environments`
 
-**Environments 页面维护**（两仓库）：workflow 用的环境名是 `test`/`uat`/`production`（自动创建，无需配置规则）；如果手动建过 `main` 环境请删除（名字对不上，避免混淆）。Environment secrets/variables 全部留空——值已写死进 workflow。
-（可选加固：`production` 环境的 Deployment branches and tags 改为 Selected branches → 只允许 `main`。）
+**命名规则（2026-07-29 用户拍板）：GitHub environment 名 = 分支名，一律相同。** 即 **`test` / `uat` / `main`** 三个。
+原先生产用的 `production` 是三者中唯一的例外命名，已废弃——workflow 的 `environment:` 表达式与 `07-iam/create-iam.sh` 的信任策略均已改为 `main` 并重跑生效。
+
+| 环境名 | 对应分支 | 对应部署环境（`DEPLOY_ENV`） | 你要做什么 |
+|--------|----------|------------------------------|------------|
+| `test` | `test` | test | **无**，已存在且名字正确 |
+| `uat` | `uat` | uat | **无**，已存在且名字正确 |
+| `main` | `main` | prod（部署目标仍叫 prod，只有 environment 名叫 main） | **无**，已存在且名字正确 |
+
+> 也就是说：**不用删任何环境、不用新建任何环境、里面不用填任何东西。** 你早先建的三个环境与 workflow 现在引用的名字完全一致。
+
+**里面留空是设计，不是遗漏**：
+- **Secrets / Variables 留空** —— AWS 凭证走 OIDC 临时换取，GitHub 不存任何 key；角色 ARN 与 ECR 地址是非敏感固定值，已写死在 workflow 的 `env:` 段与 `role-to-assume`。
+- **Protection rules 配不了** —— GitHub Free 的私有仓库不提供 Required reviewers / Wait timer（Configure 页根本没有这块区域，已实测截图确认）。生产闸因此由 **workflow 内部实现**：push `main` 只跑 lint + 构建镜像（`prod-vN` 推 ECR，随时可发），**不会自动部署生产**；真要发布 = 人为去 Actions → CICD → **Run workflow** → environment 选 `prod` →（可选 image_tag）→ 运行，这一步就是人工闸。加上 main 分支已配"需 PR 才能合并"，代码闸 + 部署闸齐全。将来升级 GitHub Team（$4/人/月）可改回 Required reviewers 模式。
+- **Environment 在这套方案里的唯一实际作用**：给 OIDC 的 `sub` 提供 **`environment:<名字>`** 这一维，与 `07-iam` 信任策略里的 `repo:ORG/REPO:environment:test|uat|main` **一一对应**；名字对不上（比如环境叫 `production` 而策略写 `main`）会直接 **AccessDenied**。这也正是"environment 名必须与分支名保持同名约定"的实际价值——少一套需要对齐的命名。
+
+（可选加固：`main` 环境的 **Deployment branches and tags** 改成 Selected branches → 只允许 `main` 分支。这个选项 Free 计划可用。）
 
 ### ③ 提交邮箱验证（charles221900 个人账号，一次）
 
@@ -42,15 +58,15 @@
 
 **怎么找**：仓库页 → 顶部 **Actions** 标签 → 左侧选 **CICD** workflow → 点某次 run。
 - **看本次版本号**：build-push job 日志里的镜像 tag（`<env>-vN`，N=run 序号），回滚时要用；
-- **审批 prod**：run 页面出现黄色 "Review deployments" → 点它 → 勾选 `production` → **Approve and deploy**；
+- **审批 prod**：Free 私有仓库无环境审批，正常不会出现审批卡点（生产闸=手动 Run workflow，见 §一②）；将来升级 Team 开了 Required reviewers 后，run 页面会出现黄色 "Review deployments" → 点它 → 勾选 **`main`** 环境 → **Approve and deploy**；
 - **重跑**：run 页面右上 **Re-run all jobs**（配置错误修好后用）；
-- **看失败原因**：点红叉的 job → 展开红色步骤；deploy job（现已注释，恢复后）的日志里包含 EC2 端 deploy.sh 的完整输出——现阶段部署输出看手动 `deploy-env.sh` 的终端回显 / SSM Run Command 历史。
+- **看失败原因**：点红叉的 job → 展开红色步骤；deploy job 的日志里直接包含 EC2 端 deploy.sh 的完整输出（pull/up/冒烟/清理），不用另外上机器查。
 
 ### 回滚 / 手动指定环境部署
 
 **怎么找**：Actions → CICD → 右侧 **Run workflow** 下拉（灰色按钮）。
 **填什么**：Branch 选对应分支 → `environment` 选目标环境 → `image_tag` 填要回退到的不可变版本 tag（`<env>-vN`，如 `test-v12`，从 ECR 控制台或上次成功 run 的日志里查）→ **Run workflow**。填了 tag 会跳过构建直接部署旧镜像；prod 仍要过审批。
-⚠️ 现阶段 deploy job 注释中，Run workflow 只会重推镜像不会部署——回滚实际执行 `../09-ssm-run-command/deploy-env.sh <env> all <env>-vN`。
+填了 `image_tag` 会跳过构建、直接把该版本部署上去；命令行兜底同样可用：`../09-ssm-run-command/deploy-env.sh <env> all <env>-vN`。
 
 ### 推送结果（AWS 侧）
 
@@ -75,7 +91,7 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 
 | 现象 | 原因/处理 |
 |------|-----------|
-| configure-aws-credentials 报 Not authorized | 分支不在角色信任策略里（只信 test/uat/main 与三个 Environment，见 `07-iam`） |
+| configure-aws-credentials 报 Not authorized | 分支不在角色信任策略里，或 **environment 名与信任策略对不上**（只信 `test`/`uat`/`main` 三个分支与**同名的**三个 Environment，见 `07-iam`） |
 | Parameter not found | 该环境的 `/css/<env>/*.env` 还没灌入 Parameter Store（`11-parameter-store`） |
 | ECR push 报 not authorized/not exist | 目标环境的 `<env>/css-xxx` 仓库未建（`02-ecr`）或角色权限与前缀不符 |
 | ssm-run 报没有 Online 实例 | 见 [../09-ssm-run-command/README.md](../09-ssm-run-command/README.md) |

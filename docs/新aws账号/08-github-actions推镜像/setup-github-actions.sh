@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# 一键配置 GitHub Actions 自动推镜像/部署所需的仓库设置（Variables + Environments + prod 审批人）。
+# 一键配置 GitHub Actions 自动推镜像/部署所需的仓库设置（Variables + Environments）。
 # workflow 文件本身已在两仓库 .github/workflows/cicd.yml（push test/uat/main 自动触发）——本脚本只做"仓库侧配置"。
+# 📌 2026-07-29 起：GitHub environment 名与分支名一律相同 —— test / uat / main（生产 environment 就叫 main，
+#    弃用原先的例外名 production）。三个环境已手工建齐，本脚本幂等重跑无副作用。
 # 用法: ./setup-github-actions.sh <backend|frontend|all>
 # 前置: 安装 GitHub CLI 并登录 charles221900 账号:
 #   winget install GitHub.cli   （或 https://cli.github.com）
@@ -10,7 +12,7 @@ set -euo pipefail
 TARGET="${1:?用法: setup-github-actions.sh <backend|frontend|all>}"
 ORG="Chain-Serve-Solutions"
 ACCOUNT_ID="582797602427"
-REVIEWER="charles221900"   # production 环境的审批人
+REVIEWER="charles221900"   # main 环境（=生产）的审批人；GitHub Free 私有仓库不支持环境审批，此项仅 Team+ 计划生效
 
 case "$TARGET" in
   backend)  REPOS=("Chain-Service-Solutions-Backend") ;;
@@ -35,14 +37,14 @@ for repo in "${REPOS[@]}"; do
   gh variable set ECR_REGISTRY      --repo "$FULL" --body "${ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com"
   echo "  Variables ×4 已写入"
 
-  # ---- 2) Environments：test / uat 无保护；production 加 Required reviewers ----
+  # ---- 2) Environments：名字=分支名（test / uat / main）；main 试着加 Required reviewers（Free 计划会被拒，无妨）----
   gh api -X PUT "repos/$FULL/environments/test" >/dev/null
   gh api -X PUT "repos/$FULL/environments/uat"  >/dev/null
-  gh api -X PUT "repos/$FULL/environments/production" \
+  gh api -X PUT "repos/$FULL/environments/main" \
     --input - >/dev/null <<EOF
 { "reviewers": [ { "type": "User", "id": $REVIEWER_ID } ] }
 EOF
-  echo "  Environments ×3 已创建（production 审批人: $REVIEWER）"
+  echo "  Environments ×3 已创建（test / uat / main；main 审批人: $REVIEWER）"
 
   # ---- 3) 校验 ----
   echo "  当前 variables:"

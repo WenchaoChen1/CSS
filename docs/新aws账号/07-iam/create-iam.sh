@@ -31,6 +31,7 @@ ensure_env() { # env branch gh_environment group
 
   # ---- CI/CD 角色（每环境一个，可推镜像+可部署；2026-07-28 用户拍板不拆 push/deploy）----
   # 信任：两仓库对应分支的 push（build job）+ 对应 environment（migrate/deploy job）。
+  # environment 名与分支名一律相同（test/uat/main）——2026-07-29 用户拍板，弃用 production 这个例外名。
   # 本组织的 GitHub OIDC sub 是带唯一 ID 的新格式（CloudTrail 实测）：
   #   repo:Chain-Serve-Solutions@309824177/Chain-Service-Solutions-Frontend@1314034286:ref:refs/heads/test
   # 故新旧两种格式各写一份；@* 只通配 GitHub 附加的数字 ID，组织/仓库名仍是精确匹配（名字里不允许 @）。
@@ -156,7 +157,7 @@ done
 
 ensure_env test test test       css-non-prod
 ensure_env uat  uat  uat        css-non-prod
-ensure_env prod main production css-prod
+ensure_env prod main main       css-prod
 
 echo ""
 echo "===== IAM 就绪 ====="

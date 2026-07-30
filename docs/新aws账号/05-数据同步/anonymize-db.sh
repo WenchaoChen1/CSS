@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# 非生产环境数据脱敏（从生产/preprod 导入真实数据后【必须】执行一次）：
+#   1) 所有 email 类文本列  → 值前面加 "1"（1foo@bar.com，发不出去也认不出人）
+#   2) 所有 phone 类文本列  → 值后面加 "1"（打不通）
+#   3) 所有 password_hash   → 统一为口令 Test1234! 的哈希
+#      （算法取自目标环境 env：pbkdf2_hmac(PASSWORD_HASH_ALGORITHM, pwd, PASSWORD_SALT, PASSWORD_HASH_ITERATIONS)，
+#       盐值必须与运行环境一致，否则改完仍然登录不上——历史踩过这个坑）
+# 列是动态遍历 information_schema 找的（只认 text/varchar/char），并排除列名含 type 的枚举类字段。
+# 在应用机上经 SSM 执行（它在 VPC 内、能连 RDS）。**prod 环境直接拒绝执行**。
+# 用法: ./anonymize-db.sh <test|uat> [口令，默认 Test1234!]
+set -euo pipefail
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
+
+ENV_NAME="${1:?用法: anonymize-db.sh <test|uat> [口令]}"
+NEW_PASSWORD="${2:-Test1234!}"
+REGION="us-east-1"
+case "$ENV_NAME" in
+  test|uat) ;;
+  prod) echo "拒绝：生产数据不做脱敏（本脚本只用于非生产环境）"; exit 1 ;;
+  *) echo "环境必须是 test|uat"; exit 1 ;;
+esac
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="$SCRIPT_DIR/../../../deploy-env/$ENV_NAME/backend.env"
+[ -f "$ENV_FILE" ] || { echo "缺 $ENV_FILE"; exit 1; }
+getvar() { { grep -E "^$1=" "$ENV_FILE" || true; } | tail -1 | cut -d= -f2- | tr -d '"\r'; }
+
+ALGO="$(getvar PASSWORD_HASH_ALGORITHM)"; ALGO="${ALGO:-sha256}"
+SALT="$(getvar PASSWORD_SALT)"
+ITER="$(getvar PASSWORD_HASH_ITERATIONS)"; ITER="${ITER:-100000}"
+DB="$(getvar POSTGRES_DB)"
+[ -n "$SALT" ] || { echo "$ENV_FILE 缺 PASSWORD_SALT"; exit 1; }
+
+# ---- 本机算出新口令的哈希（十六进制），密码明文不出本机 ----
+HASH_HEX=$( (python3 - "$ALGO" "$NEW_PASSWORD" "$SALT" "$ITER" 2>/dev/null || python - "$ALGO" "$NEW_PASSWORD" "$SALT" "$ITER") <<'PY'
+import hashlib, sys
+algo, pwd, salt, iters = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+print(hashlib.pbkdf2_hmac(algo, pwd.encode(), salt.encode(), iters).hex())
+PY
+)
+echo "目标: $ENV_NAME / 库 $DB"
+echo "口令 '$NEW_PASSWORD' 的哈希（$ALGO, ${ITER} 次迭代, salt ${SALT:0:8}…）: ${HASH_HEX:0:24}…"
+
+# ---- 远程脚本：动态遍历列 → 生成并执行 UPDATE ----
+REMOTE=$(cat <<REOF
+set -euo pipefail
+EF=/opt/css-cicd/env/$ENV_NAME/backend.env
+gv() { { grep -E "^\$1=" "\$EF" || true; } | tail -1 | cut -d= -f2- | tr -d '"\r'; }
+export PGPASSWORD="\$(gv POSTGRES_PASSWORD)"
+HOSTDB="\$(gv POSTGRES_HOST)"; USERDB="\$(gv POSTGRES_USER)"; DBNAME="\$(gv POSTGRES_DB)"
+PSQL="docker run --rm -i -e PGPASSWORD=\$PGPASSWORD postgres:16 psql -h \$HOSTDB -U \$USERDB -d \$DBNAME -v ON_ERROR_STOP=1"
+
+# 抽样表动态取（本库用户表叫 "user"，是 SQL 保留字，必须带引号；别的库可能叫别的名字）
+SAMPLE_TBL=\$(\$PSQL -tAc "SELECT quote_ident(table_name) FROM information_schema.columns
+  WHERE table_schema='public' AND column_name='email' AND data_type IN ('text','character varying')
+  ORDER BY table_name='user' DESC LIMIT 1")
+echo "--- 脱敏前抽样（表 \$SAMPLE_TBL）---"
+[ -n "\$SAMPLE_TBL" ] && \$PSQL -tAc "select 'email: '||email from \$SAMPLE_TBL where email is not null limit 3" || true
+
+# 生成 UPDATE 语句：email 前缀 1 / phone 后缀 1（只认文本列，排除枚举类 *type* 列）
+\$PSQL -tAc "
+SELECT format('UPDATE %I.%I SET %I = ''1'' || %I WHERE %I IS NOT NULL AND %I NOT LIKE ''1%%'';',
+              table_schema, table_name, column_name, column_name, column_name, column_name)
+FROM information_schema.columns
+WHERE table_schema='public' AND data_type IN ('text','character varying','character')
+  AND column_name ILIKE '%email%' AND column_name NOT ILIKE '%type%'
+UNION ALL
+SELECT format('UPDATE %I.%I SET %I = %I || ''1'' WHERE %I IS NOT NULL;',
+              table_schema, table_name, column_name, column_name, column_name)
+FROM information_schema.columns
+WHERE table_schema='public' AND data_type IN ('text','character varying','character')
+  AND column_name ILIKE '%phone%' AND column_name NOT ILIKE '%type%'
+" > /tmp/anon.sql
+echo "--- 生成 \$(wc -l < /tmp/anon.sql) 条列级 UPDATE ---"
+
+# 密码列：bytea 用 decode()，文本列直接写 hex
+\$PSQL -tAc "
+SELECT format(CASE WHEN data_type='bytea'
+                   THEN 'UPDATE %I.%I SET %I = decode(''$HASH_HEX'',''hex'');'
+                   ELSE 'UPDATE %I.%I SET %I = ''$HASH_HEX'';' END,
+              table_schema, table_name, column_name)
+FROM information_schema.columns
+WHERE table_schema='public' AND column_name ILIKE '%password%hash%'
+" >> /tmp/anon.sql
+
+cat /tmp/anon.sql
+echo "--- 执行（单事务）---"
+{ echo 'BEGIN;'; cat /tmp/anon.sql; echo 'COMMIT;'; } | \$PSQL
+rm -f /tmp/anon.sql
+
+echo "--- 脱敏后校验 ---"
+[ -n "\$SAMPLE_TBL" ] && {
+  \$PSQL -tAc "select 'email: '||email from \$SAMPLE_TBL where email is not null limit 3"
+  \$PSQL -tAc "select '未加前缀的邮箱残留: '||count(*) from \$SAMPLE_TBL where email is not null and email not like '1%'"
+}
+\$PSQL -tAc "SELECT format('%I.%I: %s 种哈希 / %s 行', table_schema, table_name, 1, 1)
+  FROM information_schema.columns WHERE table_schema='public' AND column_name ILIKE '%password%hash%'" || true
+REOF
+)
+
+PARAMS=$( (python3 - "$REMOTE" 2>/dev/null || python - "$REMOTE") <<'PY'
+import json, sys
+print(json.dumps({"commands": [sys.argv[1]], "executionTimeout": ["1800"]}))
+PY
+)
+awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }
+# SSM 的 DescribeInstanceInformation 不允许标签过滤与其它过滤混用，先用 EC2 按标签取实例再核对在线
+ID=$(awsq ec2 describe-instances --filters "Name=tag:CssEnv,Values=css-$ENV_NAME" "Name=instance-state-name,Values=running" \
+  --query 'Reservations[0].Instances[0].InstanceId')
+if [ "$ID" != "None" ] && [ -n "$ID" ]; then
+  ONLINE=$(awsq ssm describe-instance-information --filters "Key=InstanceIds,Values=$ID" --query 'InstanceInformationList[0].PingStatus')
+  [ "$ONLINE" = "Online" ] || { echo "$ENV_NAME 应用机 $ID 未注册 SSM"; exit 1; }
+fi
+[ "$ID" != "None" ] && [ -n "$ID" ] || { echo "找不到在线的 $ENV_NAME 应用机"; exit 1; }
+echo "在 $ID 上执行…"
+CID=$(awsq ssm send-command --instance-ids "$ID" --document-name AWS-RunShellScript \
+  --comment "anonymize css-$ENV_NAME" --parameters "$PARAMS" --query 'Command.CommandId')
+while :; do
+  ST=$(awsq ssm get-command-invocation --command-id "$CID" --instance-id "$ID" --query Status 2>/dev/null || echo Pending)
+  case "$ST" in Success|Failed|Cancelled|TimedOut) break ;; esac
+  sleep 10
+done
+echo "状态: $ST"
+awsq ssm get-command-invocation --command-id "$CID" --instance-id "$ID" --query StandardOutputContent 2>/dev/null || true
+[ "$ST" = "Success" ] || awsq ssm get-command-invocation --command-id "$CID" --instance-id "$ID" --query StandardErrorContent 2>/dev/null | tail -20
+
+echo ""
+echo "===== 脱敏完成：所有账号口令现为 '$NEW_PASSWORD' ====="
+echo "提醒：口令哈希依赖 PASSWORD_SALT=${SALT:0:8}…；换环境/换盐后必须重跑本脚本，否则登录全失败"

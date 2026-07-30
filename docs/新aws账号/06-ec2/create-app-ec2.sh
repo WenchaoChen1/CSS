@@ -17,9 +17,9 @@ awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }
 
 case "$ENV_NAME" in
   test) VPC_NAME=css-non-prod; SUBNET_NAME=css-non-prod-private-1a; PRIVATE_IP=10.20.10.10
-        TYPE="${2:-m7i-flex.large}"; SG_NAME=css-nonprod-app-sg ;;
+        TYPE="${2:-m7i-flex.large}"; SG_NAME=css-non-prod-app-sg ;;
   uat)  VPC_NAME=css-non-prod; SUBNET_NAME=css-non-prod-private-1b; PRIVATE_IP=10.20.11.10
-        TYPE="${2:-m7i-flex.large}"; SG_NAME=css-nonprod-app-sg ;;
+        TYPE="${2:-m7i-flex.large}"; SG_NAME=css-non-prod-app-sg ;;
   prod) VPC_NAME=css-prod;     SUBNET_NAME=css-prod-private-1a;     PRIVATE_IP=10.10.10.10
         TYPE="${2:-c5.xlarge}"; SG_NAME=css-prod-app-sg ;;
   *) echo "环境必须是 test|uat|prod"; exit 1 ;;

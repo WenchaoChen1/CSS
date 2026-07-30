@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 删除一台 EC2 实例并释放其关联 EIP（⚠️ 不可逆：根卷随实例销毁）。
 # 典型用途：退役默认 VPC 时代的旧 test 机 css-non-prod（i-08e110b5a5425980d，2026-07-28）。
-# 安全护栏：网关/堡垒机（css-nonprod-gw / css-prod-bastion）拒绝删除，防误伤私有子网出网通道。
+# 安全护栏：网关/堡垒机（css-non-prod-gw / css-prod-bastion）拒绝删除，防误伤私有子网出网通道。
 # 用法: ./delete-ec2.sh <实例ID或Name标签> yes     （第二参必须字面量 yes，防手滑）
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
@@ -22,7 +22,7 @@ read -r ID NAME TYPE VPC PUB < <(awsq ec2 describe-instances "${FILTER[@]}" \
 [ "${ID:-None}" != "None" ] || { echo "找不到实例: $TARGET"; exit 1; }
 
 case "$NAME" in
-  css-nonprod-gw|css-prod-bastion)
+  css-non-prod-gw|css-prod-bastion)
     echo "拒绝: $NAME 是网关/堡垒机（私有子网出网与运维通道），不允许用本脚本删除"; exit 1 ;;
 esac
 

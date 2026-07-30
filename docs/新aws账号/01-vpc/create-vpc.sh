@@ -7,6 +7,10 @@ set -euo pipefail
 
 GROUP="${1:?用法: create-vpc.sh <nonprod|prod>}"
 REGION="us-east-1"
+# 标签规范（2026-07-29）：所有资源都带 Group + CssEnv。
+# 网络骨架是 test/uat 共享的，CssEnv 一律 css-shared——**不能写 css-test/css-uat**，
+# 否则会被 IAM 的 ssm:SendCommand 条件与 run.sh 的部署目标过滤命中（那是按 CssEnv=css-<env> 找机器的）。
+SHARED_ENV="css-shared"
 ADMIN_CIDR="221.214.0.190/32"   # 唯一管理白名单 IP
 
 case "$GROUP" in
@@ -24,7 +28,7 @@ awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }
 VPC_ID=$(awsq ec2 describe-vpcs --filters "Name=tag:Name,Values=$VPC_NAME" --query 'Vpcs[0].VpcId')
 if [ "$VPC_ID" = "None" ] || [ -z "$VPC_ID" ]; then
   VPC_ID=$(awsq ec2 create-vpc --cidr-block "$CIDR" \
-    --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=$VPC_NAME},{Key=Group,Value=$VPC_NAME}]" \
+    --tag-specifications "ResourceType=vpc,Tags=[{Key=Name,Value=$VPC_NAME},{Key=Group,Value=$VPC_NAME},{Key=CssEnv,Value=$SHARED_ENV}]" \
     --query 'Vpc.VpcId')
   aws --region "$REGION" ec2 modify-vpc-attribute --vpc-id "$VPC_ID" --enable-dns-hostnames
   echo "VPC 创建: $VPC_ID"
@@ -38,7 +42,7 @@ ensure_subnet() { # name cidr az
   sid=$(awsq ec2 describe-subnets --filters "Name=tag:Name,Values=$name" "Name=vpc-id,Values=$VPC_ID" --query 'Subnets[0].SubnetId')
   if [ "$sid" = "None" ] || [ -z "$sid" ]; then
     sid=$(awsq ec2 create-subnet --vpc-id "$VPC_ID" --cidr-block "$cidr" --availability-zone "$az" \
-      --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=$name},{Key=Group,Value=$VPC_NAME}]" --query 'Subnet.SubnetId')
+      --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=$name},{Key=Group,Value=$VPC_NAME},{Key=CssEnv,Value=$SHARED_ENV}]" --query 'Subnet.SubnetId')
     echo "子网创建: $name $sid" >&2
   else
     echo "子网复用: $name $sid" >&2
@@ -54,7 +58,7 @@ PRI2_ID=$(ensure_subnet "$VPC_NAME-private-1b" "$PRI2" "$AZ2")
 IGW_ID=$(awsq ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query 'InternetGateways[0].InternetGatewayId')
 if [ "$IGW_ID" = "None" ] || [ -z "$IGW_ID" ]; then
   IGW_ID=$(awsq ec2 create-internet-gateway \
-    --tag-specifications "ResourceType=internet-gateway,Tags=[{Key=Name,Value=$VPC_NAME-igw},{Key=Group,Value=$VPC_NAME}]" \
+    --tag-specifications "ResourceType=internet-gateway,Tags=[{Key=Name,Value=$VPC_NAME-igw},{Key=Group,Value=$VPC_NAME},{Key=CssEnv,Value=$SHARED_ENV}]" \
     --query 'InternetGateway.InternetGatewayId')
   aws --region "$REGION" ec2 attach-internet-gateway --internet-gateway-id "$IGW_ID" --vpc-id "$VPC_ID"
   echo "IGW 创建并挂载: $IGW_ID"
@@ -68,7 +72,7 @@ ensure_rt() { # name
   rtid=$(awsq ec2 describe-route-tables --filters "Name=tag:Name,Values=$name" "Name=vpc-id,Values=$VPC_ID" --query 'RouteTables[0].RouteTableId')
   if [ "$rtid" = "None" ] || [ -z "$rtid" ]; then
     rtid=$(awsq ec2 create-route-table --vpc-id "$VPC_ID" \
-      --tag-specifications "ResourceType=route-table,Tags=[{Key=Name,Value=$name},{Key=Group,Value=$VPC_NAME}]" --query 'RouteTable.RouteTableId')
+      --tag-specifications "ResourceType=route-table,Tags=[{Key=Name,Value=$name},{Key=Group,Value=$VPC_NAME},{Key=CssEnv,Value=$SHARED_ENV}]" --query 'RouteTable.RouteTableId')
     echo "路由表创建: $name $rtid" >&2
   else
     echo "路由表复用: $name $rtid" >&2
@@ -93,7 +97,7 @@ EP_ID=$(awsq ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=$VPC_ID" "
 if [ "$EP_ID" = "None" ] || [ -z "$EP_ID" ]; then
   EP_ID=$(awsq ec2 create-vpc-endpoint --vpc-id "$VPC_ID" --service-name "com.amazonaws.$REGION.s3" \
     --route-table-ids "$PUB_RT" "$PRI_RT" \
-    --tag-specifications "ResourceType=vpc-endpoint,Tags=[{Key=Name,Value=$VPC_NAME-s3-ep},{Key=Group,Value=$VPC_NAME}]" \
+    --tag-specifications "ResourceType=vpc-endpoint,Tags=[{Key=Name,Value=$VPC_NAME-s3-ep},{Key=Group,Value=$VPC_NAME},{Key=CssEnv,Value=$SHARED_ENV}]" \
     --query 'VpcEndpoint.VpcEndpointId')
   echo "S3 端点创建: $EP_ID"
 else
@@ -106,7 +110,7 @@ ensure_sg() { # name desc
   sgid=$(awsq ec2 describe-security-groups --filters "Name=group-name,Values=$name" "Name=vpc-id,Values=$VPC_ID" --query 'SecurityGroups[0].GroupId')
   if [ "$sgid" = "None" ] || [ -z "$sgid" ]; then
     sgid=$(awsq ec2 create-security-group --group-name "$name" --description "$desc" --vpc-id "$VPC_ID" \
-      --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=$name},{Key=Group,Value=$VPC_NAME}]" --query 'GroupId')
+      --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=$name},{Key=Group,Value=$VPC_NAME},{Key=CssEnv,Value=$SHARED_ENV}]" --query 'GroupId')
     echo "SG 创建: $name $sgid" >&2
   else
     echo "SG 复用: $name $sgid" >&2
@@ -125,18 +129,17 @@ allow_all_from_cidr() { # sg cidr（网关机做 NAT 需收私网全部回程流
 
 if [ "$GROUP" = "nonprod" ]; then
   # 访问规范（2026-07-28 用户拍板）：SSH 一律只经堡垒机；系统（Web）一律只经 ALB+域名；RDS 仅内网。
-  GW_SG=$(ensure_sg  css-nonprod-gw-sg  "gateway: bastion+NAT, admin IP only")
-  ALB_SG=$(ensure_sg css-nonprod-alb-sg "non-prod ALB, public 80/443")
-  APP_SG=$(ensure_sg css-nonprod-app-sg "test/uat app servers, private")
-  RDS_SG=$(ensure_sg css-nonprod-rds-sg "non-prod RDS")
+  GW_SG=$(ensure_sg  css-non-prod-gw-sg  "gateway: bastion+NAT, admin IP only")
+  ALB_SG=$(ensure_sg css-non-prod-alb-sg "non-prod ALB, public 80/443")
+  APP_SG=$(ensure_sg css-non-prod-app-sg "test/uat app servers, private")
+  RDS_SG=$(ensure_sg css-non-prod-rds-sg "non-prod RDS")
+  # 网关机只保留两件事：22（SSH 跳板，仅管理 IP）+ VPC 内网段全协议（NAT 回程）。
+  # 2026-07-29 起 Web 一律走 ALB，网关机 nginx 反代的 80/8080 过渡通道已收（12-alb/revoke-gw-proxy.sh），此处不再放行。
   allow_cidr "$GW_SG" 22   "$ADMIN_CIDR"
-  allow_cidr "$GW_SG" 80   "$ADMIN_CIDR"   # 过渡：网关 nginx 反代 → test（12-alb 的 ALB+域名就绪后收掉本条与下条）
-  allow_cidr "$GW_SG" 8080 "$ADMIN_CIDR"   # 过渡：网关 nginx 反代 → uat
-  allow_all_from_cidr "$GW_SG" "$CIDR"     # NAT 回程
+  allow_all_from_cidr "$GW_SG" "$CIDR"     # NAT 回程（私有子网出网的返回流量，删了 test/uat 就断网）
   allow_cidr "$ALB_SG" 80  0.0.0.0/0
   allow_cidr "$ALB_SG" 443 0.0.0.0/0
   allow_sg "$APP_SG" 80 "$ALB_SG"          # Web 流量只收 ALB
-  allow_sg "$APP_SG" 80 "$GW_SG"           # 过渡：网关反代通道，ALB 就绪后收掉
   allow_sg "$APP_SG" 22 "$GW_SG"           # SSH 只收堡垒机
   allow_sg "$RDS_SG" 5432 "$APP_SG"
   allow_sg "$RDS_SG" 5432 "$GW_SG"

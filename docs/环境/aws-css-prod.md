@@ -50,4 +50,4 @@ Parameter Store：`/css/prod/backend.env`、`/css/prod/frontend.env`。**全部�
 
 ## 7. 部署与发布
 
-`main` 分支 push → 构建自动 → **GitHub Environment `production` 人工审批** → migrate（快照+alembic_version 核对）→ SSM 部署 → 冒烟。回滚用 `prod-vN` 不可变版本 tag。（⚠️ 现阶段 CI 只推镜像，migrate/deploy job 已注释；部署 = 手动 `docs/新aws账号/09-ssm-run-command/deploy-env.sh prod`。）详见 [prod.md](prod.md) 与 03-CICD 文档。
+`main` 分支 push → 构建自动 → **GitHub Environment `main` 人工审批**（2026-07-29 起 environment 名=分支名 test/uat/main，弃用 `production`）→ migrate（快照+alembic_version 核对）→ SSM 部署 → 冒烟。回滚用 `prod-vN` 不可变版本 tag。（⚠️ 现阶段 CI 只推镜像，migrate/deploy job 已注释；部署 = 手动 `docs/新aws账号/09-ssm-run-command/deploy-env.sh prod`。）详见 [prod.md](prod.md) 与 03-CICD 文档。

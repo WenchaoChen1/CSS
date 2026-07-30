@@ -12,7 +12,7 @@ PY=$(command -v python3 || command -v python) || { echo "需要 python"; exit 1;
 IDS=$(aws ssm describe-instance-information --region "$REGION" \
   --filters "Key=tag:CssEnv,Values=css-$ENV_NAME" \
   --query 'InstanceInformationList[?PingStatus==`Online`].InstanceId' --output text | tr -d '\r')
-[ -n "$IDS" ] || { echo "❌ 没有 SSM Online 且标签 CssEnv=css-$ENV_NAME 的实例"; exit 1; }
+[ -n "$IDS" ] || { echo "[FAIL] 没有 SSM Online 且标签 CssEnv=css-$ENV_NAME 的实例"; exit 1; }
 echo "目标实例: $IDS"
 
 # 用 python 生成 JSON 参数，命令内容任意字符都安全
@@ -43,4 +43,4 @@ for id in $IDS; do
     | "$PY" -c 'import json,sys; d=json.load(sys.stdin); print(d["stdout"] or ""); print(d["stderr"] or "", file=sys.stderr); sys.exit(0 if d["status"]=="Success" else 1)' \
     || FAILED=1
 done
-[ "$FAILED" = 0 ] && echo "===== SSM 执行成功 =====" || { echo "❌ SSM 执行失败"; exit 1; }
+[ "$FAILED" = 0 ] && echo "===== SSM 执行成功 =====" || { echo "[FAIL] SSM 执行失败"; exit 1; }
