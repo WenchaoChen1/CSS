@@ -24,6 +24,10 @@ case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境只能是 test|uat|prod"; e
 ROLE="css_app_${ENV_NAME}"
 PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
 
+# RDS 的 master(postgres) 不是真 superuser：改 owner / 改他人默认权限都要求先成为目标角色成员（幂等）
+PSQL -d postgres -c "GRANT ${ROLE} TO postgres;"
+PSQL -d postgres -c "GRANT css_dev TO postgres;"
+
 for db in "css-${ENV_NAME}-main" "css-${ENV_NAME}-ocr"; do
   echo "===== 移交 $db 的 public schema 对象 owner → $ROLE ====="
 
