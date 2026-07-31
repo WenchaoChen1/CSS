@@ -36,6 +36,23 @@ if command -v cygpath >/dev/null 2>&1; then TMPF="$(cygpath -m "$TMP")"; else TM
 keys_of() { grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$1" 2>/dev/null | cut -d= -f1 | sort -u; }
 val_of()  { grep -E "^$2=" "$1" | tail -1; }
 
+# key_diff <文件A> <文件B> <标题>：打印 A→B 的键级差异（只列 KEY 不回显值），无差异不打印
+key_diff() {
+  local A="$1" B="$2" TITLE="$3" ONLY_A ONLY_B CHANGED="" k
+  keys_of "$A" > "$TMP/ka"; keys_of "$B" > "$TMP/kb"
+  ONLY_A=$(comm -23 "$TMP/ka" "$TMP/kb" | tr '\n' ' ')
+  ONLY_B=$(comm -13 "$TMP/ka" "$TMP/kb" | tr '\n' ' ')
+  while read -r k; do
+    [ "$(val_of "$A" "$k")" = "$(val_of "$B" "$k")" ] || CHANGED="$CHANGED$k "
+  done < <(comm -12 "$TMP/ka" "$TMP/kb")
+  [ -z "$ONLY_A$ONLY_B$CHANGED" ] && return 0
+  echo "  $TITLE"
+  [ -n "$ONLY_B" ]  && echo "    · 新增: $ONLY_B"
+  [ -n "$ONLY_A" ]  && echo "    · 删除: $ONLY_A"
+  [ -n "$CHANGED" ] && echo "    · 改值: $CHANGED"
+  return 0
+}
+
 # put_one <本地文件> <参数名后缀> <tier>
 put_one() {
   local SRC="$SRC_DIR/$1" NAME="/css/$ENV_NAME/$1" TIER="$2"
@@ -53,27 +70,42 @@ put_one() {
     sed 's/^/      /' "$TMP/err-$1"
     return 1
   fi
+  local BAK="$SRC_DIR/$1.remote-bak"
   if [ "$GET_OK" = 1 ]; then
     printf '%s' "$(tr -d '\r' < "$REMOTE.raw")" > "$REMOTE"
+    # 基准 = 上次运行时备份的远程值（.remote-bak）。三方对比：基准 / 远程当前 / 本地底稿
+    local BASE="$TMP/base-$1" HAS_BASE=0
+    if [ -f "$BAK" ]; then HAS_BASE=1; printf '%s' "$(tr -d '\r' < "$BAK")" > "$BASE"; fi
+
     if cmp -s "$LOCAL" "$REMOTE"; then
-      echo "[$1] 远程与本地一致，跳过（不产生新版本）"; return 0
+      cp "$REMOTE.raw" "$BAK"   # 刷新基准（单槽位）
+      echo "[$1] 远程与本地一致，跳过（不产生新版本；基准备份已刷新）"; return 0
     fi
-    # —— 有差异：备份远程（单槽位，覆盖上一次）+ 键级差异 + 确认 ——
-    local BAK="$SRC_DIR/$1.remote-bak"
+
+    # —— 有差异：三方键级对比 + 备份远程（单槽位）+ 确认 ——
+    echo "[$1] ⚠️ 远程与本地存在差异（键级对比，只列 KEY 不回显值）："
+    if [ "$HAS_BASE" = 1 ]; then
+      local D1 D2
+      if cmp -s "$BASE" "$REMOTE"; then
+        echo "  ① 远程 自上次备份以来【无变化】（差异全部来自你本地的修改）"
+      else
+        D1=$(key_diff "$BASE" "$REMOTE" "① 远程 自上次备份以来的变化（页面/他人改的，覆盖后将丢失）：")
+        echo "${D1:-  ① 远程 自上次备份以来有变化，但仅注释/空行/顺序（无键级变化）}"
+      fi
+      if cmp -s "$BASE" "$LOCAL"; then
+        echo "  ② 本地底稿 相对上次备份【无修改】（差异全部来自远程侧）"
+      else
+        D2=$(key_diff "$BASE" "$LOCAL" "② 本地底稿 相对上次备份的修改（你改的，将推到远程）：")
+        echo "${D2:-  ② 本地底稿 相对上次备份有改动，但仅注释/空行/顺序（无键级变化）}"
+      fi
+    else
+      echo "  （无上次备份，首次对比没有基准，只能给出两边净差异）"
+    fi
+    local NET
+    NET=$(key_diff "$REMOTE" "$LOCAL" "③ 覆盖后的净变化（远程 → 本地）：")
+    if [ -n "$NET" ]; then echo "$NET"; else echo "  ③ 覆盖后的净变化：无键级变化（仅注释/空行/顺序差异）"; fi
     cp "$REMOTE.raw" "$BAK"
-    echo "[$1] ⚠️ 远程与本地存在差异；远程当前值已备份到 $BAK（覆盖旧备份）"
-    keys_of "$LOCAL"  > "$TMP/k.local";  keys_of "$REMOTE" > "$TMP/k.remote"
-    local ONLY_R ONLY_L CHANGED=""
-    ONLY_R=$(comm -23 "$TMP/k.remote" "$TMP/k.local" | tr '\n' ' ')
-    ONLY_L=$(comm -13 "$TMP/k.remote" "$TMP/k.local" | tr '\n' ' ')
-    while read -r k; do
-      [ "$(val_of "$LOCAL" "$k")" = "$(val_of "$REMOTE" "$k")" ] || CHANGED="$CHANGED$k "
-    done < <(comm -12 "$TMP/k.remote" "$TMP/k.local")
-    echo "  键级差异（只列 KEY 不回显值）："
-    [ -n "$ONLY_R" ]  && echo "  · 仅远程有（本地覆盖后将丢失）: $ONLY_R"
-    [ -n "$ONLY_L" ]  && echo "  · 仅本地有（将新增到远程）  : $ONLY_L"
-    [ -n "$CHANGED" ] && echo "  · 两边都有但值不同          : $CHANGED"
-    [ -z "$ONLY_R$ONLY_L$CHANGED" ] && echo "  · （仅注释/空行/顺序差异）"
+    echo "  远程当前值已备份到 $BAK（单槽位，已覆盖旧备份）"
     if [ "$YES" != "-y" ]; then
       local ANS=""
       read -rp "  确认用【本地】覆盖【远程】？(yes/其他=跳过) " ANS || true
