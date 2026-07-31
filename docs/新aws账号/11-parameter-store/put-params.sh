@@ -3,14 +3,25 @@
 #   /css/<env>/backend.env  ← 工作区 deploy-env/<env>/backend.env  （SecureString, Advanced 层）
 #   /css/<env>/frontend.env ← 工作区 deploy-env/<env>/frontend.env （SecureString, Standard 层）
 # （deploy-env/ 2026-07-28 由 CSS_backend-main/deploy/env 迁出，与两个代码仓库同级）
-# 用法: ./put-params.sh <test|uat|prod>
+#
+# 防误覆盖（2026-07-31 新增）：推送前先取远程当前值对比本地——
+#   一致   → 跳过（不产生新的参数版本）；
+#   有差异 → ① 把远程值备份到 deploy-env/<env>/<名>.env.remote-bak（单槽位，每次发现差异都覆盖上一次备份）
+#            ② 打印【键级】差异（只列变了哪些 KEY，不回显值）③ 要求输入 yes 确认后才覆盖。
+#   这样在控制台页面手动改过参数后，跑本脚本不会不知不觉把页面改动冲掉。
+#
+# 用法: ./put-params.sh <test|uat|prod> [-y]     # -y = 跳过确认（备份与差异提示照常）
 # 注意: Windows git-bash 下 aws.exe 读中文路径/编码会炸——本脚本先拷到 ASCII 临时路径并设 UTF-8。
 set -euo pipefail
 
-ENV_NAME="${1:?用法: put-params.sh <test|uat|prod>}"
+ENV_NAME="${1:?用法: put-params.sh <test|uat|prod> [-y]}"
 case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境必须是 test|uat|prod"; exit 1 ;; esac
+YES="${2:-}"
 REGION="us-east-1"
 export AWS_CLI_FILE_ENCODING=UTF-8
+# 参数值含 ⚠ 等非 GBK 字符时，aws.exe 在中文 Windows 上输出会因 gbk 编码崩溃（曾把"读取失败"误判成
+# "参数不存在"）——强制 Python UTF-8 模式根治（Linux 上无影响）
+export PYTHONUTF8=1
 # git-bash(MSYS) 会把 /css/... 开头的参数误转成 Windows 路径,禁用该转换(Linux 上无影响)
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
@@ -21,15 +32,67 @@ SRC_DIR="$SCRIPT_DIR/../../../deploy-env/$ENV_NAME"
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 if command -v cygpath >/dev/null 2>&1; then TMPF="$(cygpath -m "$TMP")"; else TMPF="$TMP"; fi
-cp "$SRC_DIR/backend.env" "$TMP/be.env"
-cp "$SRC_DIR/frontend.env" "$TMP/fe.env"
 
-aws ssm put-parameter --region "$REGION" --name "/css/$ENV_NAME/backend.env" \
-  --type SecureString --tier Advanced --overwrite --value "file://$TMPF/be.env" >/dev/null
-aws ssm put-parameter --region "$REGION" --name "/css/$ENV_NAME/frontend.env" \
-  --type SecureString --tier Standard --overwrite --value "file://$TMPF/fe.env" >/dev/null
+keys_of() { grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$1" 2>/dev/null | cut -d= -f1 | sort -u; }
+val_of()  { grep -E "^$2=" "$1" | tail -1; }
 
-LEN=$(aws ssm get-parameter --region "$REGION" --name "/css/$ENV_NAME/backend.env" --with-decryption \
-  --query 'length(Parameter.Value)' --output text | tr -d '\r')
-echo "===== 已灌入 /css/$ENV_NAME/{backend,frontend}.env（backend 长度 $LEN 字符） ====="
-echo "生效: 后端变量重跑 deploy job 即可；前端 VITE_* 需重新构建镜像"
+# put_one <本地文件> <参数名后缀> <tier>
+put_one() {
+  local SRC="$SRC_DIR/$1" NAME="/css/$ENV_NAME/$1" TIER="$2"
+  local LOCAL="$TMP/local-$1" REMOTE="$TMP/remote-$1"
+  # 归一化：去 \r + 去尾部空行（--output text 取回的值会带一个附加换行，不归一会误报差异）
+  printf '%s' "$(tr -d '\r' < "$SRC")" > "$LOCAL"
+
+  # 取远程当前值。只有明确的 ParameterNotFound 才算"首次灌入"；其他任何读取失败一律中止，
+  # 绝不盲推（否则可能在没看到远程内容的情况下把它覆盖掉）。
+  local GET_OK=1
+  aws ssm get-parameter --region "$REGION" --name "$NAME" --with-decryption \
+    --query 'Parameter.Value' --output text > "$REMOTE.raw" 2> "$TMP/err-$1" || GET_OK=0
+  if [ "$GET_OK" = 0 ] && ! grep -q "ParameterNotFound" "$TMP/err-$1"; then
+    echo "[$1] ❌ 读取远程失败（非'参数不存在'），为防误覆盖已中止本参数："
+    sed 's/^/      /' "$TMP/err-$1"
+    return 1
+  fi
+  if [ "$GET_OK" = 1 ]; then
+    printf '%s' "$(tr -d '\r' < "$REMOTE.raw")" > "$REMOTE"
+    if cmp -s "$LOCAL" "$REMOTE"; then
+      echo "[$1] 远程与本地一致，跳过（不产生新版本）"; return 0
+    fi
+    # —— 有差异：备份远程（单槽位，覆盖上一次）+ 键级差异 + 确认 ——
+    local BAK="$SRC_DIR/$1.remote-bak"
+    cp "$REMOTE.raw" "$BAK"
+    echo "[$1] ⚠️ 远程与本地存在差异；远程当前值已备份到 $BAK（覆盖旧备份）"
+    keys_of "$LOCAL"  > "$TMP/k.local";  keys_of "$REMOTE" > "$TMP/k.remote"
+    local ONLY_R ONLY_L CHANGED=""
+    ONLY_R=$(comm -23 "$TMP/k.remote" "$TMP/k.local" | tr '\n' ' ')
+    ONLY_L=$(comm -13 "$TMP/k.remote" "$TMP/k.local" | tr '\n' ' ')
+    while read -r k; do
+      [ "$(val_of "$LOCAL" "$k")" = "$(val_of "$REMOTE" "$k")" ] || CHANGED="$CHANGED$k "
+    done < <(comm -12 "$TMP/k.remote" "$TMP/k.local")
+    echo "  键级差异（只列 KEY 不回显值）："
+    [ -n "$ONLY_R" ]  && echo "  · 仅远程有（本地覆盖后将丢失）: $ONLY_R"
+    [ -n "$ONLY_L" ]  && echo "  · 仅本地有（将新增到远程）  : $ONLY_L"
+    [ -n "$CHANGED" ] && echo "  · 两边都有但值不同          : $CHANGED"
+    [ -z "$ONLY_R$ONLY_L$CHANGED" ] && echo "  · （仅注释/空行/顺序差异）"
+    if [ "$YES" != "-y" ]; then
+      local ANS=""
+      read -rp "  确认用【本地】覆盖【远程】？(yes/其他=跳过) " ANS || true
+      [ "$ANS" = "yes" ] || { echo "[$1] 已跳过，远程未动（想采纳远程改动：对照 $BAK 更新本地底稿后重跑）"; return 0; }
+    fi
+  else
+    echo "[$1] 远程参数不存在，首次灌入"
+  fi
+
+  cp "$SRC" "$TMP/push-$1"
+  aws ssm put-parameter --region "$REGION" --name "$NAME" \
+    --type SecureString --tier "$TIER" --overwrite --value "file://$TMPF/push-$1" >/dev/null
+  local LEN
+  LEN=$(aws ssm get-parameter --region "$REGION" --name "$NAME" --with-decryption \
+    --query 'length(Parameter.Value)' --output text | tr -d '\r')
+  echo "[$1] ✅ 已灌入 $NAME（长度 $LEN 字符）"
+}
+
+put_one backend.env  Advanced
+put_one frontend.env Standard
+
+echo "生效: 后端变量重跑 deploy job / deploy-env.sh <env> core 即可；前端 VITE_* 需重新构建镜像"
