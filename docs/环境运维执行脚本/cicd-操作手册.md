@@ -1,5 +1,7 @@
 # CI/CD 日常操作手册
 
+> 📍 2026-07-31 自 docs/环境/ 迁入本目录。
+
 > 2026-07-31 更新；§7 为剩余待办。
 > 方案原理见 [../云服务搭建部署方案/03-CICD-GitHub-Actions.md](../云服务搭建部署方案/03-CICD-GitHub-Actions.md)。
 > **现状**：push `test`/`uat` 分支 = 全自动（构建 → migrate → SSM 部署）；push `main` 只构建镜像，

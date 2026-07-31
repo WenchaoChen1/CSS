@@ -1,7 +1,7 @@
 # 12-成本账单 —— 成本分摊标签与账单侧操作
 
 账单/成本侧的脚本归口目录（Billing 配置不是"资源"，不进 Terraform）。
-成本数据与估算见 [`../../环境/成本价格表.md`](../../环境/成本价格表.md)；
+成本数据与估算见 [`../../../css-terraform/环境实况/aws服务-成本价格表.md`](../../../css-terraform/环境实况/aws服务-成本价格表.md)；
 预算告警（css-daily-cost，$30/$50 两档邮件）由 css-terraform `global` stack 管理。
 
 ## 脚本清单

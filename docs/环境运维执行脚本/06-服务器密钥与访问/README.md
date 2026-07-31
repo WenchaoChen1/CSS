@@ -110,7 +110,7 @@ ssh -i ~/.ssh/css-uat.pem \
 # --- 免密钥走 SSM ---
 aws ssm start-session --target i-0cb9b69b9eb19a9aa    # test；uat=i-0f90c5c061d640a27，堡垒=i-08b0ef319d08eae38
 ```
-完整凭证/隧道/运维命令见工作区 `运维访问速查.local.md`（不入库）。
+完整凭证/隧道/运维命令见`docs/环境运维执行脚本/运维访问速查.local.md`（不入库）。
 
 ## 实例规格可以随时改（⚠️ 走 Terraform，不要裸命令）
 

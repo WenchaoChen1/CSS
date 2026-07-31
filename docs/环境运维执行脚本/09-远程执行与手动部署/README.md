@@ -1,6 +1,6 @@
 # 09-远程执行与手动部署（原 09-ssm-run-command）—— SSM 命令通道 + EC2 端 deploy.sh 完整手册
 
-SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**不开 22 端口、不用 pem、无需任何入站规则**（EC2 上的 SSM Agent 主动向 AWS 出站长连接）。本文覆盖：脚本用法、机器前置配置、可视化页面、SSM 送达后在机器上执行的 **deploy.sh 全手册**、**配置体系（deploy-env ↔ Parameter Store）**、以及常用运维命令速查。具体值见 [../../环境/配置速查.md](../../环境/配置速查.md)。
+SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**不开 22 端口、不用 pem、无需任何入站规则**（EC2 上的 SSM Agent 主动向 AWS 出站长连接）。本文覆盖：脚本用法、机器前置配置、可视化页面、SSM 送达后在机器上执行的 **deploy.sh 全手册**、**配置体系（deploy-env ↔ Parameter Store）**、以及常用运维命令速查。具体值见 [../运维访问速查.local.md](../运维访问速查.local.md)。
 
 ## 脚本清单
 
@@ -209,7 +209,7 @@ aws secretsmanager get-secret-value --region us-east-1 \
   --query SecretString --output text
 ```
 
-**为什么不能本机直连**：RDS 无公网 IP（`--no-publicly-accessible`），安全组 `css-non-prod-rds-sg` 只放行来自各环境 app-sg（`css-test-app-sg`/`css-uat-app-sg`）与堡垒机 `css-non-prod-bastion-sg` 的 5432，本机 IP 根本不在其中。强行改成 publicly-accessible 是错误做法（数据库直接暴露公网），一律走上面三条路。完整指南见 [../../环境/本地连接数据库.md](../../环境/本地连接数据库.md)。
+**为什么不能本机直连**：RDS 无公网 IP（`--no-publicly-accessible`），安全组 `css-non-prod-rds-sg` 只放行来自各环境 app-sg（`css-test-app-sg`/`css-uat-app-sg`）与堡垒机 `css-non-prod-bastion-sg` 的 5432，本机 IP 根本不在其中。强行改成 publicly-accessible 是错误做法（数据库直接暴露公网），一律走上面三条路。完整指南见 [../本地连接数据库.md](../本地连接数据库.md)。
 
 ## 八、常见问题
 

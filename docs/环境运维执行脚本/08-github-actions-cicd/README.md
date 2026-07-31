@@ -5,7 +5,7 @@
 > ✅ **现状（2026-07-28 晚）：自动部署已启用**——AWS 侧 RDS/网关机/test+uat 应用机就绪后，migrate 与 deploy job 已取消注释：
 > push `test`/`uat` → 构建镜像 + alembic 迁移 + SSM 部署；push `main` → **只构建镜像**，生产部署要人为 Run workflow（就是人工闸）。
 > 手动兜底/回滚仍可用 [`../09-远程执行与手动部署/deploy-env.sh <env>`](../09-远程执行与手动部署/README.md)。
-> 具体值（ARN/registry/标签）统一见 [../../环境/配置速查.md](../../环境/配置速查.md)。以下"仓库页"指 `github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend`（Frontend 仓库同样操作一遍）。
+> 具体值（ARN/registry/标签）统一见 [../运维访问速查.local.md](../运维访问速查.local.md)。以下"仓库页"指 `github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend`（Frontend 仓库同样操作一遍）。
 
 ## 脚本清单
 
@@ -89,7 +89,7 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 | 发 test | `git push neworg test` |
 | 发 uat | `git checkout uat && git merge test && git push neworg uat` |
 | 发 prod | `git checkout main && git merge uat && git push neworg main` → 去 Actions 审批（恢复 deploy job 后） |
-| 同步老仓库 | 先合到 `upstream-sync`（不触发部署），验证后再进 test——见 [../../环境/cicd-操作手册.md](../../环境/cicd-操作手册.md) |
+| 同步老仓库 | 先合到 `upstream-sync`（不触发部署），验证后再进 test——见 [../cicd-操作手册.md](../cicd-操作手册.md) |
 
 ## 四、workflow 文件本身（要改流水线时）
 

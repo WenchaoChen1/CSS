@@ -30,7 +30,7 @@ for repo in "${REPOS[@]}"; do
   FULL="$ORG/$repo"
   echo "===== 配置 $FULL ====="
 
-  # ---- 1) Repository variables（值与 docs/环境/配置速查.md §2 一致）----
+  # ---- 1) Repository variables（值与 docs/环境运维执行脚本/运维访问速查.local.md §2 一致）----
   gh variable set AWS_ROLE_ARN_TEST --repo "$FULL" --body "arn:aws:iam::${ACCOUNT_ID}:role/css-deploy-test"
   gh variable set AWS_ROLE_ARN_UAT  --repo "$FULL" --body "arn:aws:iam::${ACCOUNT_ID}:role/css-deploy-uat"
   gh variable set AWS_ROLE_ARN_PROD --repo "$FULL" --body "arn:aws:iam::${ACCOUNT_ID}:role/css-deploy-prod"
