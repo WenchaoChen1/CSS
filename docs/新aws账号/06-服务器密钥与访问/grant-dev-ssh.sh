@@ -14,6 +14,8 @@
 #     ./grant-dev-ssh.sh zhangsan 30 nonprod test    # + 可登 test 应用机
 #     ./grant-dev-ssh.sh zhangsan 14 prod            # 生产堡垒机
 # 产物: ./dev-keys/<环境>-<开发者名>.pem（已 gitignore；安全渠道交付）
+# 续期: 同名重跑本脚本即可（复用同一把钥，只把 authorized_keys 条目的到期时间刷新为 今天+<天数>）
+# 台账: 每次发放/续期自动追加到 ./dev-ssh发放记录.md（无密钥材料，入库）；实时有效状态用 revoke-dev-ssh.sh --list 查
 # 撤销/查看: ./revoke-dev-ssh.sh
 set -euo pipefail
 
@@ -80,11 +82,14 @@ printf '%s\n' '${BASTION_LINE}' >> \"\$f.tmp\"
 mv \"\$f.tmp\" \"\$f\"; chmod 600 \"\$f\"; chown ec2-user:ec2-user \"\$f\"
 echo '堡垒机条目已写入'"
 
-# 2) 可选：应用机（可开 shell，同样带过期）
-declare -A APP_ID=( [test]=i-0b3e73ed51811b69c [uat]=i-00c635f52140cf035 )
+# 2) 可选：应用机（可开 shell，同样带过期）。实例 ID 按 Name 标签动态查（机器由 TF 重建后 ID 会变，勿写死）
+app_id() { aws ec2 describe-instances --region "$REGION" \
+  --filters "Name=tag:Name,Values=css-$1-app" "Name=instance-state-name,Values=running" \
+  --query 'Reservations[0].Instances[0].InstanceId' --output text | tr -d '\r'; }
 for app in "${APPS[@]}"; do
-  ID="${APP_ID[$app]:-}"
-  [ -n "$ID" ] || { echo "跳过未知应用机 [$app]（只支持 test/uat）"; continue; }
+  case "$app" in test|uat) ;; *) echo "跳过未知应用机 [$app]（只支持 test/uat）"; continue ;; esac
+  ID=$(app_id "$app")
+  [ -n "$ID" ] && [ "$ID" != "None" ] || { echo "跳过 [$app]：找不到运行中的 css-$app-app"; continue; }
   APP_LINE="expiry-time=\"${EXPIRY}\",no-agent-forwarding,no-X11-forwarding ${PUB}"
   run_ssm "$ID" "set -e
 f=/home/ec2-user/.ssh/authorized_keys
@@ -94,6 +99,12 @@ printf '%s\n' '${APP_LINE}' >> \"\$f.tmp\"
 mv \"\$f.tmp\" \"\$f\"; chmod 600 \"\$f\"; chown ec2-user:ec2-user \"\$f\"
 echo '${app} 应用机条目已写入'"
 done
+
+# 3) 记入发放台账（不含任何密钥材料，可入库；实时有效状态以 revoke-dev-ssh.sh --list 为准）
+LEDGER="$(cd "$(dirname "$0")" && pwd)/dev-ssh发放记录.md"
+printf -- '- %s 发放/续期 `%s`（%s）到期 **%s**，范围=堡垒机%s\n' \
+  "$(date -u +%F)" "$DEV" "$TARGET" "$EXPIRY" "${APPS[*]:+ + 应用机 ${APPS[*]}}" >> "$LEDGER"
+echo "已记入台账: $LEDGER"
 
 cat <<EOT
 

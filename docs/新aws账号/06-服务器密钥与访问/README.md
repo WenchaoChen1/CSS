@@ -42,6 +42,8 @@ cd docs/新aws账号/06-服务器密钥与访问
 
 原理：`authorized_keys` 的 `expiry-time` 选项到期自动失效，无需人工清理；堡垒机条目额外加 `no-pty` + `permitopen`（纯跳板，不能开 shell、只能转发到白名单目标）。
 产物：`./dev-keys/<环境>-<开发者名>.pem`（已 gitignore；安全渠道交付）。
+**续期**：同名重跑本脚本即可（复用同一把钥，只把到期时间刷新为 今天+`<天数>`），开发者手里的私钥不用换；改权限范围（如补 apps）同样是同名重跑。
+**台账**：每次发放/续期/撤销自动追加到 [`dev-ssh发放记录.md`](dev-ssh发放记录.md)（谁、哪个环境、什么范围、何时到期；不含密钥材料）；**当前实际有效**的条目用 `./revoke-dev-ssh.sh --list` 实时查（直接读机器上的 authorized_keys）。
 
 ### `revoke-dev-ssh.sh` — 撤销/查看开发者 SSH 条目（堡垒机 + test/uat 应用机一并处理，配合 grant-dev-ssh.sh）
 

@@ -1,0 +1,7 @@
+# 开发者 SSH 密钥发放台账
+
+`grant-dev-ssh.sh` / `revoke-dev-ssh.sh` 自动追加，**不含任何密钥材料**（私钥在 `dev-keys/`，gitignore）。
+本文件是发放历史；**当前实际有效的条目以实时查询为准**：`./revoke-dev-ssh.sh --list [nonprod|prod]`
+（直接读各机器 authorized_keys，含每条的到期时间；过期条目由 OpenSSH 自动失效，无需人工清理）。
+
+## 记录（自动追加，勿手工编辑格式）

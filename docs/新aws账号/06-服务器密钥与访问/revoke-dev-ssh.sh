@@ -9,8 +9,15 @@ REGION=us-east-1
 ARG1="${1:?用法: revoke-dev-ssh.sh <开发者名|--list> [nonprod|prod]}"
 TARGET="${2:-nonprod}"
 
+# 应用机实例 ID 按 Name 标签动态查（机器由 TF 重建后 ID 会变，勿写死）
+app_id() { aws ec2 describe-instances --region "$REGION" \
+  --filters "Name=tag:Name,Values=css-$1-app" "Name=instance-state-name,Values=running" \
+  --query 'Reservations[0].Instances[0].InstanceId' --output text | tr -d '\r'; }
 case "$TARGET" in
-  nonprod) MACHINES=("堡垒机:i-08b0ef319d08eae38" "test:i-0b3e73ed51811b69c" "uat:i-00c635f52140cf035") ;;
+  nonprod) MACHINES=("堡垒机:i-08b0ef319d08eae38")
+           for app in test uat; do
+             ID=$(app_id "$app"); [ -n "$ID" ] && [ "$ID" != "None" ] && MACHINES+=("$app:$ID")
+           done ;;
   prod)    MACHINES=("堡垒机:i-0a6d6754c61c239d0") ;;
   *) echo "第二个参数只能是 nonprod 或 prod"; exit 1 ;;
 esac
@@ -48,4 +55,9 @@ echo \"撤销 ${TAG}: 删除 \$before 条\""
   fi
 done
 
-[ "$ARG1" = "--list" ] || echo "提示: 本地私钥 ./dev-keys/${TARGET}-${ARG1}.pem 可一并删除"
+if [ "$ARG1" != "--list" ]; then
+  LEDGER="$(cd "$(dirname "$0")" && pwd)/dev-ssh发放记录.md"
+  printf -- '- %s 撤销 `%s`（%s）\n' "$(date -u +%F)" "$ARG1" "$TARGET" >> "$LEDGER"
+  echo "已记入台账: $LEDGER"
+  echo "提示: 本地私钥 ./dev-keys/${TARGET}-${ARG1}.pem 可一并删除"
+fi
