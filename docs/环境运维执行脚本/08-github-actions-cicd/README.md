@@ -82,7 +82,7 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 
 ## 三、发布操作（命令行侧）
 
-> 现阶段下表的 push 只触发**推镜像**（`<env>-vN`）；推完后手动 `bash docs/新aws账号/09-远程执行与手动部署/deploy-env.sh <env>` 完成部署。
+> 现阶段下表的 push 只触发**推镜像**（`<env>-vN`）；推完后手动 `bash docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh <env>` 完成部署。
 
 | 目标 | 命令 |
 |------|------|

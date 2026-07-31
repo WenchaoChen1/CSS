@@ -27,7 +27,7 @@
 验证（可经 SSM 执行）：
 
 ```bash
-bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'systemctl is-enabled css-test && tail -5 /var/log/css-selfheal.log 2>/dev/null; echo ok'
+bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'systemctl is-enabled css-test && tail -5 /var/log/css-selfheal.log 2>/dev/null; echo ok'
 ```
 
 ## 可视化页面

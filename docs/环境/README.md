@@ -6,7 +6,7 @@
 > ⚠️ **资源权威在 Terraform**：一切 AWS 资源（VPC/EC2/RDS/ALB/SG/IAM/ECR/S3/监控）自 2026-07-30 起由独立仓库
 > `css-terraform/` 管理（33 个 stack，基线 = `terraform plan` 全零 diff）。资源的创建/修改/删除**只走 Terraform**
 > （规范 = 其 `CLAUDE.md`；用法 = `使用说明/`、`运行命令.md`、`执行手册.md`）；Terraform 与运维脚本的分工见
-> [../新aws账号/职责划分.md](../新aws账号/职责划分.md)。本文件夹与实际资源冲突时，以 css-terraform 为准。
+> [../环境运维执行脚本/职责划分.md](../环境运维执行脚本/职责划分.md)。本文件夹与实际资源冲突时，以 css-terraform 为准。
 
 ## 文档索引
 
@@ -16,8 +16,8 @@
 | 服务技术 | [服务技术文档.md](服务技术文档.md) | 三栈架构、服务清单、配置注入模型、已知坑 |
 | 价格 | [成本价格表.md](成本价格表.md) | 两群组成本明细 |
 | **资源与用法（权威）** | `css-terraform/`：`CLAUDE.md`（规范）、`使用说明/`（逐组件手册）、`运行命令.md`、`执行手册.md` | 所有 AWS 资源的唯一事实源 |
-| 分工 | [../新aws账号/职责划分.md](../新aws账号/职责划分.md) | Terraform 管什么、脚本管什么 |
-| 运维脚本 | [../新aws账号/README.md](../新aws账号/README.md) | 镜像推送(03)、数据同步(05)、EC2 密钥(06)、IAM key(07)、CI 配置(08)、SSM 部署(09~11) |
+| 分工 | [../环境运维执行脚本/职责划分.md](../环境运维执行脚本/职责划分.md) | Terraform 管什么、脚本管什么 |
+| 运维脚本 | [../环境运维执行脚本/README.md](../环境运维执行脚本/README.md) | 镜像推送(03)、数据同步(05)、EC2 密钥(06)、IAM key(07)、CI 配置(08)、SSM 部署(09~11) |
 | CI/CD | [../生产部署/03-CICD-GitHub-Actions.md](../生产部署/03-CICD-GitHub-Actions.md) / [cicd-操作手册.md](cicd-操作手册.md) | 方案与日常操作 |
 | 配置值速查 | [配置速查.md](配置速查.md) | 手册/脚本要填的具体值 |
 | **凭证与地址** | 工作区根 `运维访问速查.local.md`（gitignore） | 所有密码/密钥/连接串只在这里，**文档一律不抄录** |
@@ -62,7 +62,7 @@
 **关键规则**：
 
 1. **SSH 只能经堡垒机**：nonprod=`css-non-prod-bastion`（3.225.148.166）、prod=`css-prod-bastion`（34.225.237.45）；
-   22 仅放行管理 IP。开发者临时钥（带过期）走 `docs/新aws账号/06-服务器密钥与访问/grant-dev-ssh.sh`；
+   22 仅放行管理 IP。开发者临时钥（带过期）走 `docs/环境运维执行脚本/06-服务器密钥与访问/grant-dev-ssh.sh`；
 2. **系统 Web 只经本环境 ALB**（`css-test` / `css-uat` / `css-prod`⏳，名字=环境名）；
    **kafka-ui 只走开发入口 ALB** `css-non-prod-entry`（test :8085 / uat :8086，仅白名单
    `221.214.0.190/32` + `134.195.101.194/32`），业务 ALB 的 8085 监听器已全部撤除；

@@ -125,7 +125,7 @@ cat .last_good_test                                # 上次成功部署的 tag
 
 ```
 deploy-env/<env>/backend.env                    ← 本地底稿（在这里编辑）
-   │  bash docs/新aws账号/11-parameter-store/put-params.sh <env>
+   │  bash docs/环境运维执行脚本/11-parameter-store/put-params.sh <env>
    ▼
 SSM Parameter Store /css/<env>/backend.env      ← 唯一事实源（SecureString 加密）
    │  deploy.sh 部署/重启时 aws ssm get-parameter --with-decryption
@@ -142,11 +142,11 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 | 步 | 操作 | 命令 |
 |----|------|------|
 | 1 | 编辑本地底稿，加一行 `NEW_KEY=value` | 改 `deploy-env/test/backend.env` |
-| 2 | 上传到 Parameter Store（整份覆盖） | `bash docs/新aws账号/11-parameter-store/put-params.sh test` |
-| 3 | 重新部署使生效（重启容器即可，**不用重建镜像**） | `bash docs/新aws账号/09-远程执行与手动部署/deploy-env.sh test core` |
-| 4 | 验证机器上已渲染 | `bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'grep -n "^NEW_KEY=" /opt/css-cicd/env/test/backend.env'` |
+| 2 | 上传到 Parameter Store（整份覆盖） | `bash docs/环境运维执行脚本/11-parameter-store/put-params.sh test` |
+| 3 | 重新部署使生效（重启容器即可，**不用重建镜像**） | `bash docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh test core` |
+| 4 | 验证机器上已渲染 | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'grep -n "^NEW_KEY=" /opt/css-cicd/env/test/backend.env'` |
 
-- ⚠️ **例外：前端 `VITE_*` 是构建期烤入镜像的**。改 `deploy-env/<env>/frontend.env` 后除 put-params 外，必须**重新构建前端镜像**（重跑前端 CI workflow，或 `bash docs/新aws账号/03-本地构建推送镜像/push-ecr.sh <env>`），再 `deploy-env.sh <env> frontend`——只重启不生效。
+- ⚠️ **例外：前端 `VITE_*` 是构建期烤入镜像的**。改 `deploy-env/<env>/frontend.env` 后除 put-params 外，必须**重新构建前端镜像**（重跑前端 CI workflow，或 `bash docs/环境运维执行脚本/03-本地构建推送镜像/push-ecr.sh <env>`），再 `deploy-env.sh <env> frontend`——只重启不生效。
 - ⚠️ 耦合键成对改：`API_KEY`==`VITE_X_API_KEY`（一个在 backend.env、一个在 frontend.env）、`CATALOG_OCR_API_KEY`==`OCR_API_KEY`；`PASSWORD_SALT` 迁移必须原样搬运。
 - **dev 环境不走 Parameter Store**：`deploy-env/dev/backend.env` 由本地 compose 直接 `--env-file` 读（入口 `.\deploy\windows\本地dev.ps1`），改完 restart 即生效。
 - 在控制台直接 Edit 参数值也行（见下节），但会与本地底稿失联——下次谁跑 put-params 就把控制台改动覆盖回去。**推荐永远从本地底稿走**。
@@ -167,7 +167,7 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 | 参数列表 | Systems Manager → **Parameter Store**：`https://us-east-1.console.aws.amazon.com/systems-manager/parameters?region=us-east-1` → 点 `/css/test/backend.env` |
 | **参数明文** | 参数详情页 Value 默认隐藏 → 点 **Show decrypted value**。它是 SecureString **加密存储**的，你能看到明文是因为管理员身份有 `kms:Decrypt`；EC2 实例角色只能解密本环境的 `/css/<env>/*` |
 | **修改历史** | 参数详情页 **History** 页签：每次 put-params/Edit 生成一个版本，可逐版本对比、复制旧值回滚。⚠️ **历史版本会永久保留旧值**——密钥轮换后旧密钥仍躺在历史版本里，要彻底清除只能删参数重建 |
-| 机器上渲染出的那份 | `bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/env/test/backend.env'`（**含全部密钥慎用**，且输出会留在 Run Command 历史里） |
+| 机器上渲染出的那份 | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/env/test/backend.env'`（**含全部密钥慎用**，且输出会留在 Run Command 历史里） |
 
 ## 七、常用运维命令速查表
 
@@ -175,16 +175,16 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 
 | 干什么 | 命令 |
 |--------|------|
-| 看三栈容器状态 | `bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'docker ps --format "{{.Names}} {{.Status}}"'` |
-| 看后端日志（最近 200 行） | `bash docs/新aws账号/09-远程执行与手动部署/run.sh test '/opt/css-cicd/bin/deploy.sh test logs backend'` |
-| 全量部署（最新浮动 tag） | `bash docs/新aws账号/09-远程执行与手动部署/deploy-env.sh test` |
-| 只部署后端 | `bash docs/新aws账号/09-远程执行与手动部署/deploy-env.sh test backend` |
-| 回滚到指定版本 | `bash docs/新aws账号/09-远程执行与手动部署/deploy-env.sh test backend test-v12` |
-| 数据库迁移 | `bash docs/新aws账号/09-远程执行与手动部署/deploy-env.sh test migrate` |
-| 改配置后重启生效 | `put-params.sh test` 后 `bash docs/新aws账号/09-远程执行与手动部署/run.sh test '/opt/css-cicd/bin/deploy.sh test restart'` |
-| 上传配置到 Parameter Store | `bash docs/新aws账号/11-parameter-store/put-params.sh test` |
-| 看机器上生效的配置（含密钥慎用） | `bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/env/test/backend.env'` |
-| 看上次部署成功的 tag | `bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/.last_good_test'` |
+| 看三栈容器状态 | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'docker ps --format "{{.Names}} {{.Status}}"'` |
+| 看后端日志（最近 200 行） | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test '/opt/css-cicd/bin/deploy.sh test logs backend'` |
+| 全量部署（最新浮动 tag） | `bash docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh test` |
+| 只部署后端 | `bash docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh test backend` |
+| 回滚到指定版本 | `bash docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh test backend test-v12` |
+| 数据库迁移 | `bash docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh test migrate` |
+| 改配置后重启生效 | `put-params.sh test` 后 `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test '/opt/css-cicd/bin/deploy.sh test restart'` |
+| 上传配置到 Parameter Store | `bash docs/环境运维执行脚本/11-parameter-store/put-params.sh test` |
+| 看机器上生效的配置（含密钥慎用） | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/env/test/backend.env'` |
+| 看上次部署成功的 tag | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/.last_good_test'` |
 | 终端上机（免 SSH） | `aws ssm start-session --target i-0cb9b69b9eb19a9aa`（test 机；uat=`i-0f90c5c061d640a27`，堡垒机=`i-08b0ef319d08eae38`） |
 | SSH 上机（备用通道） | `ssh -i ~/.ssh/css-test.pem -o ProxyCommand='ssh -i ~/.ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' ec2-user@10.20.10.10` |
 
@@ -201,7 +201,7 @@ aws ssm start-session --target i-08b0ef319d08eae38 --document-name AWS-StartPort
   --parameters '{"host":["css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com"],"portNumber":["5432"],"localPortNumber":["5433"]}'
 
 # ③【机器上直连】一次性 SQL，经 SSM 在应用机上用 docker 跑 psql（日常账号推荐 css_dev，密码见 运维访问速查.local.md）
-bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'docker run --rm -e PGPASSWORD=<密码> postgres:16 psql -h css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com -U css_dev -d css-test-main -c "select 1"'
+bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'docker run --rm -e PGPASSWORD=<密码> postgres:16 psql -h css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com -U css_dev -d css-test-main -c "select 1"'
 
 # master(postgres) 仅运维用：Secrets Manager 托管、每 7 天自动轮换，用时现取（应用已切 css_app_<env>，不受轮换影响）
 aws secretsmanager get-secret-value --region us-east-1 \

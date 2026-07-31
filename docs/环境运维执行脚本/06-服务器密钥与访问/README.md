@@ -8,7 +8,7 @@
 ## 脚本清单
 
 ```bash
-cd docs/新aws账号/06-服务器密钥与访问
+cd docs/环境运维执行脚本/06-服务器密钥与访问
 ```
 
 ### `setup-ssh-key.sh` — 把本机 SSH 公钥装进 AWS：导入为 EC2 key pair，并可选经 SSM 补装到已存在实例的 `authorized_keys`

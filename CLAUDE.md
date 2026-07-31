@@ -27,7 +27,7 @@ The two projects have **separate toolchains, CI pipelines, and `.env` files**. W
 
 - **老账号（迁移源）**：只有 `preprod`(3.74.51.100) 已开通 SSH；`dev`/`staging` 待开通。用 `docs/老aws账号/` 的脚本把 DB / docker env / S3 拉到本机 `备份/`。
 - **新账号（部署目标，2026-07-29 实查）**：旧默认 VPC 的 test 机已删除，全部资源在新 VPC。网关机 `css-non-prod-gw`(i-08b0ef319d08eae38, EIP 3.225.148.166, **只剩堡垒 SSH + NAT 出网**，nginx 反代已停用)；应用机 `css-test-app`(10.20.10.10, m7i-flex.large, **三栈已部署可用**) 与 `css-uat-app`(10.20.11.10, **只建机未部署**)；prod 应用机待 Paid plan。RDS `css-non-prod`(PG16.14, db.t4g.micro, 私有子网, test+uat 共用；库 `css-test-main`/`css-test-ocr` 已载入 preprod 数据并**已脱敏**——邮箱前缀 1、口令统一 `Test1234!`)；css-prod 实例等 Paid plan。入口：**每环境一个 ALB**（`css-test`/`css-uat`/`css-prod`）。**资源命名一律 `css-non-prod-*` / `css-prod-*`（带连字符）**。CloudWatch 监控 test/uat 已配（各 9 告警+Dashboard，SNS 暂无订阅者）；RDS 升配 db.t4g.small 与 css-prod 实例均被 Free plan 拦截；本地开发直传 S3 走桶 `css-dev-582797602427` + 用户 `css-app-dev`（key 在 deploy-env/dev）。运维凭证与命令全集见工作区 `运维访问速查.local.md`（gitignore）。
-- 脚本按账号分放（2026-07-28）：`docs/新aws账号/`=新账号资源创建/推镜像（01-vpc~10），`docs/老aws账号/`=老账号数据拉取；**`部署包/` 已整体退役并入 `CSS_backend-main/deploy/`**（compose 编排、本地 dev、EC2 端 deploy.sh；env 配置 2026-07-28 再迁出到工作区根 `deploy-env/`）；CI/CD 已落新组织两仓库（`.github/workflows/cicd.yml`），手册在 `docs/新aws账号/`（总流程在其 README，组件手册在 08/09 文件夹）。
+- 脚本按账号分放（2026-07-28）：`docs/环境运维执行脚本/`=新账号资源创建/推镜像（01-vpc~10），`docs/老aws账号/`=老账号数据拉取；**`部署包/` 已整体退役并入 `CSS_backend-main/deploy/`**（compose 编排、本地 dev、EC2 端 deploy.sh；env 配置 2026-07-28 再迁出到工作区根 `deploy-env/`）；CI/CD 已落新组织两仓库（`.github/workflows/cicd.yml`），手册在 `docs/环境运维执行脚本/`（总流程在其 README，组件手册在 08/09 文件夹）。
 
 ---
 
@@ -76,7 +76,7 @@ Code IS baked into the image (`COPY src/ .`), so **code** changes need a rebuild
 ```
 .\deploy\windows\本地dev.ps1 [up|down|build|rebuild|migrate|ps|logs|restart|front]
 ```
-仓库根 `redeploy.ps1` 是它的薄封装（rebuild）。**test / uat / prod 走 CI/CD**（GitHub Actions → ECR 双 tag `<env>-vN` 版本号+`<env>` 浮动，lifecycle 保 5 → 部署暂为手动 `docs/新aws账号/09-远程执行与手动部署/deploy-env.sh`），编排=`deploy/compose/{infra,backend,frontend}.yml`（独立项目 `css-<env>-*` 共享网络 `css-<env>-net`），运行时配置唯一事实源=SSM Parameter Store `/css/<env>/backend.env`（deploy.sh 自动渲染；本地底稿在工作区 `deploy-env/<env>/`）。AWS 栈无 db/pgadmin 容器（Postgres 在 RDS；新库名规范 `css-<env>-main`/`css-<env>-ocr`）。前端镜像构建期烤入 `VITE_*`（来自 `/css/<env>/frontend.env`，用 `Dockerfile.novalidate`——tsc 尚有 16 个存量类型错误）。手册见工作区 `docs/新aws账号/`（README 总流程 + 08/09 组件手册）；deploy 结构见 `deploy/README.md`。
+仓库根 `redeploy.ps1` 是它的薄封装（rebuild）。**test / uat / prod 走 CI/CD**（GitHub Actions → ECR 双 tag `<env>-vN` 版本号+`<env>` 浮动，lifecycle 保 5 → 部署暂为手动 `docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh`），编排=`deploy/compose/{infra,backend,frontend}.yml`（独立项目 `css-<env>-*` 共享网络 `css-<env>-net`），运行时配置唯一事实源=SSM Parameter Store `/css/<env>/backend.env`（deploy.sh 自动渲染；本地底稿在工作区 `deploy-env/<env>/`）。AWS 栈无 db/pgadmin 容器（Postgres 在 RDS；新库名规范 `css-<env>-main`/`css-<env>-ocr`）。前端镜像构建期烤入 `VITE_*`（来自 `/css/<env>/frontend.env`，用 `Dockerfile.novalidate`——tsc 尚有 16 个存量类型错误）。手册见工作区 `docs/环境运维执行脚本/`（README 总流程 + 08/09 组件手册）；deploy 结构见 `deploy/README.md`。
 
 ### Windows host notes（同上：core_app compose + 根 .env 属上游遗留模型，本地 dev 一律走 deploy/windows/本地dev.ps1）
 
