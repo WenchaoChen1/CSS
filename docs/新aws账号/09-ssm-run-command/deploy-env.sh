@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 手动部署一个环境（CI 只推镜像，部署由本脚本人工执行——2026-07-28 拍板）。
+# 手动部署一个环境（CI 之外的兜底/回滚入口；日常部署已由 CI 自动执行——2026-07-28 曾为唯一部署入口）。
 # 动作：本地打包 Backend 仓库 deploy/{compose,config,bin} → 经 SSM 上传到目标机 /opt/css-cicd/
 #       → 执行 deploy.sh <env> deploy <stack> [tag]（渲染 env → pull → up → 冒烟 → 清理）。
 # 用法: ./deploy-env.sh <test|uat|prod> [stack] [image_tag]

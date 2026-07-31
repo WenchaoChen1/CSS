@@ -2,24 +2,37 @@
 
 SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**不开 22 端口、不用 pem、无需任何入站规则**（EC2 上的 SSM Agent 主动向 AWS 出站长连接）。本文覆盖：脚本用法、机器前置配置、可视化页面、SSM 送达后在机器上执行的 **deploy.sh 全手册**、**配置体系（deploy-env ↔ Parameter Store）**、以及常用运维命令速查。具体值见 [../../环境/配置速查.md](../../环境/配置速查.md)。
 
-## 一、本文件夹的脚本
+## 脚本清单
+
+### `setup-ssm.sh` — 把一台 EC2 配置成 SSM Run Command 可达的部署目标（挂实例角色 + 打 Environment 标签 + 验证 Online）
 
 ```bash
-# ① 把一台 EC2 配置成 SSM 部署目标（挂角色/补权限 + 打 Environment=css-<env> 标签 + 等 Online）
-#    仅手工建的机器需要；06-服务器密钥与访问 脚本建的机器（css-test-app / css-uat-app）已自带角色与标签
-bash docs/新aws账号/09-ssm-run-command/setup-ssm.sh test <instance-id>
-
-# ② 对某环境远程执行任意命令（按 Environment 标签定位，JSON 安全编码，回显输出）
-bash docs/新aws账号/09-ssm-run-command/run.sh test 'docker ps --format "{{.Names}} {{.Status}}"'
-
-# ③ 手动部署一个环境（CI 目前只推镜像，部署由本脚本执行）
-#    动作：本地打包 Backend 仓库 deploy/{compose,config,bin} → 经 SSM 上传到 /opt/css-cicd/ → 机器上跑 deploy.sh
-bash docs/新aws账号/09-ssm-run-command/deploy-env.sh test [all|core|infra|backend|frontend|migrate] [image_tag]
+./setup-ssm.sh <test|uat|prod> <instance-id>    # 环境名 + 目标实例 id
+./setup-ssm.sh test i-0cb9b69b9eb19a9aa         # 给 test 机补配/排查 SSM 可达性
 ```
 
-- `setup-ssm.sh` 幂等：机器没角色→挂 `css-ec2-<env>`；已有别的角色→不替换、补挂 SSM 策略和本环境参数读取；
-- `run.sh` 与 CI 用的 `deploy/aws/ssm-run.sh` 同源（最长等 20 分钟、失败退出非 0）；
-- `deploy-env.sh` 部署 prod 前要求手输 `prod` 二次确认；`migrate` 是特殊 stack 值（执行 `alembic upgrade head`）。
+- 幂等：机器没角色→挂 `css-ec2-<env>`；已挂其他角色→不替换，改为给该角色补挂 SSM 托管策略 + `/css/<env>/*` 参数读取；最后打 `Environment=css-<env>` / `EnvironmentGroup` 标签并等待 Online（最长 5 分钟，失败退出非 0）。
+- 基本只用于排查（SSM 不可达时）；css-terraform `ec2` stack 建的机器已自带角色与标签，无需再跑。
+
+### `run.sh` — 经 SSM Run Command 在目标环境 EC2 上执行任意命令（免 SSH/22/pem），等待完成并回显输出
+
+```bash
+./run.sh <test|uat|prod> '<shell 命令>'                          # 目标机按标签 Environment=css-<env> 且 SSM Online 定位
+./run.sh test 'docker ps --format "{{.Names}} {{.Status}}"'      # 查看 test 环境三栈容器状态
+```
+
+- 命令经 JSON 安全编码，支持引号/多行/特殊字符；最长等 20 分钟，失败退出非 0。与 Backend 仓库 CI 用的 `deploy/aws/ssm-run.sh` 同源。
+
+### `deploy-env.sh` — 手动部署一个环境（CI 之外的兜底/回滚入口；日常部署已由 CI 自动执行）：打包 Backend 仓库 deploy/{compose,config,bin} → 经 SSM 上传到目标机 /opt/css-cicd/ → 执行 deploy.sh
+
+```bash
+./deploy-env.sh <test|uat|prod> [stack] [image_tag]   # stack: all(默认)|core(=infra+backend)|infra|backend|frontend
+./deploy-env.sh test                                  # 全量部署 test（缺省用浮动 <env> tag，即最近一次 CI 推送）
+./deploy-env.sh test backend test-v12                 # 只部署后端并回滚/固定到不可变版本 tag
+./deploy-env.sh test migrate                          # 数据库迁移（特殊 stack 值，执行 alembic upgrade head）
+```
+
+- 部署 prod 前要求手输 `prod` 二次确认；机器端 deploy.sh 的完整行为（渲染 env → pull → up → 冒烟 → 清理）见下文第四节。
 
 ## 二、工作原理与机器前置
 
@@ -37,7 +50,7 @@ workflow / 本机（已持 css-deploy-<env> 或管理员凭证）
 
 **每台应用机的前置（两处，新机一次性；控制台路径）**：
 1. **实例角色**：EC2 → Instances → 勾选实例 → **Actions → Security → Modify IAM role** → 选 `css-ec2-<env>`（角色含 SSM 托管策略 + ECR 只读 + 读本环境参数）；
-2. **标签**：实例页 **Tags** 页签 → `Key=Environment, Value=css-test|css-uat|css-prod` + `Key=Group, Value=css-non-prod|css-prod`（值必须带 `css-` 前缀，setup-ssm.sh 会自动打）。
+2. **标签**：实例页 **Tags** 页签 → `Key=Environment, Value=css-test|css-uat|css-prod` + `Key=EnvironmentGroup, Value=css-non-prod|css-prod`（值必须带 `css-` 前缀，setup-ssm.sh 会自动打）。
 3. 机器必须能**出站**（私网机器经网关机 NAT / NAT 网关）；角色刚变更后 Agent 刷新凭证可能要几分钟。
 
 验证就绪：
@@ -55,7 +68,7 @@ aws ssm describe-instance-information --filters "Key=tag:Environment,Values=css-
 | 网页版终端上机（代替 SSH） | **Session Manager** → Start session：`https://us-east-1.console.aws.amazon.com/systems-manager/session-manager?region=us-east-1`；命令行 `aws ssm start-session --target <实例id>` |
 | 机器的角色/标签 | EC2 实例页 → Security 页签（IAM Role）、Tags 页签（Environment/Group） |
 
-与堡垒机的关系：部署**不经过堡垒机**；堡垒机 `css-non-prod-gw`（EIP 3.225.148.166）是给人用的（SSH 跳板、psql 隧道）。SSM 与堡垒机互为备份通道。
+与堡垒机的关系：部署**不经过堡垒机**；堡垒机 `css-non-prod-bastion`（原名 css-non-prod-gw，EIP 3.225.148.166）是给人用的（SSH 跳板、psql 隧道）。SSM 与堡垒机互为备份通道。
 
 ## 四、SSM 送达后：EC2 端 deploy.sh 手册
 
@@ -96,7 +109,7 @@ cat .last_good_test                                # 上次成功部署的 tag
 
 ### 新机器初始化
 
-`../06-服务器密钥与访问/create-app-ec2.sh` 建机（user-data 自动装 docker+compose，角色/标签已含）→ 跑一次 `deploy-env.sh <env>`（或 Backend workflow）即完成 bundle 上传 + 首次部署。机器即"牲口"，重建成本≈半小时。
+机器由 css-terraform `<env>/ec2` stack 创建/重建（user_data 自动装 docker+compose，角色/标签已含）→ 等 SSM Online → 跑一次 `deploy-env.sh <env>`（或 Backend workflow）即完成 bundle 上传 + 首次部署。机器即"牲口"，重建成本≈半小时（重建流程见 css-terraform CLAUDE.md §十五-E）。
 
 ## 五、deploy-env 与 Parameter Store：配置到底存在哪、怎么改
 
@@ -172,7 +185,7 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 | 上传配置到 Parameter Store | `bash docs/新aws账号/11-parameter-store/put-params.sh test` |
 | 看机器上生效的配置（含密钥慎用） | `bash docs/新aws账号/09-ssm-run-command/run.sh test 'cat /opt/css-cicd/env/test/backend.env'` |
 | 看上次部署成功的 tag | `bash docs/新aws账号/09-ssm-run-command/run.sh test 'cat /opt/css-cicd/.last_good_test'` |
-| 终端上机（免 SSH） | `aws ssm start-session --target i-0b3e73ed51811b69c`（test 机；uat=`i-00c635f52140cf035`，网关=`i-08b0ef319d08eae38`） |
+| 终端上机（免 SSH） | `aws ssm start-session --target i-0cb9b69b9eb19a9aa`（test 机；uat=`i-0f90c5c061d640a27`，堡垒机=`i-08b0ef319d08eae38`） |
 | SSH 上机（备用通道） | `ssh -i ~/.ssh/css-test.pem -o ProxyCommand='ssh -i ~/.ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' ec2-user@10.20.10.10` |
 
 ### 本机连 RDS（数据库在私有子网、不可公网访问）
@@ -187,16 +200,16 @@ psql -h localhost -p 5433 -U postgres -d css-test-main
 aws ssm start-session --target i-08b0ef319d08eae38 --document-name AWS-StartPortForwardingSessionToRemoteHost \
   --parameters '{"host":["css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com"],"portNumber":["5432"],"localPortNumber":["5433"]}'
 
-# ③【机器上直连】一次性 SQL，经 SSM 在应用机上用 docker 跑 psql
-bash docs/新aws账号/09-ssm-run-command/run.sh test 'docker run --rm -e PGPASSWORD=<密码> postgres:16 psql -h css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com -U postgres -d css-test-main -c "select 1"'
+# ③【机器上直连】一次性 SQL，经 SSM 在应用机上用 docker 跑 psql（日常账号推荐 css_dev，密码见 运维访问速查.local.md）
+bash docs/新aws账号/09-ssm-run-command/run.sh test 'docker run --rm -e PGPASSWORD=<密码> postgres:16 psql -h css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com -U css_dev -d css-test-main -c "select 1"'
 
-# 密码从哪来：Secrets Manager 托管（90 天自动轮换），或直接看 deploy-env/test/backend.env 的 POSTGRES_PASSWORD
+# master(postgres) 仅运维用：Secrets Manager 托管、每 7 天自动轮换，用时现取（应用已切 css_app_<env>，不受轮换影响）
 aws secretsmanager get-secret-value --region us-east-1 \
   --secret-id $(aws rds describe-db-instances --region us-east-1 --db-instance-identifier css-non-prod --query 'DBInstances[0].MasterUserSecret.SecretArn' --output text) \
   --query SecretString --output text
 ```
 
-**为什么不能本机直连**：RDS 无公网 IP（`--no-publicly-accessible`），安全组 `css-non-prod-rds-sg` 只放行来自 `css-non-prod-app-sg` 与 `css-non-prod-gw-sg` 的 5432，本机 IP 根本不在其中。强行改成 publicly-accessible 是错误做法（数据库直接暴露公网），一律走上面三条路。
+**为什么不能本机直连**：RDS 无公网 IP（`--no-publicly-accessible`），安全组 `css-non-prod-rds-sg` 只放行来自各环境 app-sg（`css-test-app-sg`/`css-uat-app-sg`）与堡垒机 `css-non-prod-bastion-sg` 的 5432，本机 IP 根本不在其中。强行改成 publicly-accessible 是错误做法（数据库直接暴露公网），一律走上面三条路。完整指南见 [../../环境/本地连接数据库.md](../../环境/本地连接数据库.md)。
 
 ## 八、常见问题
 
@@ -214,4 +227,4 @@ aws secretsmanager get-secret-value --region us-east-1 \
 - `down` infra 栈会丢 kafka 未消费的 2FA 验证码（kafka 不落盘，设计如此）；
 - prod migrate 前 workflow 自动打 RDS 快照，但**人工核对 `alembic_version` 在代码迁移链上**不能省；
 - 回滚入口优先走 `deploy-env.sh <env> <stack> <旧tag>`（可用 tag 看 ECR 或 `.last_good_<env>`）；
-- 状态（2026-07-29）：`css-test-app`（i-0b3e73ed51811b69c）三栈已部署、SSM Online；`css-uat-app`（i-00c635f52140cf035）已建机未部署；prod 机器等 Paid plan。三台均 06 脚本建，角色/标签已含，无需再跑 setup-ssm。
+- 状态（2026-07-31）：`css-test-app`（i-0cb9b69b9eb19a9aa）三栈已部署、SSM Online；`css-uat-app`（i-0f90c5c061d640a27）已建机未部署（两台 2026-07-30 由 css-terraform 重建，实例 ID 变更）；prod 应用机等 Paid plan（`enable_prod_compute` 门控）。角色/标签由 Terraform 管理，无需再跑 setup-ssm。

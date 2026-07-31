@@ -9,15 +9,19 @@
 > 本目录只剩一件事：**发 access key**。红线（css-terraform CLAUDE.md §九）规定 `aws_iam_access_key`
 > 永不进 Terraform（secret 会明文落 state），所以 key 的生成/查看/轮换永远走这里的脚本。
 
-## 怎么用
+## 脚本清单
+
+### `issue-app-s3-key.sh` — 管理 `css-app-<env>` 应用 S3 用户的 access key（查看/发放）
 
 ```bash
-cd docs/新aws账号/07-应用s3密钥
-./issue-app-s3-key.sh dev              # 查看 css-app-dev 的用户与现有 key 状态
-./issue-app-s3-key.sh test --new-key   # 给 css-app-test 生成一对 access key（只打印这一次）
+./issue-app-s3-key.sh <dev|test|uat|prod>            # 不带 --new-key：查看用户与现有 key 状态
+./issue-app-s3-key.sh <dev|test|uat|prod> --new-key  # 生成一对 access key 并【只打印这一次】（AWS 不会再给第二次）
+./issue-app-s3-key.sh dev                            # 例：查看 css-app-dev 的现有 key 状态
+./issue-app-s3-key.sh test --new-key                 # 例：给 css-app-test 发一对新 key
 ```
 
-- 脚本**不建用户不挂策略**（用户不存在会报错并指向对应 Terraform stack）；旧名 `07-iam/create-app-s3-user.sh`，2026-07-31 改名对齐现职能。
+前置条件：`css-app-<env>` 用户须已由 css-terraform 创建——脚本**不建用户不挂策略**（用户不存在会报错并指向对应 Terraform stack）；旧名 `07-iam/create-app-s3-user.sh`，2026-07-31 改名对齐现职能。
+
 - 每用户最多 2 个 key（AWS 上限），轮换 = 发新 → 切配置 → 删旧（删除命令脚本会打印）。
 - 发出的 key 去向：dev 写工作区 `deploy-env/dev/backend.env`（不入库，本地直接生效）；
   test/uat/prod 写 `deploy-env/<env>/backend.env` 底稿 → `../11-parameter-store/put-params.sh <env>` 推送 → 走 09 重新部署。

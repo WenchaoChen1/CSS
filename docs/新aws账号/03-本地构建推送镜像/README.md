@@ -4,32 +4,31 @@
 > 本目录脚本用于三种场景：**CI 挂了应急**、**首次给新环境灌镜像**、**本机调试构建产物**。
 > 两个脚本与 CI 完全同源（都调 Backend 仓库 `deploy/compose/*.yml` 的构建定义），不存在"手动打的和 CI 不一样"。
 
-## 两个脚本
+## 脚本清单
 
-| 脚本 | 做什么 | 什么时候用 |
-|------|--------|-----------|
-| `build-images.sh <env> [tag] [scope]` | **只构建、不推送**（产物留在本机 Docker） | 本机验证构建能过 / 先打包后审再推 |
-| `push-ecr.sh <env> [tag]` | **构建 + 推送到该环境的 ECR**（内部：渲染配置 → ECR 登录 → 构建 → 双 tag 推送） | CI 挂了 / 新环境首次灌镜像 |
+每个环境是**独立的 ECR 仓库前缀**（`test/css-*`、`uat/css-*`、`prod/css-*`），推错环境不会互相污染。脚本在本目录下运行（`cd docs/新aws账号/03-本地构建推送镜像`）。
 
-## 不同环境怎么推
-
-每个环境是**独立的 ECR 仓库前缀**（`test/css-*`、`uat/css-*`、`prod/css-*`），推错环境不会互相污染：
+### `build-images.sh` — 本地只构建、不推送镜像（产物留在本机 Docker，规格与推送版完全一致）
 
 ```bash
-cd docs/新aws账号/03-本地构建推送镜像
-
-# ---- test ----
-bash push-ecr.sh test                  # tag 自动 = test-manual-<后端git sha7>
-# ---- uat ----
-bash push-ecr.sh uat                   # uat-manual-<sha7>
-bash push-ecr.sh uat uat-manual2       # 或显式 tag
-# ---- prod（谨慎：正式流程应走 CI 的 main 分支 + 手动 Run workflow）----
-bash push-ecr.sh prod
-
-# ---- 只构建不推（任意环境）----
-bash build-images.sh test              # 6 个后端镜像
-bash build-images.sh test '' all       # 后端 + 前端
+./build-images.sh <test|uat|prod> [tag] [backend|frontend|all]   # tag 缺省 <env>-local-<后端git sha7>；scope 缺省 backend
+./build-images.sh test                    # 构建 6 个后端镜像（本机验证构建能过）
+./build-images.sh test '' all             # 后端 + 前端（需同级存在 ../CSS_frontend-main）
+./build-images.sh uat uat-local1 frontend # 显式 tag，只构建前端
 ```
+
+前置：Docker Desktop 运行中；工作区根 `deploy-env/<env>/backend.env` 存在（提供 ECR_REGISTRY 等构建变量，缺失时用最小内置值，仅影响镜像名前缀）。构建完成后可直接用 `push-ecr.sh <env> <同一tag>` 推送。
+
+### `push-ecr.sh` — 本机手动构建并推送 7 个镜像到该环境 ECR（渲染配置 → ECR 登录 → 构建 → 双 tag 推送；CI 的备用/首次灌仓通道）
+
+```bash
+./push-ecr.sh <test|uat|prod> [tag]    # tag 缺省 <env>-manual-<后端git sha7>
+./push-ecr.sh test                     # CI 挂了应急 / 新环境首次灌镜像
+./push-ecr.sh uat uat-manual2          # 显式 tag
+./push-ecr.sh prod                     # 谨慎：正式流程应走 CI 的 main 分支 + 手动 Run workflow
+```
+
+前置：Docker Desktop 运行中；aws cli 凭证有该环境 ECR push 与 `/css/<env>/*` 参数读取权限（配置优先从 SSM Parameter Store 渲染，回退工作区 `deploy-env/<env>/` 已有文件）；前端构建需同级存在 `../CSS_frontend-main`。
 
 **tag 约定**：CI 用 `<env>-vN`（不可变版本号，回滚依据）；本地手动用 `<env>-manual-<sha7>`（push-ecr）
 或 `<env>-local-<sha7>`（build-images），刻意与 CI 序列分开。push 时同时更新 `<env>` 浮动 tag，
@@ -40,10 +39,7 @@ EC2 的 compose 默认拉浮动 tag。
 
 ## Windows 前置
 
-- Docker Desktop 运行中（`docker version` 能通）；
-- aws cli 凭证有该环境 ECR push + `/css/<env>/*` 参数读取权限（push-ecr 会从 Parameter Store 渲染配置，
-  回退到工作区 `deploy-env/<env>/` 底稿）；
-- 前端构建需要同级存在 `../CSS_frontend-main`（工作区默认布局）；
+- 各脚本前置见上方脚本清单；共同要求：Docker Desktop 运行中（`docker version` 能通）；
 - 构建平台固定 `linux/amd64`（与 EC2 一致，Windows 上无需额外设置）。
 
 ## 可视化页面

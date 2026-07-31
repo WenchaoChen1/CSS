@@ -7,9 +7,17 @@
 > 手动兜底/回滚仍可用 [`../09-ssm-run-command/deploy-env.sh <env>`](../09-ssm-run-command/README.md)。
 > 具体值（ARN/registry/标签）统一见 [../../环境/配置速查.md](../../环境/配置速查.md)。以下"仓库页"指 `github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend`（Frontend 仓库同样操作一遍）。
 
-## 〇、本文件夹的脚本
+## 脚本清单
 
-`setup-github-actions.sh <backend|frontend|all>`：用 gh CLI 一键做下面 §1 的仓库配置（幂等创建 `test`/`uat`/`main` 三个 Environments；4 个 Variables 自 2026-07-28 起已写死进 workflow，脚本中该步骤变为冗余无害）。前置 `winget install GitHub.cli` + `gh auth login`（charles221900）。三个环境你已手工建齐，**脚本现在跑不跑都一样**；不装 gh 就照 §1 手动点页面，效果相同。
+### `setup-github-actions.sh` — 用 gh CLI 一键做本手册 §一 的仓库侧配置（写 4 个 Repository variables + 幂等创建 `test`/`uat`/`main` 三个 Environments）
+
+```bash
+./setup-github-actions.sh <backend|frontend|all>   # 目标仓库：Backend / Frontend / 两个都配
+./setup-github-actions.sh all                      # 典型用法：两仓库一次配齐并列出当前 variables 校验
+```
+
+前置：`winget install GitHub.cli` + `gh auth login`（charles221900 账号，GitHub.com → HTTPS → 浏览器登录）。
+注意：幂等可重跑无副作用；4 个 Variables 自 2026-07-28 起已写死进 workflow（脚本此步冗余无害），三个环境已手工建齐，**现在跑不跑都一样**——不装 gh 就照 §一 手动点页面，效果相同。`main` 环境的审批人设置仅 GitHub Team+ 计划生效（Free 私有仓库不支持环境审批）。
 
 ## 一、需要配置的页面（一次性）
 

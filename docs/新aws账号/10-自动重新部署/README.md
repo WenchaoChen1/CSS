@@ -4,12 +4,17 @@
 
 > 与 CI/CD 的边界：**发布新版本**永远走 GitHub Actions（构建→推 ECR→SSM 部署）；本文件夹只管"**已部署的服务**在重启/崩溃后自动回到运行状态"，不是新的发布入口。
 
-## 怎么用
+## 脚本清单
+
+### `setup-autodeploy.sh` — 经 SSM 给目标环境 EC2 装上"重启自动拉起三栈的 systemd 单元 + 每 5 分钟冒烟自愈 cron"
 
 ```bash
-# 前置：该环境机器已被 CI 部署过至少一次（/opt/css-cicd 存在），且是 SSM 目标（09 文件夹）
-bash docs/新aws账号/10-自动重新部署/setup-autodeploy.sh test
+./setup-autodeploy.sh <test|uat|prod>    # 唯一参数：环境名，只接受这三个值
+./setup-autodeploy.sh test               # 给 test 环境机器配置开机自启 + 自愈（不上机，走 09 的 run.sh 下发）
 ```
+
+前置：机器已是 SSM 部署目标（标签 `Environment=css-<env>`，见 09-ssm-run-command），且已被 CI 部署过至少一次（`/opt/css-cicd` 存在，脚本会远程校验）。
+装完后重启实例验证：`systemctl status css-<env>` 应为 active(exited)，三栈自动在线。
 
 装完得到：
 - `css-<env>.service`（systemd，开机在 docker 之后跑 `deploy.sh <env> up`）；
