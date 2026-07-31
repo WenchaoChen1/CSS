@@ -1,72 +1,47 @@
 #!/usr/bin/env bash
-# 应用访问 S3 的 IAM 用户：css-app-<env>，权限【只限本环境的桶】。
+# css-app-<env> 应用 S3 用户的 access key 管理（发放/查看）。
 # 为什么用 IAM 用户而不是实例角色：后端代码要求显式的 S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY
 # 两个环境变量（boto3 显式凭证），拿不到实例角色的临时凭证；本地开发机更是没有实例角色可用。
 #
-# 权限范围（最小集）：
-#   桶级  ListBucket / GetBucketLocation      —— 只对自己那个桶
-#   对象级 PutObject / GetObject / DeleteObject / 分段上传相关 —— 只对该桶内的对象
-#   显式拒绝跨桶：策略 Resource 精确到本桶 ARN，其它桶一律无权。
+# ⚠️ 2026-07-31 起本脚本【不再创建用户/挂策略】——css-app-* 用户与其 S3 内联策略已全部由
+#    css-terraform 接管（dev → css-non-prod/dev，test/uat → css-non-prod/<env>/iam，prod → css-prod/prod/iam），
+#    再跑创建逻辑会绕过 state 造成 drift。本脚本只剩 access key 生命周期：红线规定 key 永不进
+#    Terraform/state（secret 会明文落 state，见 css-terraform CLAUDE.md §九），所以发 key 永远走这里。
+#    文件名保留不改，兼容各文档的既有引用。
 #
 # 用法: ./create-app-s3-user.sh <dev|test|uat|prod> [--new-key]
-#   不带 --new-key：只建用户+挂策略（不生成密钥，避免闲置凭证）
-#   带 --new-key  ：额外生成一对 access key 并【只打印这一次】（AWS 不会再给第二次）
-#   例: ./create-app-s3-user.sh dev --new-key     # 本地开发要用，需要密钥
-#       ./create-app-s3-user.sh test             # 部署环境，先挂策略，用时再发 key
+#   不带 --new-key：查看用户与现有 key 状态
+#   带 --new-key  ：生成一对 access key 并【只打印这一次】（AWS 不会再给第二次）
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
 ENV_NAME="${1:?用法: create-app-s3-user.sh <dev|test|uat|prod> [--new-key]}"
 NEWKEY="${2:-}"
 REGION="us-east-1"
-case "$ENV_NAME" in
-  dev|test|uat) GROUP=css-non-prod ;;
-  prod)         GROUP=css-prod ;;
-  *) echo "环境必须是 dev|test|uat|prod"; exit 1 ;;
-esac
+case "$ENV_NAME" in dev|test|uat|prod) ;; *) echo "环境必须是 dev|test|uat|prod"; exit 1 ;; esac
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text | tr -d '\r')
 USER="css-app-$ENV_NAME"
 BUCKET="css-$ENV_NAME-$ACCOUNT_ID"
 
-# 桶必须先存在，否则策略指向一个不存在的资源
-if ! aws s3api list-buckets --query "Buckets[?Name=='$BUCKET'].Name" --output text | tr -d '\r' | grep -q .; then
-  echo "桶 $BUCKET 不存在——先跑 ../13-s3/create-s3.sh $ENV_NAME"; exit 1
+if ! aws iam get-user --user-name "$USER" >/dev/null 2>&1; then
+  case "$ENV_NAME" in
+    dev)  STACK="css-non-prod/dev" ;;
+    prod) STACK="css-prod/prod/iam" ;;
+    *)    STACK="css-non-prod/$ENV_NAME/iam" ;;
+  esac
+  echo "[FATAL] 用户 $USER 不存在。用户/策略由 Terraform 管理——去 css-terraform/$STACK 下 apply，本脚本不建用户。"
+  exit 1
 fi
 
-if aws iam get-user --user-name "$USER" >/dev/null 2>&1; then
-  echo "用户已存在: $USER"
-else
-  aws iam create-user --user-name "$USER" \
-    --tags Key=EnvironmentGroup,Value="$GROUP" Key=Environment,Value="css-$ENV_NAME" >/dev/null
-  echo "用户创建: $USER"
-fi
-# 标签补齐（老用户可能建的时候没打全）
-aws iam tag-user --user-name "$USER" --tags Key=EnvironmentGroup,Value="$GROUP" Key=Environment,Value="css-$ENV_NAME" >/dev/null
-
-TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
-if command -v cygpath >/dev/null 2>&1; then TMPF=$(cygpath -m "$TMP"); else TMPF="$TMP"; fi
-cat > "$TMP/s3.json" <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    { "Sid": "BucketLevel", "Effect": "Allow",
-      "Action": ["s3:ListBucket","s3:GetBucketLocation","s3:ListBucketMultipartUploads"],
-      "Resource": "arn:aws:s3:::$BUCKET" },
-    { "Sid": "ObjectLevel", "Effect": "Allow",
-      "Action": ["s3:PutObject","s3:GetObject","s3:DeleteObject","s3:AbortMultipartUpload","s3:ListMultipartUploadParts"],
-      "Resource": "arn:aws:s3:::$BUCKET/*" }
-  ]
-}
-EOF
-aws iam put-user-policy --user-name "$USER" --policy-name "$USER-s3" \
-  --policy-document "file://$TMPF/s3.json"
-echo "策略已挂: $USER-s3 → 仅 s3://$BUCKET （上传/下载/删除/分段上传）"
+echo "用户: $USER（S3 内联策略由 css-terraform 管理，本脚本不动策略）"
+echo "现有 access key："
+aws iam list-access-keys --user-name "$USER" \
+  --query 'AccessKeyMetadata[].[AccessKeyId,Status,CreateDate]' --output table
 
 if [ "$NEWKEY" = "--new-key" ]; then
   N=$(aws iam list-access-keys --user-name "$USER" --query 'length(AccessKeyMetadata)' --output text | tr -d '\r')
   if [ "$N" -ge 2 ]; then
     echo "[FATAL] $USER 已有 2 个 access key（AWS 上限）。先删旧的:"
-    aws iam list-access-keys --user-name "$USER" --query 'AccessKeyMetadata[].[AccessKeyId,Status,CreateDate]' --output text
     echo "  aws iam delete-access-key --user-name $USER --access-key-id <ID>"
     exit 1
   fi
