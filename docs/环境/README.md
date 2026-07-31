@@ -12,8 +12,7 @@
 
 | 类别 | 文档 | 说明 |
 |------|------|------|
-| 环境 | [test.md](test.md) / [uat.md](uat.md) / [prod.md](prod.md) | 每环境：形态、访问、部署、现状 |
-| AWS 群组 | [aws-css-non-prod.md](aws-css-non-prod.md) / [aws-css-prod.md](aws-css-prod.md) | 两个 VPC 群组的资源清单 |
+| 环境实况 | **已迁至 `css-terraform/环境实况/`**（test/uat/prod + 两个环境组）| 随基础设施代码维护，apply 后同步更新；一致性核对 `css-terraform/scripts/check-live-facts.sh` |
 | 服务技术 | [服务技术文档.md](服务技术文档.md) | 三栈架构、服务清单、配置注入模型、已知坑 |
 | 价格 | [成本价格表.md](成本价格表.md) | 两群组成本明细 |
 | **资源与用法（权威）** | `css-terraform/`：`CLAUDE.md`（规范）、`使用说明/`（逐组件手册）、`运行命令.md`、`执行手册.md` | 所有 AWS 资源的唯一事实源 |
