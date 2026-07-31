@@ -1,4 +1,4 @@
-# 05-数据同步 —— RDS 建库 + 库到库数据同步 + 本地备份恢复 + 非生产脱敏
+# 05-数据库运维 —— 建库 / 数据同步与恢复 / 脱敏 / 库账号与改密 / 对象 owner（原 05-数据同步）
 
 四个脚本：`create-databases.sh` 在 RDS 实例上按规范建各环境业务库（ocr 库自动加 pgvector）；`sync-db.sh` 用 pg_dump→pg_restore 流式把源库数据同步到目标库（这两个需在 VPC 内执行，PG 客户端经 `docker run postgres:16` 提供）；`restore-dump-via-gw.sh` 在**本机**执行，把本地 pg_dump 备份经 S3+SSM 由网关机恢复进私网 RDS（无需上机）；**`anonymize-db.sh` 给非生产库脱敏**（导入真实数据后必跑，见下）。
 
@@ -39,7 +39,7 @@
                               ../../../备份/数据库/preprod/preprod_ocr_xxx.dump
 ```
 
-- 前置：网关机已由 `06-ec2/create-gateway.sh` 建成并挂 `css-gw-non-prod` / `css-gw-prod` profile（SSM + 读 css-dbsync 桶 + 读 `rds!` secret）——nonprod=css-non-prod-gw ✅；prod 用 css-prod-bastion。
+- 前置：网关机已由 `06-服务器密钥与访问/create-gateway.sh` 建成并挂 `css-gw-non-prod` / `css-gw-prod` profile（SSM + 读 css-dbsync 桶 + 读 `rds!` secret）——nonprod=css-non-prod-gw ✅；prod 用 css-prod-bastion。
 - 目标是 prod 时脚本要求输入 `prod` 二次确认（覆盖恢复生产库）。
 - 同样遵守上面的 PG 版本对应注意（脚本在网关机装的是 psql16，匹配新实例 PG16）。
 

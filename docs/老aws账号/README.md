@@ -85,7 +85,7 @@ aws s3 sync "备份/s3/chain-serve-test" s3://<larry新桶>       --profile css-
 
 1. `拉取S3.ps1 -SizeOnly` 评估数据量 → 三个脚本(或上面手动命令)落地全部数据到 `备份\`。
 2. 在 larry 新组织按目标环境建库/桶(DB 走新 RDS `css-non-prod`/`css-prod`,库名规范 `css-<env>-main`/`css-<env>-ocr`,见 ../新aws账号/04、05;S3 新建桶)。
-3. 恢复 DB 推荐用 `../新aws账号/05-数据同步/restore-dump-via-gw.sh <env>`(本地 dump → S3 中转桶 → 网关机 pg_restore);`拉取S3.ps1 -PushToDst` 或 `aws s3 sync` 回推文件。
+3. 恢复 DB 推荐用 `../新aws账号/05-数据库运维/restore-dump-via-gw.sh <env>`(本地 dump → S3 中转桶 → 网关机 pg_restore);`拉取S3.ps1 -PushToDst` 或 `aws s3 sync` 回推文件。
 4. 用 `备份\docker镜像\` 里导出的旧配置对照,把有效值填进 SSM Parameter Store `/css/<env>/backend.env`(唯一事实源;本地底稿 = 工作区根 `deploy-env\<env>\backend.env`。真实密钥迁移后建议全部轮换,见审计《05》)。
 
 > ⚠️ 所有产物都落在根 `备份\`(数据库/docker镜像/s3),`备份\` 与 `源环境.env` 都含敏感数据,已在根 `.gitignore` 排除,切勿提交或外传。

@@ -63,7 +63,7 @@
 **关键规则**：
 
 1. **SSH 只能经堡垒机**：nonprod=`css-non-prod-bastion`（3.225.148.166）、prod=`css-prod-bastion`（34.225.237.45）；
-   22 仅放行管理 IP。开发者临时钥（带过期）走 `docs/新aws账号/06-ec2/grant-dev-ssh.sh`；
+   22 仅放行管理 IP。开发者临时钥（带过期）走 `docs/新aws账号/06-服务器密钥与访问/grant-dev-ssh.sh`；
 2. **系统 Web 只经本环境 ALB**（`css-test` / `css-uat` / `css-prod`⏳，名字=环境名）；
    **kafka-ui 只走开发入口 ALB** `css-non-prod-entry`（test :8085 / uat :8086，仅白名单
    `221.214.0.190/32` + `134.195.101.194/32`），业务 ALB 的 8085 监听器已全部撤除；
@@ -75,10 +75,10 @@
 6. ECR 仓库每环境独立（`<env>/css-xxx`，21 个，lifecycle 保 5）；镜像 tag `<env>-vN`（版本）+ `<env>`（浮动）；
 7. 环境变量唯一事实源：SSM Parameter Store `/css/<env>/{backend,frontend}.env`（Terraform 只管**壳**，
    值走 `11-parameter-store/put-params.sh` 或控制台推送）；
-8. 数据库账号：应用一律用低权账号 `css_app_<env>`（密码固定不轮换，改密走 `05-数据同步/change-db-password.sh`）；
+8. 数据库账号：应用一律用低权账号 `css_app_<env>`（密码固定不轮换，改密走 `05-数据库运维/change-db-password.sh`）；
    master `postgres` 仅运维用（Secrets Manager 托管，**7 天**自动轮换）；本地开发用 `css_dev`；
 9. 域名不用 Route53（DNS 留在 GoDaddy，将来 ACM 走手动 CNAME 验证）；HTTPS 尚未启用；
-10. 非生产导入真实数据后必须脱敏（`05-数据同步/anonymize-db.sh`）；每次 restore/sync 后必须重跑
+10. 非生产导入真实数据后必须脱敏（`05-数据库运维/anonymize-db.sh`）；每次 restore/sync 后必须重跑
     `reown-db-objects.sh` 移交对象 owner。
 
 ## 成本与预算

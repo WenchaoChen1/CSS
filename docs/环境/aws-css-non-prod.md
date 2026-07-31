@@ -25,10 +25,10 @@
 - PG **16.14** / db.t4g.micro / 单 AZ / 私有子网仅内网 / **删除保护已开**；endpoint 见 `运维访问速查.local.md`。
 - 库：`css-test-main` / `css-test-ocr`（已载 preprod 数据并脱敏）；`css-uat-main`（146 表 / 188 用户，=test 数据）/ `css-uat-ocr` ✅ 已建。
 - 库账号（2026-07-30 起）：`css_app_test`（test 应用现用它连库）/ `css_app_uat` / `css_dev`（可建新库 + test/uat 四库读写，删不了存量库）/ `css_ops`（rds_superuser）。
-  自建账号密码写死不轮换，改密走 `docs/新aws账号/05-数据同步/change-db-password.sh`。
+  自建账号密码写死不轮换，改密走 `docs/新aws账号/05-数据库运维/change-db-password.sh`。
 - master `postgres` **仅运维用**，密码 Secrets Manager 托管、**7 天自动轮换**（此前文档误写 90 天，以 7 天为准）。
 - 升配 db.t4g.small 仍被 Free plan 拦截（瓶颈是内存不是 CPU），升 Paid 后改 css-terraform `database` stack 的实例规格变量执行。
-- 数据操作（建库/同步/恢复/脱敏/账号）走 `docs/新aws账号/05-数据同步/`（不属 Terraform 管辖）。
+- 数据操作（建库/同步/恢复/脱敏/账号）走 `docs/新aws账号/05-数据库运维/`（不属 Terraform 管辖）。
 
 ## 4. 安全组（2026-07-30 起每环境独立，旧共用组已删）
 
@@ -68,4 +68,4 @@
 
 三条铁律不变：SSH 只经堡垒机；Web 只经本环境 ALB（kafka-ui 走开发入口 ALB）；RDS 仅内网。
 具体 SSH / 隧道 / psql 命令与全部凭证见工作区 `运维访问速查.local.md`。
-开发者临时 SSH 用 `docs/新aws账号/06-ec2/grant-dev-ssh.sh`（到期 `revoke-dev-ssh.sh` 回收）。
+开发者临时 SSH 用 `docs/新aws账号/06-服务器密钥与访问/grant-dev-ssh.sh`（到期 `revoke-dev-ssh.sh` 回收）。

@@ -1,4 +1,4 @@
-# 06-ec2 —— 服务器（应用机 / 网关堡垒机）与 SSH 密钥 💰
+# 06-服务器密钥与访问 —— SSH 密钥（一机一钥 / 开发者临时钥）与终止保护开关（原 06-ec2）
 
 > ⚠️ **2026-07-30 起本目录创建类脚本已删除**（本 README 保留作资源说明/运维参考）：机器创建/删除已由 css-terraform 接管（network 的网关机 + 各环境 ec2 stack）：create-app-ec2.sh/create-gateway.sh/delete-ec2.sh 废弃；setup-ssh-key.sh、create-instance-keys.sh 仍有效（密钥不进 TF）。
 > 资源变更一律走 css-terraform 仓库（规范见其 CLAUDE.md）。
@@ -17,7 +17,7 @@ SSH 只能经堡垒机跳，Web 只能经 ALB（见 [12-alb](../12-alb/README.md
 ## 怎么用
 
 ```bash
-cd docs/新aws账号/06-ec2
+cd docs/新aws账号/06-服务器密钥与访问
 
 # 1) 密钥（只需一次；本机 ~/.ssh/wenchao.pub → key pair "wenchao"，并补装到已运行的网关机）
 ./setup-ssh-key.sh ~/.ssh/wenchao.pub css-non-prod-gw

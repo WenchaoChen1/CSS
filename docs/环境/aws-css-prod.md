@@ -28,7 +28,7 @@
 
 ## 3. 数据库
 
-RDS `css-prod`（PostgreSQL，db.t4g.medium 起；css-terraform `css-prod/database` stack，实例本体 `enable_prod_compute` 门控，子网组已建）：**Multi-AZ + 自动备份 ≥7 天 + 存储加密 + 删除保护**，私有子网。库 **`css-prod-main`** + **`css-prod-ocr`**（`CREATE EXTENSION vector`，`docs/新aws账号/05-数据同步/create-databases.sh` 建库）。**与非生产实例完全分离**；主密码 Secrets Manager 托管（RDS 托管 secret，自动轮换）、仅运维用；应用届时走专用低权账号（`05-数据同步/create-db-accounts.sh` 创建，密码写死不轮换，改密走 `change-db-password.sh`，值只进 `/css/prod/backend.env`）。
+RDS `css-prod`（PostgreSQL，db.t4g.medium 起；css-terraform `css-prod/database` stack，实例本体 `enable_prod_compute` 门控，子网组已建）：**Multi-AZ + 自动备份 ≥7 天 + 存储加密 + 删除保护**，私有子网。库 **`css-prod-main`** + **`css-prod-ocr`**（`CREATE EXTENSION vector`，`docs/新aws账号/05-数据库运维/create-databases.sh` 建库）。**与非生产实例完全分离**；主密码 Secrets Manager 托管（RDS 托管 secret，自动轮换）、仅运维用；应用届时走专用低权账号（`05-数据库运维/create-db-accounts.sh` 创建，密码写死不轮换，改密走 `change-db-password.sh`，值只进 `/css/prod/backend.env`）。
 
 ## 4. 安全组（css-terraform 管理，ID 未变）
 

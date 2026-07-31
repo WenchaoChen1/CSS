@@ -6,7 +6,7 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 
 ```bash
 # ① 把一台 EC2 配置成 SSM 部署目标（挂角色/补权限 + 打 Environment=css-<env> 标签 + 等 Online）
-#    仅手工建的机器需要；06-ec2 脚本建的机器（css-test-app / css-uat-app）已自带角色与标签
+#    仅手工建的机器需要；06-服务器密钥与访问 脚本建的机器（css-test-app / css-uat-app）已自带角色与标签
 bash docs/新aws账号/09-ssm-run-command/setup-ssm.sh test <instance-id>
 
 # ② 对某环境远程执行任意命令（按 Environment 标签定位，JSON 安全编码，回显输出）
@@ -96,7 +96,7 @@ cat .last_good_test                                # 上次成功部署的 tag
 
 ### 新机器初始化
 
-`../06-ec2/create-app-ec2.sh` 建机（user-data 自动装 docker+compose，角色/标签已含）→ 跑一次 `deploy-env.sh <env>`（或 Backend workflow）即完成 bundle 上传 + 首次部署。机器即"牲口"，重建成本≈半小时。
+`../06-服务器密钥与访问/create-app-ec2.sh` 建机（user-data 自动装 docker+compose，角色/标签已含）→ 跑一次 `deploy-env.sh <env>`（或 Backend workflow）即完成 bundle 上传 + 首次部署。机器即"牲口"，重建成本≈半小时。
 
 ## 五、deploy-env 与 Parameter Store：配置到底存在哪、怎么改
 
@@ -133,7 +133,7 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 | 3 | 重新部署使生效（重启容器即可，**不用重建镜像**） | `bash docs/新aws账号/09-ssm-run-command/deploy-env.sh test core` |
 | 4 | 验证机器上已渲染 | `bash docs/新aws账号/09-ssm-run-command/run.sh test 'grep -n "^NEW_KEY=" /opt/css-cicd/env/test/backend.env'` |
 
-- ⚠️ **例外：前端 `VITE_*` 是构建期烤入镜像的**。改 `deploy-env/<env>/frontend.env` 后除 put-params 外，必须**重新构建前端镜像**（重跑前端 CI workflow，或 `bash docs/新aws账号/03-推送镜像/push-ecr.sh <env>`），再 `deploy-env.sh <env> frontend`——只重启不生效。
+- ⚠️ **例外：前端 `VITE_*` 是构建期烤入镜像的**。改 `deploy-env/<env>/frontend.env` 后除 put-params 外，必须**重新构建前端镜像**（重跑前端 CI workflow，或 `bash docs/新aws账号/03-本地构建推送镜像/push-ecr.sh <env>`），再 `deploy-env.sh <env> frontend`——只重启不生效。
 - ⚠️ 耦合键成对改：`API_KEY`==`VITE_X_API_KEY`（一个在 backend.env、一个在 frontend.env）、`CATALOG_OCR_API_KEY`==`OCR_API_KEY`；`PASSWORD_SALT` 迁移必须原样搬运。
 - **dev 环境不走 Parameter Store**：`deploy-env/dev/backend.env` 由本地 compose 直接 `--env-file` 读（入口 `.\deploy\windows\本地dev.ps1`），改完 restart 即生效。
 - 在控制台直接 Edit 参数值也行（见下节），但会与本地底稿失联——下次谁跑 put-params 就把控制台改动覆盖回去。**推荐永远从本地底稿走**。

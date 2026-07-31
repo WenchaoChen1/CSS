@@ -1,4 +1,4 @@
-# 07-iam —— 应用 S3 用户的 access key 发放（唯一还在这里做的 IAM 操作）
+# 07-应用s3密钥 —— 应用 S3 用户的 access key 发放（唯一还在这里做的 IAM 操作）
 
 > ⚠️ **2026-07-31 起：IAM 资源本体已 100% 由 css-terraform 管理**，本目录不再创建任何用户/角色/策略。
 > - OIDC provider + `css-deploy-{test,uat,prod}`（GitHub Actions 用）→ `css-terraform/css-github`；
@@ -12,12 +12,12 @@
 ## 怎么用
 
 ```bash
-cd docs/新aws账号/07-iam
-./create-app-s3-user.sh dev              # 查看 css-app-dev 的用户与现有 key 状态
-./create-app-s3-user.sh test --new-key   # 给 css-app-test 生成一对 access key（只打印这一次）
+cd docs/新aws账号/07-应用s3密钥
+./issue-app-s3-key.sh dev              # 查看 css-app-dev 的用户与现有 key 状态
+./issue-app-s3-key.sh test --new-key   # 给 css-app-test 生成一对 access key（只打印这一次）
 ```
 
-- 脚本**不建用户不挂策略**（用户不存在会报错并指向对应 Terraform stack）；文件名保留是为兼容各文档引用。
+- 脚本**不建用户不挂策略**（用户不存在会报错并指向对应 Terraform stack）；旧名 `07-iam/create-app-s3-user.sh`，2026-07-31 改名对齐现职能。
 - 每用户最多 2 个 key（AWS 上限），轮换 = 发新 → 切配置 → 删旧（删除命令脚本会打印）。
 - 发出的 key 去向：dev 写工作区 `deploy-env/dev/backend.env`（不入库，本地直接生效）；
   test/uat/prod 写 `deploy-env/<env>/backend.env` 底稿 → `../11-parameter-store/put-params.sh <env>` 推送 → 走 09 重新部署。

@@ -2,7 +2,7 @@
 # 把本地 pg_dump -Fc 备份恢复到私有子网里的 RDS（本地无法直连时用）：
 #   本地 dump → S3 中转桶 css-dbsync-<账号> → SSM Run Command 在网关机上执行
 #   （装 psql 客户端 → 从 Secrets Manager 取 RDS 托管密码 → 建库/pgvector → pg_restore → 清理）。
-# 前置：网关机已由 06-ec2/create-gateway.sh 挂 css-gw-<组> profile（SSM + 读桶 + 读 rds! 密码）。
+# 前置：网关机已由 06-服务器密钥与访问/create-gateway.sh 挂 css-gw-<组> profile（SSM + 读桶 + 读 rds! 密码）。
 # 目标库名按 2026-07-28 规范：css-<env>-main / css-<env>-ocr（ocr 自动加 pgvector）。
 # 用法: ./restore-dump-via-gw.sh <test|uat|prod> <main库dump> <ocr库dump>
 #   例: ./restore-dump-via-gw.sh test ../../../备份/数据库/preprod/preprod_main_xxx.dump ../../../备份/数据库/preprod/preprod_ocr_xxx.dump
@@ -38,7 +38,7 @@ echo "目标 RDS: $RDS_ID ($ENDPOINT)  库: css-$ENV_NAME-main / css-$ENV_NAME-o
 
 # ---- 网关机（SSM 目标）----
 GW_ID=$(awsq ec2 describe-instances --filters "Name=tag:Name,Values=$GW_NAME" "Name=instance-state-name,Values=running" --query 'Reservations[0].Instances[0].InstanceId')
-[ "$GW_ID" != "None" ] || { echo "网关机 $GW_NAME 未运行（先跑 06-ec2/create-gateway.sh）"; exit 1; }
+[ "$GW_ID" != "None" ] || { echo "网关机 $GW_NAME 未运行（先跑 06-服务器密钥与访问/create-gateway.sh）"; exit 1; }
 echo -n "等待网关机注册到 SSM"
 for i in $(seq 1 30); do
   ONLINE=$(awsq ssm describe-instance-information --filters "Key=InstanceIds,Values=$GW_ID" --query 'InstanceInformationList[0].PingStatus' 2>/dev/null || echo "")
