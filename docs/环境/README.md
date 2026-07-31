@@ -18,7 +18,7 @@
 | **资源与用法（权威）** | `css-terraform/`：`CLAUDE.md`（规范）、`使用说明/`（逐组件手册）、`运行命令.md`、`执行手册.md` | 所有 AWS 资源的唯一事实源 |
 | 分工 | [../环境运维执行脚本/职责划分.md](../环境运维执行脚本/职责划分.md) | Terraform 管什么、脚本管什么 |
 | 运维脚本 | [../环境运维执行脚本/README.md](../环境运维执行脚本/README.md) | 镜像推送(03)、数据同步(05)、EC2 密钥(06)、IAM key(07)、CI 配置(08)、SSM 部署(09~11) |
-| CI/CD | [../生产部署/03-CICD-GitHub-Actions.md](../生产部署/03-CICD-GitHub-Actions.md) / [cicd-操作手册.md](cicd-操作手册.md) | 方案与日常操作 |
+| CI/CD | [../云服务搭建部署方案/03-CICD-GitHub-Actions.md](../云服务搭建部署方案/03-CICD-GitHub-Actions.md) / [cicd-操作手册.md](cicd-操作手册.md) | 方案与日常操作 |
 | 配置值速查 | [配置速查.md](配置速查.md) | 手册/脚本要填的具体值 |
 | **凭证与地址** | 工作区根 `运维访问速查.local.md`（gitignore） | 所有密码/密钥/连接串只在这里，**文档一律不抄录** |
 
