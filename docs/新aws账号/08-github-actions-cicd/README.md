@@ -4,7 +4,7 @@
 > workflow 本体在两仓库 `.github/workflows/cicd.yml`（名字 **CICD**，push `test`/`uat`/`main` 自动：构建 → 双 tag 推每环境独立 ECR 仓库——不可变版本号 `<env>-vN` + 浮动 `<env>`）。
 > ✅ **现状（2026-07-28 晚）：自动部署已启用**——AWS 侧 RDS/网关机/test+uat 应用机就绪后，migrate 与 deploy job 已取消注释：
 > push `test`/`uat` → 构建镜像 + alembic 迁移 + SSM 部署；push `main` → **只构建镜像**，生产部署要人为 Run workflow（就是人工闸）。
-> 手动兜底/回滚仍可用 [`../09-ssm-run-command/deploy-env.sh <env>`](../09-ssm-run-command/README.md)。
+> 手动兜底/回滚仍可用 [`../09-远程执行与手动部署/deploy-env.sh <env>`](../09-远程执行与手动部署/README.md)。
 > 具体值（ARN/registry/标签）统一见 [../../环境/配置速查.md](../../环境/配置速查.md)。以下"仓库页"指 `github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend`（Frontend 仓库同样操作一遍）。
 
 ## 脚本清单
@@ -74,7 +74,7 @@
 
 **怎么找**：Actions → CICD → 右侧 **Run workflow** 下拉（灰色按钮）。
 **填什么**：Branch 选对应分支 → `environment` 选目标环境 → `image_tag` 填要回退到的不可变版本 tag（`<env>-vN`，如 `test-v12`，从 ECR 控制台或上次成功 run 的日志里查）→ **Run workflow**。填了 tag 会跳过构建直接部署旧镜像；prod 仍要过审批。
-填了 `image_tag` 会跳过构建、直接把该版本部署上去；命令行兜底同样可用：`../09-ssm-run-command/deploy-env.sh <env> all <env>-vN`。
+填了 `image_tag` 会跳过构建、直接把该版本部署上去；命令行兜底同样可用：`../09-远程执行与手动部署/deploy-env.sh <env> all <env>-vN`。
 
 ### 推送结果（AWS 侧）
 
@@ -82,7 +82,7 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 
 ## 三、发布操作（命令行侧）
 
-> 现阶段下表的 push 只触发**推镜像**（`<env>-vN`）；推完后手动 `bash docs/新aws账号/09-ssm-run-command/deploy-env.sh <env>` 完成部署。
+> 现阶段下表的 push 只触发**推镜像**（`<env>-vN`）；推完后手动 `bash docs/新aws账号/09-远程执行与手动部署/deploy-env.sh <env>` 完成部署。
 
 | 目标 | 命令 |
 |------|------|
@@ -102,6 +102,6 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 | configure-aws-credentials 报 Not authorized | 分支不在角色信任策略里，或 **environment 名与信任策略对不上**（只信 `test`/`uat`/`main` 三个分支与**同名的**三个 Environment，见 `07-获取应用iam密钥`） |
 | Parameter not found | 该环境的 `/css/<env>/*.env` 还没灌入 Parameter Store（`11-parameter-store`） |
 | ECR push 报 not authorized/not exist | 目标环境的 `<env>/css-xxx` 仓库未建（`02-ecr`）或角色权限与前缀不符 |
-| ssm-run 报没有 Online 实例 | 见 [../09-ssm-run-command/README.md](../09-ssm-run-command/README.md) |
+| ssm-run 报没有 Online 实例 | 见 [../09-远程执行与手动部署/README.md](../09-远程执行与手动部署/README.md) |
 | deploy 冒烟失败 | 看 job 日志里 deploy.sh 输出定位是哪个栈没起来 |
 | prod 一直转圈 | 在等审批：run 页面 Review deployments |

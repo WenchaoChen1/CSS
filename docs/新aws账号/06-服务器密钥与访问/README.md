@@ -117,7 +117,7 @@ aws ssm start-session --target i-0cb9b69b9eb19a9aa    # test；uat=i-0f90c5c061d
 实例已由 css-terraform 纳管——**改规格 = 改 `css-terraform/<组>/<env>/ec2` 的 `instance_type` 变量后 `terraform apply`**
 （TF 自动做停机→改型→开机，几分钟窗口；私网 IP、角色、标签、ALB 目标注册都不变）。
 裸 `aws ec2 modify-instance-attribute` 改类型会造成 drift，下次 plan 会要求改回去。
-开机后 docker 由 systemd 自启，再跑一次 `09-ssm-run-command/deploy-env.sh <env>` 拉起容器即可。
+开机后 docker 由 systemd 自启，再跑一次 `09-远程执行与手动部署/deploy-env.sh <env>` 拉起容器即可。
 
 ## 可视化页面
 

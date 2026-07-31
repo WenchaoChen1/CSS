@@ -25,7 +25,7 @@ git push main ────────────▶ 同上但【只构建不�
 ```
 
 **职责分工**：GitHub Actions（→ [08](08-github-actions-cicd/README.md)）管"构建什么、什么时候发、发给谁"；
-SSM + deploy.sh（→ [09](09-ssm-run-command/README.md)）管"命令安全送进私网机器 + 机器上跑起来并验证"。
+SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命令安全送进私网机器 + 机器上跑起来并验证"。
 
 | 分支 push | 环境 | 快照 | 审批 | 目标机（标签） |
 |-----------|------|------|------|----------------|
@@ -46,7 +46,7 @@ SSM + deploy.sh（→ [09](09-ssm-run-command/README.md)）管"命令安全送�
 | 06 | [`06-服务器密钥与访问/`](06-服务器密钥与访问/README.md) | `create-instance-keys.sh`、`setup-ssh-key.sh`、`grant-dev-ssh.sh`、`revoke-dev-ssh.sh`、`toggle-termination-protection.sh` | 一机一钥管理、开发者临时 SSH 钥（带过期时间）、TF 重建实例前解终止保护 |
 | 07 | [`07-获取应用iam密钥/`](07-获取应用iam密钥/README.md) | `issue-app-s3-key.sh <env> [--new-key]` | 发/查 `css-app-<env>` 用户的 access key（key 按红线永不进 Terraform） |
 | 08 | [`08-github-actions-cicd/`](08-github-actions-cicd/README.md) | `setup-github-actions.sh` | GitHub Actions 配置与使用手册（Variables/Environments 一键配置） |
-| 09 | [`09-ssm-run-command/`](09-ssm-run-command/README.md) | `setup-ssm.sh`、`run.sh <env> '<命令>'`、`deploy-env.sh <env> [stack] [tag]` | SSM 命令通道：远程执行、手动部署/回滚（CI 之外的兜底入口） |
+| 09 | [`09-远程执行与手动部署/`](09-远程执行与手动部署/README.md) | `setup-ssm.sh`、`run.sh <env> '<命令>'`、`deploy-env.sh <env> [stack] [tag]` | SSM 命令通道：远程执行、手动部署/回滚（CI 之外的兜底入口） |
 | 10 | [`10-自动重新部署/`](10-自动重新部署/README.md) | `setup-autodeploy.sh <env>` | systemd 开机自动拉起三栈 + 冒烟自愈（⏳ 未安装；TF 重建机器后会丢，需重装） |
 | 11 | [`11-parameter-store/`](11-parameter-store/README.md) | `put-params.sh <env>` | 把工作区根 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（运行时配置唯一事实源；test ✅ 已灌，uat/prod 首次部署前灌/校准） |
 | 12 | [`12-成本账单/`](12-成本账单/README.md) | `activate-cost-tags.sh` | 成本分摊标签激活（✅ 07-31 两键已激活，幂等）；账单侧脚本归口 |
@@ -55,7 +55,7 @@ SSM + deploy.sh（→ [09](09-ssm-run-command/README.md)）管"命令安全送�
 **已删除的编号目录**（01-vpc / 02-ecr / 04-rds / 12-alb / 13-s3 / 14-cloudwatch / 15 等）：这些"创建类"
 组件已全部由 css-terraform 接管，说明在其 `使用说明/` 对应文档；`tag-all-resources.sh` 已随标签切换退役。
 （2026-07-31 重命名：`03-推送镜像`→`03-本地构建推送镜像`、`05-数据同步`→`05-数据库运维`、`06-ec2`→`06-服务器密钥与访问`、
-`07-iam`→`07-获取应用iam密钥`（脚本 `create-app-s3-user.sh`→`issue-app-s3-key.sh`）、`08-github-actions推镜像`→`08-github-actions-cicd`。）
+`07-iam`→`07-获取应用iam密钥`（脚本 `create-app-s3-user.sh`→`issue-app-s3-key.sh`）、`08-github-actions推镜像`→`08-github-actions-cicd`、`09-ssm-run-command`→`09-远程执行与手动部署`。）
 
 ## 约定（仍然有效的部分）
 

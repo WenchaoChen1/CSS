@@ -55,4 +55,4 @@ Parameter Store：`/css/prod/backend.env`、`/css/prod/frontend.env`。**全部�
 
 ## 7. 部署与发布
 
-现行（2026-07-31）：`main` 分支 push → **只构建镜像**（`prod-vN` + `prod` 双 tag）；**部署 = 手动在 GitHub Actions 上 Run workflow**（充当人工闸）→ migrate（快照+alembic_version 核对）→ SSM 部署（按 tag `Environment` 定位目标机）→ 冒烟。回滚用 `prod-vN` 不可变版本 tag 重新部署。兜底：`docs/新aws账号/09-ssm-run-command/deploy-env.sh prod`。详见 [prod.md](prod.md) 与 03-CICD 文档。
+现行（2026-07-31）：`main` 分支 push → **只构建镜像**（`prod-vN` + `prod` 双 tag）；**部署 = 手动在 GitHub Actions 上 Run workflow**（充当人工闸）→ migrate（快照+alembic_version 核对）→ SSM 部署（按 tag `Environment` 定位目标机）→ 冒烟。回滚用 `prod-vN` 不可变版本 tag 重新部署。兜底：`docs/新aws账号/09-远程执行与手动部署/deploy-env.sh prod`。详见 [prod.md](prod.md) 与 03-CICD 文档。

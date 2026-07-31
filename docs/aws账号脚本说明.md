@@ -36,7 +36,7 @@
 | `06-服务器密钥与访问/` | `create-app-ec2.sh <env>` / `create-instance-keys.sh` / `create-gateway.sh <nonprod\|prod>` | 应用机（私网固定 IP）；一机一钥（每台专属 ed25519）；非生产网关机（**堡垒 + NAT**，反代已于 2026-07-29 收掉）/ 生产堡垒机+NAT 网关 | 💰 |
 | `07-获取应用iam密钥/` | `create-iam.sh` | GitHub OIDC + 三环境隔离角色与 S3 用户（key 不跨环境） | 免费 ✅ |
 | `08-github-actions-cicd/` | `setup-github-actions.sh` | 一键配置两仓库 GitHub Actions（Variables/Environments/审批人，需 gh CLI） | 免费 |
-| `09-ssm-run-command/` | `setup-ssm.sh` / `run.sh` | 把 EC2 配成 SSM 部署目标；远程执行命令 | 免费 |
+| `09-远程执行与手动部署/` | `setup-ssm.sh` / `run.sh` | 把 EC2 配成 SSM 部署目标；远程执行命令 | 免费 |
 | `10-自动重新部署/` | `setup-autodeploy.sh <env>` | systemd 开机自启三栈 + 冒烟自愈 cron（经 SSM 安装） | 免费 |
 | `11-parameter-store/` | `put-params.sh <env>` | 把 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（SecureString，运行时唯一事实源） | 免费 |
 | `12-alb/` | `create-alb.sh <test\|uat\|prod>` / `revoke-gw-proxy.sh <nonprod\|prod>` | **系统 Web 唯一入口** ALB——**每环境一个，名字=环境名**（`css-test` ✅ / `css-uat` ✅ / `css-prod` ⏳），双标签；`revoke-gw-proxy.sh` 收掉网关机 80/8080 过渡通道（✅ 已执行） | 💰 |

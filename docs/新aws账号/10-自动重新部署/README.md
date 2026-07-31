@@ -13,7 +13,7 @@
 ./setup-autodeploy.sh test               # 给 test 环境机器配置开机自启 + 自愈（不上机，走 09 的 run.sh 下发）
 ```
 
-前置：机器已是 SSM 部署目标（标签 `Environment=css-<env>`，见 09-ssm-run-command），且已被 CI 部署过至少一次（`/opt/css-cicd` 存在，脚本会远程校验）。
+前置：机器已是 SSM 部署目标（标签 `Environment=css-<env>`，见 09-远程执行与手动部署），且已被 CI 部署过至少一次（`/opt/css-cicd` 存在，脚本会远程校验）。
 装完后重启实例验证：`systemctl status css-<env>` 应为 active(exited)，三栈自动在线。
 
 装完得到：
@@ -23,7 +23,7 @@
 验证（可经 SSM 执行）：
 
 ```bash
-bash docs/新aws账号/09-ssm-run-command/run.sh test 'systemctl is-enabled css-test && tail -5 /var/log/css-selfheal.log 2>/dev/null; echo ok'
+bash docs/新aws账号/09-远程执行与手动部署/run.sh test 'systemctl is-enabled css-test && tail -5 /var/log/css-selfheal.log 2>/dev/null; echo ok'
 ```
 
 ## 可视化页面

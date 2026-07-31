@@ -34,7 +34,7 @@
 
 ## 部署方式（CI/CD）
 
-✅ **全自动（2026-07-31 现状）**：test 验证 OK → `git checkout uat && git merge test && git push neworg uat` → 与 test 同一条流水线（build → migrate → SSM 部署），仅两处不同：目标机标签 `Environment=css-uat`、**migrate 前自动创建 RDS 快照**。兜底：手动 `docs/新aws账号/09-ssm-run-command/deploy-env.sh uat`。
+✅ **全自动（2026-07-31 现状）**：test 验证 OK → `git checkout uat && git merge test && git push neworg uat` → 与 test 同一条流水线（build → migrate → SSM 部署），仅两处不同：目标机标签 `Environment=css-uat`、**migrate 前自动创建 RDS 快照**。兜底：手动 `docs/新aws账号/09-远程执行与手动部署/deploy-env.sh uat`。
 
 ## 现状（2026-07-31）
 

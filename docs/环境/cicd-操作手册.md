@@ -18,7 +18,7 @@
 
 ## 2. 回滚
 
-Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填上一个好版本的镜像 tag（`<env>-vN`，如 `test-v12`；手动推送产物为 `<env>-manual-<sha7>`）。手动兜底：`docs/新aws账号/09-ssm-run-command/deploy-env.sh <env> all <tag>`。
+Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填上一个好版本的镜像 tag（`<env>-vN`，如 `test-v12`；手动推送产物为 `<env>-manual-<sha7>`）。手动兜底：`docs/新aws账号/09-远程执行与手动部署/deploy-env.sh <env> all <tag>`。
 
 ## 3. 改环境变量
 
@@ -32,7 +32,7 @@ Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填
 
 - 流水线失败：看 GitHub Actions 红叉停在哪个 job；
 - 部署后服务异常：经堡垒机（`css-non-prod-bastion`，3.225.148.166）SSH 上机 `./deploy.sh <env> ps` / `logs <stack>`，
-  或免 SSH 直接 `docs/新aws账号/09-ssm-run-command/run.sh <env> '<命令>'`；
+  或免 SSH 直接 `docs/新aws账号/09-远程执行与手动部署/run.sh <env> '<命令>'`；
 - 2FA 验证码：kafka-ui，走开发入口 ALB `css-non-prod-entry-1482605872.us-east-1.elb.amazonaws.com`
   （test `:8085` / uat `:8086`，仅白名单 IP）。
 
@@ -43,7 +43,7 @@ Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填
 | Backend workflow | `Chain-Service-Solutions-Backend` → `.github/workflows/cicd.yml`（lint → 6 镜像双 tag `<env>-vN`+`<env>` → migrate[uat/prod 先打 RDS 快照] → SSM 部署 infra+backend） |
 | Frontend workflow | `Chain-Service-Solutions-Frontend` → `.github/workflows/cicd.yml`（eslint → jest/tsc 观察 → VITE 从 Parameter Store 注入构建 → SSM 部署 frontend） |
 | 部署 bundle | backend 仓库 `deploy/{compose,config,bin}`（env 本地底稿在工作区根 `deploy-env/<env>/`）；部署时上传到 EC2 `/opt/css-cicd/` |
-| 手动部署脚本（兜底） | `docs/新aws账号/09-ssm-run-command/deploy-env.sh <env>`（CI 之外随时可用） |
+| 手动部署脚本（兜底） | `docs/新aws账号/09-远程执行与手动部署/deploy-env.sh <env>`（CI 之外随时可用） |
 | deploy.sh 增强版 | `deploy/bin/deploy.sh`：Parameter Store 渲染 env / 镜像 tag 覆盖 / 冒烟 / prune / .last_good |
 | SSM 执行器 | `deploy/aws/ssm-run.sh`（按 **`Environment`** 标签定位实例——2026-07-30 由旧 `CssEnv` 键切换，轮询回显结果） |
 | CI 用 IAM | OIDC 提供方 + `css-deploy-{test,uat,prod}` 角色 = `css-terraform` 的 `css-github` stack（角色名/ARN 未变） |

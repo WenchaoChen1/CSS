@@ -36,7 +36,7 @@
 2. 流水线自动：lint → 测试 → build → push ECR（`prod-vN` + `prod`）——**main 分支 push 只构建，不部署**；
 3. **部署 = 手动在 GitHub Actions 上 Run workflow**（Free plan 无 Required reviewers，手动触发即人工闸；GitHub Environment 名=分支名 `main`）；
 4. 触发后：migrate job（**RDS 快照 → 核对 alembic_version → upgrade**）→ deploy job（SSM 按 tag `Environment=css-prod` 定位应用机）→ 健康检查冒烟；
-5. 回滚：`workflow_dispatch` 选上一个 `prod-vN` tag 重新部署，分钟级。兜底：`docs/新aws账号/09-ssm-run-command/deploy-env.sh prod`。
+5. 回滚：`workflow_dispatch` 选上一个 `prod-vN` tag 重新部署，分钟级。兜底：`docs/新aws账号/09-远程执行与手动部署/deploy-env.sh prod`。
 
 ## 现状（2026-07-31）
 

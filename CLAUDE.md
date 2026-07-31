@@ -76,7 +76,7 @@ Code IS baked into the image (`COPY src/ .`), so **code** changes need a rebuild
 ```
 .\deploy\windows\本地dev.ps1 [up|down|build|rebuild|migrate|ps|logs|restart|front]
 ```
-仓库根 `redeploy.ps1` 是它的薄封装（rebuild）。**test / uat / prod 走 CI/CD**（GitHub Actions → ECR 双 tag `<env>-vN` 版本号+`<env>` 浮动，lifecycle 保 5 → 部署暂为手动 `docs/新aws账号/09-ssm-run-command/deploy-env.sh`），编排=`deploy/compose/{infra,backend,frontend}.yml`（独立项目 `css-<env>-*` 共享网络 `css-<env>-net`），运行时配置唯一事实源=SSM Parameter Store `/css/<env>/backend.env`（deploy.sh 自动渲染；本地底稿在工作区 `deploy-env/<env>/`）。AWS 栈无 db/pgadmin 容器（Postgres 在 RDS；新库名规范 `css-<env>-main`/`css-<env>-ocr`）。前端镜像构建期烤入 `VITE_*`（来自 `/css/<env>/frontend.env`，用 `Dockerfile.novalidate`——tsc 尚有 16 个存量类型错误）。手册见工作区 `docs/新aws账号/`（README 总流程 + 08/09 组件手册）；deploy 结构见 `deploy/README.md`。
+仓库根 `redeploy.ps1` 是它的薄封装（rebuild）。**test / uat / prod 走 CI/CD**（GitHub Actions → ECR 双 tag `<env>-vN` 版本号+`<env>` 浮动，lifecycle 保 5 → 部署暂为手动 `docs/新aws账号/09-远程执行与手动部署/deploy-env.sh`），编排=`deploy/compose/{infra,backend,frontend}.yml`（独立项目 `css-<env>-*` 共享网络 `css-<env>-net`），运行时配置唯一事实源=SSM Parameter Store `/css/<env>/backend.env`（deploy.sh 自动渲染；本地底稿在工作区 `deploy-env/<env>/`）。AWS 栈无 db/pgadmin 容器（Postgres 在 RDS；新库名规范 `css-<env>-main`/`css-<env>-ocr`）。前端镜像构建期烤入 `VITE_*`（来自 `/css/<env>/frontend.env`，用 `Dockerfile.novalidate`——tsc 尚有 16 个存量类型错误）。手册见工作区 `docs/新aws账号/`（README 总流程 + 08/09 组件手册）；deploy 结构见 `deploy/README.md`。
 
 ### Windows host notes（同上：core_app compose + 根 .env 属上游遗留模型，本地 dev 一律走 deploy/windows/本地dev.ps1）
 

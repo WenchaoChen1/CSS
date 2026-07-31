@@ -35,7 +35,7 @@
 
 ## 部署方式（CI/CD）
 
-✅ **全自动（2026-07-31 现状）**：`git push neworg test` → GitHub Actions（lint → 单测 → build → push ECR `test-vN`+`test`）→ **migrate → SSM 部署**（按 tag `Environment=css-test` 定位实例）→ 服务器 `deploy.sh test deploy`（Parameter Store 渲染 env → pull → up --wait → 冒烟 → prune）。migrate 无快照（数据可弃）。约 10~15 分钟。兜底：手动 `docs/新aws账号/09-ssm-run-command/deploy-env.sh test`。
+✅ **全自动（2026-07-31 现状）**：`git push neworg test` → GitHub Actions（lint → 单测 → build → push ECR `test-vN`+`test`）→ **migrate → SSM 部署**（按 tag `Environment=css-test` 定位实例）→ 服务器 `deploy.sh test deploy`（Parameter Store 渲染 env → pull → up --wait → 冒烟 → prune）。migrate 无快照（数据可弃）。约 10~15 分钟。兜底：手动 `docs/新aws账号/09-远程执行与手动部署/deploy-env.sh test`。
 
 ## 现状（2026-07-31）
 
