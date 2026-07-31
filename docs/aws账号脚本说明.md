@@ -24,7 +24,7 @@
 
 ## 三、新账号脚本（01~13 + 根目录 tag-all-resources.sh，bash，幂等）
 
-执行顺序（简化版，完整版见 [新aws账号/README.md](新aws账号/README.md)）：`01-vpc → 07-应用s3密钥 → 02-ecr → 08-github-actions` → **升级 Paid plan** → `04-rds → 06-服务器密钥与访问 → 09-ssm验证 → 05-数据库运维` → CI 首次部署 → `10-自动重新部署`；03-本地构建推送镜像为 CI 备用手动工具；`11-parameter-store` 在填/改环境配置时随用。
+执行顺序（简化版，完整版见 [新aws账号/README.md](新aws账号/README.md)）：`01-vpc → 07-获取应用iam密钥 → 02-ecr → 08-github-actions` → **升级 Paid plan** → `04-rds → 06-服务器密钥与访问 → 09-ssm验证 → 05-数据库运维` → CI 首次部署 → `10-自动重新部署`；03-本地构建推送镜像为 CI 备用手动工具；`11-parameter-store` 在填/改环境配置时随用。
 
 | 文件夹 | 脚本 | 一句话 | 费用 |
 |--------|------|--------|------|
@@ -34,7 +34,7 @@
 | `04-rds/` | `create-rds.sh <nonprod\|prod>` | 非生产 `css-non-prod`（t4g.micro，✅ 已建于新 VPC）/ 生产 `css-prod`（t4g.medium Multi-AZ，等 Paid plan），私有子网 | 💰 |
 | `05-数据库运维/` | `create-databases.sh` / `sync-db.sh` / `restore-dump-via-gw.sh` / **`anonymize-db.sh <test\|uat>`** | 按新库名规范建库（`css-<env>-main`/`css-<env>-ocr`，ocr 带 pgvector）；pg_dump→pg_restore 同步数据（VPC 内执行）；本地 dump 经 S3+SSM 网关机恢复进私网 RDS；**非生产脱敏**（email 前缀 1 / phone 后缀 1 / 口令统一 `Test1234!`，prod 拒绝执行；test ✅ 已跑） | 免费 |
 | `06-服务器密钥与访问/` | `create-app-ec2.sh <env>` / `create-instance-keys.sh` / `create-gateway.sh <nonprod\|prod>` | 应用机（私网固定 IP）；一机一钥（每台专属 ed25519）；非生产网关机（**堡垒 + NAT**，反代已于 2026-07-29 收掉）/ 生产堡垒机+NAT 网关 | 💰 |
-| `07-应用s3密钥/` | `create-iam.sh` | GitHub OIDC + 三环境隔离角色与 S3 用户（key 不跨环境） | 免费 ✅ |
+| `07-获取应用iam密钥/` | `create-iam.sh` | GitHub OIDC + 三环境隔离角色与 S3 用户（key 不跨环境） | 免费 ✅ |
 | `08-github-actions-cicd/` | `setup-github-actions.sh` | 一键配置两仓库 GitHub Actions（Variables/Environments/审批人，需 gh CLI） | 免费 |
 | `09-ssm-run-command/` | `setup-ssm.sh` / `run.sh` | 把 EC2 配成 SSM 部署目标；远程执行命令 | 免费 |
 | `10-自动重新部署/` | `setup-autodeploy.sh <env>` | systemd 开机自启三栈 + 冒烟自愈 cron（经 SSM 安装） | 免费 |

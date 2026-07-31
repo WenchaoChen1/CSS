@@ -44,7 +44,7 @@ SSM + deploy.sh（→ [09](09-ssm-run-command/README.md)）管"命令安全送�
 | 03 | [`03-本地构建推送镜像/`](03-本地构建推送镜像/README.md) | `build-images.sh`（只构建）、`push-ecr.sh`（构建+推送） | Windows 本机镜像工具（CI 的兜底：应急/首次灌仓/调试） |
 | 05 | [`05-数据库运维/`](05-数据库运维/README.md) | `create-databases.sh`、`sync-db.sh`、`restore-dump-via-gw.sh`、`anonymize-db.sh`、`create-db-accounts.sh`、`change-db-password.sh`、`reown-db-objects.sh` | 库内一切（Terraform 管不到）：建库/同步/恢复/脱敏/账号/改密/对象 owner。⚠️ 每次 restore/sync 后必须重跑 reown |
 | 06 | [`06-服务器密钥与访问/`](06-服务器密钥与访问/README.md) | `create-instance-keys.sh`、`setup-ssh-key.sh`、`grant-dev-ssh.sh`、`revoke-dev-ssh.sh`、`toggle-termination-protection.sh` | 一机一钥管理、开发者临时 SSH 钥（带过期时间）、TF 重建实例前解终止保护 |
-| 07 | [`07-应用s3密钥/`](07-应用s3密钥/README.md) | `issue-app-s3-key.sh <env> [--new-key]` | 发/查 `css-app-<env>` 用户的 access key（key 按红线永不进 Terraform） |
+| 07 | [`07-获取应用iam密钥/`](07-获取应用iam密钥/README.md) | `issue-app-s3-key.sh <env> [--new-key]` | 发/查 `css-app-<env>` 用户的 access key（key 按红线永不进 Terraform） |
 | 08 | [`08-github-actions-cicd/`](08-github-actions-cicd/README.md) | `setup-github-actions.sh` | GitHub Actions 配置与使用手册（Variables/Environments 一键配置） |
 | 09 | [`09-ssm-run-command/`](09-ssm-run-command/README.md) | `setup-ssm.sh`、`run.sh <env> '<命令>'`、`deploy-env.sh <env> [stack] [tag]` | SSM 命令通道：远程执行、手动部署/回滚（CI 之外的兜底入口） |
 | 10 | [`10-自动重新部署/`](10-自动重新部署/README.md) | `setup-autodeploy.sh <env>` | systemd 开机自动拉起三栈 + 冒烟自愈（⏳ 未安装；TF 重建机器后会丢，需重装） |
@@ -54,7 +54,7 @@ SSM + deploy.sh（→ [09](09-ssm-run-command/README.md)）管"命令安全送�
 **已删除的编号目录**（01-vpc / 02-ecr / 04-rds / 12-alb / 13-s3 / 14-cloudwatch / 15 等）：这些"创建类"
 组件已全部由 css-terraform 接管，说明在其 `使用说明/` 对应文档；`tag-all-resources.sh` 已随标签切换退役。
 （2026-07-31 重命名：`03-推送镜像`→`03-本地构建推送镜像`、`05-数据同步`→`05-数据库运维`、`06-ec2`→`06-服务器密钥与访问`、
-`07-iam`→`07-应用s3密钥`（脚本 `create-app-s3-user.sh`→`issue-app-s3-key.sh`）、`08-github-actions推镜像`→`08-github-actions-cicd`。）
+`07-iam`→`07-获取应用iam密钥`（脚本 `create-app-s3-user.sh`→`issue-app-s3-key.sh`）、`08-github-actions推镜像`→`08-github-actions-cicd`。）
 
 ## 约定（仍然有效的部分）
 

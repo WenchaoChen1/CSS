@@ -23,7 +23,7 @@
 
 > **2026-07-28 简化**：原来的 4 个 Repository variables（角色 ARN×3 + ECR 地址）为非敏感固定值，**已直接写死进两个仓库的 workflow 文件**，①不再需要配置。
 > **2026-07-29 再简化**：GitHub environment 名统一为**与分支同名**——`test` / `uat` / **`main`**（原先生产叫 `production`，是三者中唯一的例外命名，已废弃）。你手工建的三个环境**正好就是这三个名字**，②因此也不用动。真正还需要手动做的只剩 ③邮箱验证（仅影响头像）。
-> ⚠️ 推镜像**仍然需要 IAM 权限**：workflow 经 OIDC 用 GitHub 签发的身份证明向 AWS 换取几分钟过期的临时凭证（角色信任策略只认这两个仓库的对应分支，`07-应用s3密钥` 配置）；写死的 ARN 只是角色名字，权限全在 AWS 侧控制。
+> ⚠️ 推镜像**仍然需要 IAM 权限**：workflow 经 OIDC 用 GitHub 签发的身份证明向 AWS 换取几分钟过期的临时凭证（角色信任策略只认这两个仓库的对应分支，`07-获取应用iam密钥` 配置）；写死的 ARN 只是角色名字，权限全在 AWS 侧控制。
 
 ### ① Repository variables（已免配，留档说明）
 
@@ -38,7 +38,7 @@
 直达：`https://github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend/settings/environments`
 
 **命名规则（2026-07-29 用户拍板）：GitHub environment 名 = 分支名，一律相同。** 即 **`test` / `uat` / `main`** 三个。
-原先生产用的 `production` 是三者中唯一的例外命名，已废弃——workflow 的 `environment:` 表达式与 `07-应用s3密钥/create-iam.sh` 的信任策略均已改为 `main` 并重跑生效。
+原先生产用的 `production` 是三者中唯一的例外命名，已废弃——workflow 的 `environment:` 表达式与 `07-获取应用iam密钥/create-iam.sh` 的信任策略均已改为 `main` 并重跑生效。
 
 | 环境名 | 对应分支 | 对应部署环境（`DEPLOY_ENV`） | 你要做什么 |
 |--------|----------|------------------------------|------------|
@@ -51,7 +51,7 @@
 **里面留空是设计，不是遗漏**：
 - **Secrets / Variables 留空** —— AWS 凭证走 OIDC 临时换取，GitHub 不存任何 key；角色 ARN 与 ECR 地址是非敏感固定值，已写死在 workflow 的 `env:` 段与 `role-to-assume`。
 - **Protection rules 配不了** —— GitHub Free 的私有仓库不提供 Required reviewers / Wait timer（Configure 页根本没有这块区域，已实测截图确认）。生产闸因此由 **workflow 内部实现**：push `main` 只跑 lint + 构建镜像（`prod-vN` 推 ECR，随时可发），**不会自动部署生产**；真要发布 = 人为去 Actions → CICD → **Run workflow** → environment 选 `prod` →（可选 image_tag）→ 运行，这一步就是人工闸。加上 main 分支已配"需 PR 才能合并"，代码闸 + 部署闸齐全。将来升级 GitHub Team（$4/人/月）可改回 Required reviewers 模式。
-- **Environment 在这套方案里的唯一实际作用**：给 OIDC 的 `sub` 提供 **`environment:<名字>`** 这一维，与 `07-应用s3密钥` 信任策略里的 `repo:ORG/REPO:environment:test|uat|main` **一一对应**；名字对不上（比如环境叫 `production` 而策略写 `main`）会直接 **AccessDenied**。这也正是"environment 名必须与分支名保持同名约定"的实际价值——少一套需要对齐的命名。
+- **Environment 在这套方案里的唯一实际作用**：给 OIDC 的 `sub` 提供 **`environment:<名字>`** 这一维，与 `07-获取应用iam密钥` 信任策略里的 `repo:ORG/REPO:environment:test|uat|main` **一一对应**；名字对不上（比如环境叫 `production` 而策略写 `main`）会直接 **AccessDenied**。这也正是"environment 名必须与分支名保持同名约定"的实际价值——少一套需要对齐的命名。
 
 （可选加固：`main` 环境的 **Deployment branches and tags** 改成 Selected branches → 只允许 `main` 分支。这个选项 Free 计划可用。）
 
@@ -99,7 +99,7 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 
 | 现象 | 原因/处理 |
 |------|-----------|
-| configure-aws-credentials 报 Not authorized | 分支不在角色信任策略里，或 **environment 名与信任策略对不上**（只信 `test`/`uat`/`main` 三个分支与**同名的**三个 Environment，见 `07-应用s3密钥`） |
+| configure-aws-credentials 报 Not authorized | 分支不在角色信任策略里，或 **environment 名与信任策略对不上**（只信 `test`/`uat`/`main` 三个分支与**同名的**三个 Environment，见 `07-获取应用iam密钥`） |
 | Parameter not found | 该环境的 `/css/<env>/*.env` 还没灌入 Parameter Store（`11-parameter-store`） |
 | ECR push 报 not authorized/not exist | 目标环境的 `<env>/css-xxx` 仓库未建（`02-ecr`）或角色权限与前缀不符 |
 | ssm-run 报没有 Online 实例 | 见 [../09-ssm-run-command/README.md](../09-ssm-run-command/README.md) |

@@ -13,7 +13,7 @@
 |----|----|
 | 服务器 | EC2 `css-test-app` = **`i-0cb9b69b9eb19a9aa`**（2026-07-30 由 Terraform 重建，ID 已变；key pair `css-test`，根卷已加密），m7i-flex.large（2C/8G），私网 **10.20.10.10**，**私有子网，无公网 IP** |
 | 入口 | **ALB `css-test`** → `http://css-test-524317374.us-east-1.elb.amazonaws.com/`（目标 10.20.10.10:80，healthy，实测 200）；每环境一个独立 ALB，不再共享、不再按 Host 分流 |
-| S3 桶 | **`css-test-582797602427`**（后端 `S3_STORAGE_BUCKET_NAME`）——纯名 `css-test` 被别的 AWS 账号占用，回退带账号后缀；旧桶 `css-test-storage-582797602427` 已退役删除。访问身份 IAM 用户 `css-app-test`（内联策略只授权本桶，key 用时 `07-应用s3密钥/issue-app-s3-key.sh test --new-key`）。⚠️ **临时债**：桶已开对象公有读（改 presigned 后回收） |
+| S3 桶 | **`css-test-582797602427`**（后端 `S3_STORAGE_BUCKET_NAME`）——纯名 `css-test` 被别的 AWS 账号占用，回退带账号后缀；旧桶 `css-test-storage-582797602427` 已退役删除。访问身份 IAM 用户 `css-app-test`（内联策略只授权本桶，key 用时 `07-获取应用iam密钥/issue-app-s3-key.sh test --new-key`）。⚠️ **临时债**：桶已开对象公有读（改 presigned 后回收） |
 | 监控 | ✅ CloudWatch：9 条告警 + Dashboard `css-test` + SNS 主题 `css-test-alarms`（已订阅 charles@shinypathway.com + 2219002126@qq.com，确认状态待核实）。由 css-terraform `test/monitoring` stack 管理，见其 `使用说明/10-监控与账单.md` |
 | 运行内容 | 三栈 compose：`css-test-{infra,backend,frontend}`（redis/rabbitmq/kafka + app 系 11 容器 + frontend） |
 | 数据库 | RDS `css-non-prod`（PG16.14，仅内网）的 **`css-test-main`** + **`css-test-ocr`** 库。应用连库账号 **`css_app_test`**（2026-07-30 起，低权专用账号；密码写死不轮换，改密走 `05-数据库运维/change-db-password.sh`）；master `postgres` 仅运维用（Secrets Manager 托管，**7 天自动轮换**）。endpoint 与凭证见工作区 `运维访问速查.local.md` |

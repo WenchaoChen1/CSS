@@ -1,4 +1,4 @@
-# 07-应用s3密钥 —— 应用 S3 用户的 access key 发放（唯一还在这里做的 IAM 操作）
+# 07-获取应用iam密钥 —— 应用 S3 用户的 access key 发放（唯一还在这里做的 IAM 操作）
 
 > ⚠️ **2026-07-31 起：IAM 资源本体已 100% 由 css-terraform 管理**，本目录不再创建任何用户/角色/策略。
 > - OIDC provider + `css-deploy-{test,uat,prod}`（GitHub Actions 用）→ `css-terraform/css-github`；
@@ -36,14 +36,15 @@
 
 | 用户 | 属于 | key 状态 |
 |------|------|---------|
-| `css-app-dev` | css-non-prod / css-dev（本地开发直传 S3，非部署环境） | ✅ 已发，写在 `deploy-env/dev/backend.env` |
-| `css-app-test` / `css-app-uat` / `css-app-prod` | 各自环境 | ⏳ 未发（避免闲置长期凭证，用时再发）。注意：test 目前实际在用的 S3 凭证是遗留的管理员 key（安全债，见 运维访问速查 §九），换成 css-app-test 的 key 时走上面流程 |
-| `css-test` | 人工运维（本机 aws cli 身份，Admin 组） | 有（本机 `~/.aws/credentials`）；建议后续降级为 AssumeRole css-terraform |
+| `css-app-dev` | css-non-prod / css-dev（本地开发直传 S3，非部署环境） | ✅ 已发（07-29），写在 `deploy-env/dev/backend.env` |
+| `css-app-test` | test | ✅ 已发（07-29）且 **test 环境在用**（配置在 `/css/test/backend.env`） |
+| `css-app-uat` / `css-app-prod` | uat / prod | ⏳ 未发（避免闲置长期凭证；uat/prod 首次部署前发） |
+| `css-test` | 人工运维（本机 aws cli 身份，Admin 组，**非应用 key**） | 有（本机 `~/.aws/credentials`）；⚠️ 建议轮换并降级为 AssumeRole css-terraform（见 运维访问速查 §七/§九） |
 
 ## 可视化页面
 
 - IAM Users 搜 `css-app-`：<https://console.aws.amazon.com/iam/home#/users>——四个用户各有一条内联策略
-  `css-app-<env>-s3`；Security credentials 页签里目前只有 `css-app-dev` 有 access key。
+  `css-app-<env>-s3`；Security credentials 页签里目前 `css-app-dev` 与 `css-app-test` 有 access key（uat/prod 为空）。
 - 角色/OIDC/信任策略的查看入口见 `css-terraform/使用说明/06-IAM与OIDC.md`。
 
 ## 历史备注
