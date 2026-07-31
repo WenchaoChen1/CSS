@@ -1,12 +1,20 @@
 # CSS AWS 基础设施 Terraform 化方案（初步方案分析 + 优化版）
 
-> ⚠️ **本文件已降级为分析过程记录（2026-07-30 下午）**。用户已对 §八全部决策拍板并追加要求
-> （删除 demo、Tag 键名改用 `EnvironmentGroup`/`Environment`、test/uat 安全组拆分、每环境组各一台堡垒机、
-> 允许"导入不好做就删了重建"、State 按服务×环境细拆）。**现行唯一规范 = 独立仓库
-> `css-terraform/CLAUDE.md`**（工作区 `css-terraform/`，远程 `git@github.com:WenchaoChen1/css-terraform.git`），
-> 与本文冲突处以 CLAUDE.md 为准。
+> 📜 **历史存档（2026-07-30 方案分析记录；2026-07-31 标注）**。本文是 Terraform 迁移**动手之前**的方案分析过程，
+> 仅保留决策脉络，文中的资源 ID / 建议 / 命令**不要当现状执行**。现状与规范以下列为准：
+> - 资源与用法 = 独立仓库 `css-terraform/`（`CLAUDE.md`、`使用说明/`、`运行命令.md`、`执行手册.md`）——迁移已完成，33 个 stack、plan 全零 diff；
+> - 分工 = `docs/新aws账号/职责划分.md`；凭证与地址 = 工作区根 `运维访问速查.local.md`（gitignore）。
+>
+> **与本文结论不同的后续实况（择要，2026-07-31）**：
+> - Tag 键名最终**改为 `EnvironmentGroup` / `Environment`**（本文"沿用 Group/CssEnv"的建议已被用户拍板推翻，旧键已彻底删除，SSM 部署与 IAM 条件均按 `Environment`）；
+> - test/uat **SG 已按环境拆分**（css-test-app-sg / css-test-alb-sg / css-uat-app-sg / css-uat-alb-sg，旧共用 SG 已删）；
+> - 网关机改名 **css-non-prod-bastion**（原 css-non-prod-gw，nginx 反代停用，仅堡垒 + NAT）；prod 堡垒机 css-prod-bastion 已建，prod 应用机/RDS/ALB/NAT 仍由 `enable_prod_compute` 门控；
+> - test/uat 应用机 **2026-07-30 重建，实例 ID 已变**（KeyName=css-test/css-uat，根卷加密，私网 IP 不变）；
+> - demo 环境**已删除、不建**；State 按用户要求细拆（最终 33 stack，非本文的 7 stack）；
+> - RDS master 密码 Secrets Manager 自动轮换实为 **7 天**（本文写 90 天有误）；库低权账号 css_app_test / css_app_uat 已建并投用；
+> - kafka-ui 只走开发入口 ALB（业务 ALB 的 :8085 已全部撤除）。
 
-> 状态：**方案文档，未做任何 AWS 变更**。基于 2026-07-30 对 `docs/新aws账号/` 全部 15 个组件脚本、
+> 状态（写作当时）：**方案文档，未做任何 AWS 变更**。基于 2026-07-30 对 `docs/新aws账号/` 全部 15 个组件脚本、
 > `docs/环境/` 实况文档、两仓库 CI/CD 的全量盘点（12 个并行 agent，三视角评审：架构/安全/成本）。
 > 原始需求：用户初步方案（三环境组 + 每环境 8 个 State + 每环境独立堡垒机 + 密钥全进 SSM + 双 Tag）。
 
@@ -214,7 +222,7 @@ VPC/RDS 落位按成本决策（裸奔价口径，参考 `docs/环境/成本价�
 
 Terraform 侧无论选哪个，demo 都是 non-prod 组下的第三个环境实例（`Group=css-non-prod`, `CssEnv=css-demo`），把"环境清单"做成 account-global/shared stack 的 `list(string)` 变量，**加 demo = 往 `["test","uat","prod"]` 里加一个词**（ECR 21→28、IAM 加 css-deploy-demo/css-ec2-demo/css-app-demo、参数路径 /css/demo/*、GitHub 侧加 demo 分支或 workflow_dispatch）。
 
-**demo 安全基线**（写死进方案）：数据只允许从**已脱敏的 test 库**二次复制，永不直连 prod/preprod dump；`anonymize-db.sh` 白名单加 demo 并修 phone 脱敏非幂等 bug；demo 用**独立 PASSWORD_SALT + 独立演示口令**（不用 Test1234!——否则任何演示观众可登入全部 188 个账号），演示账号白名单化；demo 桶 CORS 不复制 `AllowedOrigins=["*"]`。
+**demo 安全基线**（写死进方案）：数据只允许从**已脱敏的 test 库**二次复制，永不直连 prod/preprod dump；`anonymize-db.sh` 白名单加 demo 并修 phone 脱敏非幂等 bug；demo 用**独立 PASSWORD_SALT + 独立演示口令**（不沿用 test 库的统一脱敏口令——否则任何演示观众可登入全部 188 个账号），演示账号白名单化；demo 桶 CORS 不复制 `AllowedOrigins=["*"]`。
 
 **成本时间线（决策锚点）**：credits 余 $53.87、当前烧 $3.4/天 → **约 2026-08 中旬烧完**，之后账单跳向裸奔价。现状不动 ~$235/月；+demo（C）~$335/月；prod 全套 + demo ~$700/月；Paid plan 后买预留实例/Savings Plan 可降 30-40%（$593→$360-410）。**"demo 建多大"和"何时升 Paid plan"是同一个决策**：Paid plan 同时解锁 prod RDS/EC2、RDS 升 small（demo 共享 RDS 的前置）、预留实例。
 
@@ -259,7 +267,7 @@ resource "aws_ssm_parameter" "backend_env" {
 
 ### 4. 数据库层隔离（TF 之外的配套硬任务，同窗口做）
 
-test/uat 应用现在**共用 RDS master 账号**连库（master 密码内嵌 backend.env 三处）：test 环境的任何人可对 uat 库为所欲为，且 Secrets Manager 90 天自动轮换一触发参数里的旧密码即失效、应用全挂。配套动作：新增 `05-数据同步/create-app-db-users.sh`（经网关机 SSM 执行）建 `css_app_test` / `css_app_uat`（将来 `css_app_demo`）低权角色，各自只 GRANT 本环境两库 + REVOKE CONNECT 对方库；backend.env 换低权账号后重跑 put-params。此后 master 轮换只影响运维通道。库级对象（建库/pgvector/低权账号）**不进 TF**（postgresql provider 无网络路径），保留脚本。
+test/uat 应用现在**共用 RDS master 账号**连库（master 密码内嵌 backend.env 三处）：test 环境的任何人可对 uat 库为所欲为，且 Secrets Manager 自动轮换（实为 7 天，非当时文档所写的 90 天）一触发参数里的旧密码即失效、应用全挂。配套动作：新增 `05-数据同步/create-app-db-users.sh`（经网关机 SSM 执行）建 `css_app_test` / `css_app_uat`（将来 `css_app_demo`）低权角色，各自只 GRANT 本环境两库 + REVOKE CONNECT 对方库；backend.env 换低权账号后重跑 put-params。此后 master 轮换只影响运维通道。库级对象（建库/pgvector/低权账号）**不进 TF**（postgresql provider 无网络路径），保留脚本。
 
 ### 5. 堡垒机（回答你的"五、堡垒机要求"）
 

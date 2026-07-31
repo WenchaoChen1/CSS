@@ -1,5 +1,7 @@
 # CI/CD 方案：GitHub Actions × 新组织仓库（v2.2）
 
+> 📜 **历史存档（2026-07-31 标注）**：本文是 CI/CD 设计与拍板记录（v2.2，2026-07-28）。CI/CD 主体已按此落地且仍有效（push test/uat 自动构建+migrate+SSM 部署；main 只构建、prod 手动 Run workflow），但文中**基础设施细节多处已过时**，现状以 css-terraform（33 stack，`css-terraform/使用说明/`）与 [../新aws账号/README.md](../新aws账号/README.md) 为准。已知变化：① 标签键 `CssEnv`/`Group` 已彻底废除，改为 `Environment`/`EnvironmentGroup`（SSM 部署与 IAM 条件均按 `Environment` 定位）；② 网关机已改名 **css-non-prod-bastion**（nginx 反代早已停用；kafka-ui 只走开发入口 ALB `css-non-prod-entry`，业务 ALB 8085 已撤）；③ test/uat 应用机 2026-07-30 重建，实例 ID 已变；④ uat 库已建成（css-uat-main/css-uat-ocr，=test 数据）；⑤ prod 堡垒机 css-prod-bastion 已建，应用机/RDS/ALB/NAT 仍等 Paid plan（`enable_prod_compute` 门控）；⑥ `css-deploy-*` OIDC 角色已收编进 css-terraform 的 css-github stack（角色名/ARN 未变）；⑦ 旧共用 SG 已拆为每环境独立 app-sg/alb-sg。具体 ID/地址一律见 css-terraform 与工作区根 `运维访问速查.local.md`。
+
 > 📖 **配置与使用手册**（怎么配、怎么跑、出问题怎么查）已并入脚本文件夹：总流程见 [../新aws账号/README.md](../新aws账号/README.md)，[GitHub Actions → 08](../新aws账号/08-github-actions推镜像/README.md)，[SSM + EC2 deploy.sh → 09](../新aws账号/09-ssm-run-command/README.md)。本文是设计方案。
 
 > **v2 更新（2026-07-28）**：v1（2026-07-23）编制时代码还在老账号、只针对生产。现在代码已迁入新组织 **Chain-Serve-Solutions**（`Chain-Service-Solutions-Backend` / `-Frontend`，分支模型 **main=prod、uat、test**），本版改为**覆盖 test / uat / prod 三环境的完整 CI/CD**，并给出**环境变量配置问题的系统解法**。
@@ -102,7 +104,7 @@ ECR 侧一次性配：**lifecycle policy**（每仓库保留最近 **5** 个镜�
 ```
 workflow deploy job（已通过 OIDC 拿到临时凭证）
   └─ aws ssm send-command
-       --targets Key=tag:CssEnv,Values=css-<env>      # EC2 打 CssEnv=css-test|css-uat|css-prod 标签
+       --targets Key=tag:Environment,Values=<env>     # 2026-07-31 更正：标签键已改为 Environment（原 CssEnv 已废除）
        --document-name AWS-RunShellScript
        --parameters commands=["/opt/css-cicd/bin/deploy.sh <env> deploy <stack> <env>-vN"]
   └─ aws ssm wait / get-command-invocation        # 等执行结果，失败即 workflow 失败
@@ -143,7 +145,7 @@ OCR 库不需要单独处理：`ocr-migrator` 容器每次 up 自动迁移（现
 1. `部署包/env/<env>/backend.env`（≈88 个变量）把**部署配置**（AWS/ECR/DEPLOY_*）和**运行时密钥**（DB 密码、JWT_SECRET、PASSWORD_SALT、S3 AK/SK、SMTP、Twilio、OpenAI/Gemini/Eden token）混在一个 gitignore 文件里——**CI checkout 后根本拿不到**，且靠人肉在多台机器间复制。
 2. 前端 `VITE_*` 是**构建期烤进静态 JS** 的 → 每个环境必须单独构建镜像；构建时需要 `.env.<env>` 文件，而它**未入库**（在 runner 上 `COPY` 直接失败）。
 3. 三处**强耦合键**靠人肉保持一致：`API_KEY == VITE_X_API_KEY`、`CATALOG_OCR_API_KEY == OCR_API_KEY`。
-4. RDS 主密码由 Secrets Manager **90 天自动轮换**，轮换后要人肉改 env 文件并 redeploy（迟早忘，忘了就是半夜故障）。
+4. RDS 主密码由 Secrets Manager **自动轮换**（2026-07-31 更正：实为 **7 天**一轮换，此前误写 90 天），轮换后要人肉改 env 文件并 redeploy（迟早忘，忘了就是半夜故障）。
 5. 老 GitLab CI 有 `cat $DOT_ENV` 把整份密钥打进日志的前科——新方案必须结构性杜绝。
 
 ### 4.2 设计：SSM Parameter Store 做**唯一事实源**
@@ -169,7 +171,7 @@ GitHub 侧零配置：角色 ARN 与 ECR 地址为非敏感固定值，直接写
 ### 4.3 耦合键与轮换的两个专项
 
 - **耦合键一致性校验**：CI 加一步"拉取 backend.env 的 `API_KEY` 与 frontend.env 的 `VITE_X_API_KEY` 比对（同理 OCR 两键），不一致直接 fail"——不打印值，只报"一致/不一致"。人肉同步从此有了自动兜底。
-- **RDS 密码轮换解耦**：应用改用**专用低权 DB 账号**（`css_app`），密码存 Parameter Store、不参与自动轮换；Secrets Manager 里 90 天轮换的主密码只用于 DBA 管理。轮换不再打断应用。（一次性 SQL：建账号+授权。）
+- **RDS 密码轮换解耦**：应用改用**专用低权 DB 账号**，密码存 Parameter Store、不参与自动轮换；Secrets Manager 里自动轮换（**7 天**，此前误写 90 天）的主密码只用于运维管理。轮换不再打断应用。（✅ 2026-07-30 已落地：账号为 `css_app_test`/`css_app_uat`（test 应用已切换用 `css_app_test` 连库），另有 `css_dev`/`css_ops`；自建账号密码固定不轮换，改密走 `docs/新aws账号/05-数据同步/change-db-password.sh`。）
 
 ### 4.4 环境变量的"分类账"（落地时按此拆分）
 
@@ -275,7 +277,7 @@ VPC css-prod（10.10.0.0/16）
 
 ### 5.1 test —— push 即上（全自动）
 
-**基础设施**：非生产 VPC 的 test 服务器 `css-test-app`（✅ `i-0b3e73ed51811b69c`，10.20.10.10，三栈已部署）+ RDS `css-non-prod` 的 `css-test-main`/`css-test-ocr` 库（✅ 已载入 preprod 数据并于 2026-07-29 脱敏）+ 入口 ALB `css-test`（✅ `css-test-524317374.us-east-1.elb.amazonaws.com`）+ S3 桶 `css-test-582797602427`（✅）。（过渡期方案已作废：旧默认 VPC 的 test EC2 `i-08e110b5a5425980d` 与旧 RDS 实例均已于 2026-07-28 删除。）
+**基础设施**：非生产 VPC 的 test 服务器 `css-test-app`（✅ 2026-07-30 重建后为 `i-0cb9b69b9eb19a9aa`，10.20.10.10 不变，三栈已部署）+ RDS `css-non-prod` 的 `css-test-main`/`css-test-ocr` 库（✅ 已载入 preprod 数据并于 2026-07-29 脱敏）+ 入口 ALB `css-test`（✅ `css-test-524317374.us-east-1.elb.amazonaws.com`）+ S3 桶 `css-test-582797602427`（✅）。（过渡期方案已作废：旧默认 VPC 的 test EC2 `i-08e110b5a5425980d` 与旧 RDS 实例均已于 2026-07-28 删除。）
 
 **一次典型发布**：
 1. 你（或定时任务把老仓库合并过来后）`git push neworg test`；
