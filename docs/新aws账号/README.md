@@ -37,7 +37,7 @@ SSM + deploy.sh（→ [09](09-ssm-run-command/README.md)）管"命令安全送�
 回滚 = Actions → Run workflow → 选环境 + 填上一个不可变版本 tag `<env>-vN`（如 `test-v12`，从 ECR 或上次成功 run 日志查）；
 或手动 `09/deploy-env.sh <env> all <env>-vN`。
 
-## 目录一览（8 个文件夹 + 根目录文件）
+## 目录一览（9 个文件夹 + 根目录文件）
 
 | # | 文件夹 | 脚本 | 作用 |
 |---|--------|------|------|
@@ -49,7 +49,8 @@ SSM + deploy.sh（→ [09](09-ssm-run-command/README.md)）管"命令安全送�
 | 09 | [`09-ssm-run-command/`](09-ssm-run-command/README.md) | `setup-ssm.sh`、`run.sh <env> '<命令>'`、`deploy-env.sh <env> [stack] [tag]` | SSM 命令通道：远程执行、手动部署/回滚（CI 之外的兜底入口） |
 | 10 | [`10-自动重新部署/`](10-自动重新部署/README.md) | `setup-autodeploy.sh <env>` | systemd 开机自动拉起三栈 + 冒烟自愈（⏳ 未安装；TF 重建机器后会丢，需重装） |
 | 11 | [`11-parameter-store/`](11-parameter-store/README.md) | `put-params.sh <env>` | 把工作区根 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（运行时配置唯一事实源；test ✅ 已灌，uat/prod 首次部署前灌/校准） |
-| — | 根目录 | [`职责划分.md`](职责划分.md)、`activate-cost-tags.sh` | 分工总览与手动命令清单；成本分摊标签激活——用法 `bash activate-cost-tags.sh`（无参数、幂等，✅ 07-31 两键已激活，重跑只会显示当前状态） |
+| 12 | [`12-成本账单/`](12-成本账单/README.md) | `activate-cost-tags.sh` | 成本分摊标签激活（✅ 07-31 两键已激活，幂等）；账单侧脚本归口 |
+| — | 根目录 | [`职责划分.md`](职责划分.md) | Terraform vs 脚本 vs CI 的分工总览、手动命令清单与快速索引 |
 
 **已删除的编号目录**（01-vpc / 02-ecr / 04-rds / 12-alb / 13-s3 / 14-cloudwatch / 15 等）：这些"创建类"
 组件已全部由 css-terraform 接管，说明在其 `使用说明/` 对应文档；`tag-all-resources.sh` 已随标签切换退役。
