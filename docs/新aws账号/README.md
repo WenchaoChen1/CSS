@@ -50,7 +50,7 @@ SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命�
 | 10 | [`10-服务自愈与开机自启/`](10-服务自愈与开机自启/README.md) | `setup-autodeploy.sh <env>` | 已部署服务的开机自启 + 冒烟自愈（**非发版工具**）。**⏸ 暂不使用**：安装需负责人确认（脚本内置 CONFIRM 闸）；TF 重建机器后会丢，需重装 |
 | 11 | [`11-parameter-store/`](11-parameter-store/README.md) | `put-params.sh <env>` | 把工作区根 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（运行时配置唯一事实源；test ✅ 已灌，uat/prod 首次部署前灌/校准） |
 | 12 | [`12-成本账单/`](12-成本账单/README.md) | `activate-cost-tags.sh` | 成本分摊标签激活（✅ 07-31 两键已激活，幂等）；账单侧脚本归口 |
-| — | 根目录 | [`职责划分.md`](职责划分.md) | Terraform vs 脚本 vs CI 的分工总览、手动命令清单与快速索引 |
+| — | 根目录 | [`职责划分.md`](职责划分.md) | 本目录脚本管什么/不管什么 + 部署分工 + 快速索引（Terraform 侧职责见 css-terraform CLAUDE.md §一） |
 
 **已删除的编号目录**（01-vpc / 02-ecr / 04-rds / 12-alb / 13-s3 / 14-cloudwatch / 15 等）：这些"创建类"
 组件已全部由 css-terraform 接管，说明在其 `使用说明/` 对应文档；`tag-all-resources.sh` 已随标签切换退役。
