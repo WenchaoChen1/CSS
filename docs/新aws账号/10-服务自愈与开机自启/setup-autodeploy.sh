@@ -13,6 +13,11 @@ ENV_NAME="${1:?用法: setup-autodeploy.sh <test|uat|prod>}"
 case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境必须是 test|uat|prod"; exit 1 ;; esac
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# ⏸ 暂不启用（2026-07-31 决策）：安装需负责人事先确认
+echo "⏸ 本功能当前处于【暂不使用】状态：给 $ENV_NAME 安装自愈/自启需负责人确认。"
+read -rp "已获确认请输入 CONFIRM 继续（其他任意输入退出）: " GATE || GATE=""
+[ "$GATE" = "CONFIRM" ] || { echo "未确认，退出（未做任何变更）"; exit 1; }
+
 REMOTE_CMD=$(cat <<EOF
 set -e
 test -x /opt/css-cicd/bin/deploy.sh || { echo '缺 /opt/css-cicd（先跑一次 Backend workflow 部署）'; exit 1; }
