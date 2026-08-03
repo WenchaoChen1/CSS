@@ -88,8 +88,36 @@ bash 版在脚本内起 git-bash 自带的 ssh-agent（跑完自动 kill），**
 
 dump 直接经 SSH 管道回本地（**不在源服务器 /tmp 落盘**，不留痕不占盘），落地后校验 `PGDMP` 文件头。
 
-> **值得注意的发现**：dev/stage 的 `alembic_version` 是 `e8f2a4b6c1d3`，preprod 是 `e1f2a3b4c5d6`——
-> dev/stage 跑在比 preprod **更超前**的代码上。判断迁移链缺口时以此为准。
+### 拉取过程中的四个发现（都影响后续迁移判断）
+
+**① dev/stage 的代码比 preprod 新**：`alembic_version` dev/stage = `e8f2a4b6c1d3`，preprod = `e1f2a3b4c5d6`。
+判断"GitHub main 缺哪些迁移"时，基准应取 dev/stage 而非 preprod。
+
+**② 机器名和镜像 tag 对不上，极易搞混**：
+
+| 机器 | 跑的镜像 tag | 说明 |
+|---|---|---|
+| `css-dev` | `...:test-031567cb` | dev 机器跑的是 **test** 分支镜像 |
+| `css-stage` | `...:dev-a3725957` | stage 机器跑的是 **dev** 分支镜像 |
+| `css-preprod` | `...:preprod-a30cc99c` | 只有这台对得上 |
+
+判断"某个环境实际在跑什么代码"时**不能看机器名**，要看镜像 tag。
+
+**③ 三个环境的 `PASSWORD_SALT` 各不相同**（决定导入的用户能否用原密码登录）：
+
+| salt 归属 | md5(salt) 前 12 位 | 迭代 | 算法 |
+|---|---|---|---|
+| 老账号 dev = stage | `cbfdc0b6e197` | 100000 | sha256 |
+| 老账号 preprod | `3c6db5ab1a0b` | 100000 | sha256 |
+| 我方 test | `c16208548ef3` | 100000 | sha256 |
+
+这正是历史上"导入 preprod 用户后登录全挂"的根因——用户的 `password_hash` 是拿**原团队的 salt** 算的，
+而我方 env 里是随机 salt。**现在三个环境的真实 salt 都在 `备份/docker镜像/<env>/css-backend__app.env` 里**：
+若将来需要让导入用户沿用原密码，把对应环境的 salt 配进 `deploy-env/<env>/backend.env` 即可；
+若继续用 `anonymize-db.sh` 统一口令（test 现在就是这样，`Test1234!`），则保持我方 salt 不变即可，无需理会。
+
+**④ stage 比 dev 多两个开关**：`CONFIRMATION_CODE_VERIFICATION_ENABLED`、`CONTRACT_FIRST_STUBS_ENABLED`
+（与 ② 一致——stage 跑的 dev 分支镜像更新）。除这两项外，三个环境的配置键名完全相同（116 项）。
 
 ---
 
