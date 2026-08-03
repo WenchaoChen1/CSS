@@ -16,6 +16,17 @@
 - 背景：新标签键要等账单管道"见过"它（约 24h）才允许激活——当初 07-30 打完标签立即激活报 "tag key missing"，本脚本就是那次留下的重试工具。
 - 激活只对**之后**产生的账单数据生效，历史账单不会回填标签维度。
 
+### `backfill-resource-tags.sh` — 给不在 Terraform 下（或 TF 未覆盖标签面）的资源补打三键标签
+
+```bash
+bash backfill-resource-tags.sh   # 无参数；create-tags 覆盖式 upsert，幂等可重跑，末尾打印 10 个资源现有标签
+```
+
+- ✅ 2026-08-03 已执行：补齐两轮一致性审计发现的 10 处缺口——ALB 节点 EIP ×6（entry 2 个此前零标签；
+  ManagedBy=`alb-managed`）、两 VPC 主路由表（Name + ManagedBy=`vpc-default`）、两台堡垒机根卷
+  （按应用机根卷口径补齐；TF 侧 `volume_tags` 声明待下次 network apply 固化）。
+- 资源 ID 写死在脚本里（就是那 10 个）；将来再出现同类缺口，在脚本里加行再跑。
+
 ## 可视化页面
 
 | 看什么 | 在哪 |
