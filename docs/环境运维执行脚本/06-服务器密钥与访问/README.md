@@ -41,7 +41,7 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 ```
 
 原理：`authorized_keys` 的 `expiry-time` 选项到期自动失效，无需人工清理；堡垒机条目额外加 `no-pty` + `permitopen`（纯跳板，不能开 shell、只能转发到白名单目标）。
-产物：`./dev-keys/<环境>-<开发者名>.pem`（已 gitignore；安全渠道交付）。
+产物：`deploy-env/ssh/dev-keys/<环境>-<开发者名>.pem`（已 gitignore；安全渠道交付）。
 **续期**：同名重跑本脚本即可（复用同一把钥，只把到期时间刷新为 今天+`<天数>`），开发者手里的私钥不用换；改权限范围（如补 apps）同样是同名重跑。
 **台账**：每次发放/续期/撤销自动追加到 [`dev-ssh发放记录.md`](dev-ssh发放记录.md)（谁、哪个环境、什么范围、何时到期；不含密钥材料）；**当前实际有效**的条目用 `./revoke-dev-ssh.sh --list` 实时查（直接读机器上的 authorized_keys）。
 
@@ -49,7 +49,7 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 
 ```bash
 ./revoke-dev-ssh.sh --list [nonprod|prod]             # 列出各机器的开发者条目及到期时间
-./revoke-dev-ssh.sh <开发者名> [nonprod|prod]          # 立即撤销（不等到期）；本地 ./dev-keys/*.pem 可一并删除
+./revoke-dev-ssh.sh <开发者名> [nonprod|prod]          # 立即撤销（不等到期）；本地 deploy-env/ssh/dev-keys/*.pem 可一并删除
 ```
 
 ### `toggle-termination-protection.sh` — 开/关 EC2 终止保护（`disable_api_termination`）
@@ -68,7 +68,7 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 | `css-non-prod-bastion`（原名 css-non-prod-gw） | i-08b0ef319d08eae38 | t4g.micro | EIP **3.225.148.166** / 10.20.0.74 | `css-shared` | ✅ **只剩堡垒(22) + NAT**（nginx 过渡反代 07-29 已收） |
 | `css-test-app` | i-0cb9b69b9eb19a9aa | m7i-flex.large | 10.20.10.10（无公网） | `css-test` | ✅ 三栈已部署，入口 ALB `css-test`（07-30 重建，KeyName=css-test，根卷加密） |
 | `css-uat-app` | i-0f90c5c061d640a27 | m7i-flex.large | 10.20.11.10（无公网） | `css-uat` | ✅ 已建机，**未部署**；ALB `css-uat` 已建（07-30 重建，KeyName=css-uat） |
-| `css-prod-bastion` | i-0a6d6754c61c239d0 | t4g.micro | EIP **34.225.237.45** | `css-shared` | ✅ 已建在跑（密钥 `~/.ssh/css-prod-bastion`） |
+| `css-prod-bastion` | i-0a6d6754c61c239d0 | t4g.micro | EIP **34.225.237.45** | `css-shared` | ✅ 已建在跑（密钥 `deploy-env/ssh/css-prod-bastion`） |
 | `css-prod-app` | — | — | 规划 10.10.10.10 | `css-prod` | ⏳ `enable_prod_compute` 门控，等 Paid plan |
 
 > 堡垒机的 `Environment` **必须是 `css-shared`**：`ssm:SendCommand` 的 IAM 条件与 `run.sh`/`deploy-env.sh`
@@ -81,10 +81,10 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 
 | 机器 | 专属 key pair | 本机私钥 | 第二通道 |
 |------|---------------|----------|----------|
-| `css-test-app` | `css-test`（=实例 KeyName） | `~/.ssh/css-test.pem` | —（07-30 重建后 authorized_keys 只有专属钥） |
-| `css-uat-app` | `css-uat`（=实例 KeyName） | `~/.ssh/css-uat.pem` | — |
-| `css-non-prod-bastion`（堡垒） | `css-non-prod-gw`（沿用旧名） | `~/.ssh/css-non-prod-gw.pem` | 个人公钥 `wenchao` |
-| `css-prod-bastion` | `css-prod-bastion` | `~/.ssh/css-prod-bastion` | — |
+| `css-test-app` | `css-test`（=实例 KeyName） | `deploy-env/ssh/css-test.pem` | —（07-30 重建后 authorized_keys 只有专属钥） |
+| `css-uat-app` | `css-uat`（=实例 KeyName） | `deploy-env/ssh/css-uat.pem` | — |
+| `css-non-prod-bastion`（堡垒） | `css-non-prod-gw`（沿用旧名） | `deploy-env/ssh/css-non-prod-gw.pem` | 个人公钥 `wenchao` |
+| `css-prod-bastion` | `css-prod-bastion` | `deploy-env/ssh/css-prod-bastion` | — |
 
 个人钥 `~/.ssh/wenchao`（**带 passphrase**，口令见本地私有记录 `运维访问速查.local.md`）现仅在非生产堡垒机上作应急第二通道；专属 `.pem` 无 passphrase，脚本化更方便。
 已实测：专属钥各自登录成功，且 **test 的私钥登不上 uat**（隔离有效）。
@@ -97,20 +97,20 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 
 ```bash
 # --- 专属钥（推荐）---
-ssh -i ~/.ssh/css-non-prod-gw.pem ec2-user@3.225.148.166                       # 堡垒机
+ssh -i deploy-env/ssh/css-non-prod-gw.pem ec2-user@3.225.148.166                       # 堡垒机
 
-ssh -i ~/.ssh/css-test.pem \
-    -o ProxyCommand='ssh -i ~/.ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' \
+ssh -i deploy-env/ssh/css-test.pem \
+    -o ProxyCommand='ssh -i deploy-env/ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' \
     ec2-user@10.20.10.10                                                       # test
 
-ssh -i ~/.ssh/css-uat.pem \
-    -o ProxyCommand='ssh -i ~/.ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' \
+ssh -i deploy-env/ssh/css-uat.pem \
+    -o ProxyCommand='ssh -i deploy-env/ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' \
     ec2-user@10.20.11.10                                                       # uat
 
 # --- 免密钥走 SSM ---
 aws ssm start-session --target i-0cb9b69b9eb19a9aa    # test；uat=i-0f90c5c061d640a27，堡垒=i-08b0ef319d08eae38
 ```
-完整凭证/隧道/运维命令见`docs/环境运维执行脚本/运维访问速查.local.md`（不入库）。
+完整凭证/隧道/运维命令见`deploy-env/运维访问速查.local.md`（不入库）。
 
 ## 实例规格可以随时改（⚠️ 走 Terraform，不要裸命令）
 

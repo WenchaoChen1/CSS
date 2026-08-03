@@ -59,5 +59,5 @@ if [ "$ARG1" != "--list" ]; then
   LEDGER="$(cd "$(dirname "$0")" && pwd)/dev-ssh发放记录.md"
   printf -- '- %s 撤销 `%s`（%s）\n' "$(date -u +%F)" "$ARG1" "$TARGET" >> "$LEDGER"
   echo "已记入台账: $LEDGER"
-  echo "提示: 本地私钥 ./dev-keys/${TARGET}-${ARG1}.pem 可一并删除"
+  echo "提示: 本地私钥 deploy-env/ssh/dev-keys/${TARGET}-${ARG1}.pem 可一并删除"
 fi

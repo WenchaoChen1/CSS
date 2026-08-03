@@ -13,7 +13,7 @@
 #     ./grant-dev-ssh.sh zhangsan 30                 # 非生产堡垒机，30 天，仅隧道
 #     ./grant-dev-ssh.sh zhangsan 30 nonprod test    # + 可登 test 应用机
 #     ./grant-dev-ssh.sh zhangsan 14 prod            # 生产堡垒机
-# 产物: ./dev-keys/<环境>-<开发者名>.pem（已 gitignore；安全渠道交付）
+# 产物: deploy-env/ssh/dev-keys/<环境>-<开发者名>.pem（已 gitignore；安全渠道交付）
 # 续期: 同名重跑本脚本即可（复用同一把钥，只把 authorized_keys 条目的到期时间刷新为 今天+<天数>）
 # 台账: 每次发放/续期自动追加到 ./dev-ssh发放记录.md（无密钥材料，入库）；实时有效状态用 revoke-dev-ssh.sh --list 查
 # 撤销/查看: ./revoke-dev-ssh.sh
@@ -36,7 +36,8 @@ case "$TARGET" in
   *) echo "第三个参数只能是 nonprod 或 prod"; exit 1 ;;
 esac
 
-KEYDIR="$(cd "$(dirname "$0")" && pwd)/dev-keys"
+# 私钥集中区（2026-08-03 迁移）：开发者钥统一落工作区 deploy-env/ssh/dev-keys/（gitignore 目录级兜底）
+KEYDIR="$(cd "$(dirname "$0")/../../../deploy-env/ssh" && pwd)/dev-keys"
 mkdir -p "$KEYDIR"
 KEY="$KEYDIR/${TARGET}-${DEV}.pem"
 TAG="dev-${DEV}"

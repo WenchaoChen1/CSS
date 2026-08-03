@@ -3,7 +3,7 @@
 # 再经 SSM 把「该机专属公钥 + 你的个人公钥（wenchao）」一起写进该机 ec2-user 的 authorized_keys。
 #   css-test-app    → key pair css-test
 #   css-uat-app     → key pair css-uat
-#   css-non-prod-bastion（原名 css-non-prod-gw）→ key pair css-non-prod-gw（钥名沿用旧名，与 ~/.ssh/css-non-prod-gw.pem 一致）
+#   css-non-prod-bastion（原名 css-non-prod-gw）→ key pair css-non-prod-gw（钥名沿用旧名，与 deploy-env/ssh/css-non-prod-gw.pem 一致）
 #
 # ⚠️ AWS 的私钥【只在创建那一刻返回一次】，之后再也取不到：本地 .pem 丢了只能删 key pair 重建。
 # ⚠️ 实例的 KeyName 元数据是启动时属性，运行中的机器【改不了】（AWS 限制），所以控制台上
@@ -101,7 +101,7 @@ done
 echo ""
 echo "===== 完成：一机一钥 + 个人公钥（$PERSONAL_NAME）双通道 ====="
 echo "专属钥登录（每台各自的私钥）:"
-echo "  堡垒: ssh -i ~/.ssh/css-non-prod-gw.pem ec2-user@<堡垒EIP>"
-echo "  test: ssh -i ~/.ssh/css-test.pem -o ProxyCommand='ssh -i ~/.ssh/css-non-prod-gw.pem -W %h:%p ec2-user@<堡垒EIP>' ec2-user@10.20.10.10"
-echo "  uat : ssh -i ~/.ssh/css-uat.pem  -o ProxyCommand='ssh -i ~/.ssh/css-non-prod-gw.pem -W %h:%p ec2-user@<堡垒EIP>' ec2-user@10.20.11.10"
+echo "  堡垒: ssh -i deploy-env/ssh/css-non-prod-gw.pem ec2-user@<堡垒EIP>"
+echo "  test: ssh -i deploy-env/ssh/css-test.pem -o ProxyCommand='ssh -i deploy-env/ssh/css-non-prod-gw.pem -W %h:%p ec2-user@<堡垒EIP>' ec2-user@10.20.10.10"
+echo "  uat : ssh -i deploy-env/ssh/css-uat.pem  -o ProxyCommand='ssh -i deploy-env/ssh/css-non-prod-gw.pem -W %h:%p ec2-user@<堡垒EIP>' ec2-user@10.20.11.10"
 echo "个人钥登录（三台通用，应急/日常）: ssh -i ~/.ssh/$PERSONAL_NAME -J ec2-user@<堡垒EIP> ec2-user@<私网IP>"

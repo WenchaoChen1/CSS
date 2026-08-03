@@ -186,13 +186,13 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 | 看机器上生效的配置（含密钥慎用） | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/env/test/backend.env'` |
 | 看上次部署成功的 tag | `bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 'cat /opt/css-cicd/.last_good_test'` |
 | 终端上机（免 SSH） | `aws ssm start-session --target i-0cb9b69b9eb19a9aa`（test 机；uat=`i-0f90c5c061d640a27`，堡垒机=`i-08b0ef319d08eae38`） |
-| SSH 上机（备用通道） | `ssh -i ~/.ssh/css-test.pem -o ProxyCommand='ssh -i ~/.ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' ec2-user@10.20.10.10` |
+| SSH 上机（备用通道） | `ssh -i deploy-env/ssh/css-test.pem -o ProxyCommand='ssh -i deploy-env/ssh/css-non-prod-gw.pem -W %h:%p ec2-user@3.225.148.166' ec2-user@10.20.10.10` |
 
 ### 本机连 RDS（数据库在私有子网、不可公网访问）
 
 ```bash
 # ①【推荐】SSH 端口转发经堡垒机（保持此窗口开着），本机 psql/DBeaver/Navicat 连 localhost:5433
-ssh -i ~/.ssh/css-non-prod-gw.pem -N -L 5433:css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com:5432 ec2-user@3.225.148.166
+ssh -i deploy-env/ssh/css-non-prod-gw.pem -N -L 5433:css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com:5432 ec2-user@3.225.148.166
 psql -h localhost -p 5433 -U postgres -d css-test-main
 # （~/.ssh/config 配了 Host css-gw 后可简写：ssh -N -L 5433:<rds-endpoint>:5432 css-gw）
 

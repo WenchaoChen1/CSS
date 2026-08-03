@@ -21,12 +21,13 @@ CHECK=0; [ "$ARG2" = "--check" ] && { CHECK=1; LPORT=5433; } || LPORT="$ARG2"
 REGION=us-east-1
 export MSYS_NO_PATHCONV=1 PYTHONUTF8=1
 
-# ---- 目标：堡垒机 + RDS 实例（按环境组）----
+# ---- 目标：堡垒机 + RDS 实例（按环境组）。私钥集中在工作区 deploy-env/ssh/（2026-08-03 自 ~/.ssh 迁入）----
+SSH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../deploy-env/ssh" && pwd)"
 case "$ENV_NAME" in
-  test|uat) BASTION_IP=3.225.148.166;  KEY="$HOME/.ssh/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
-  prod)     BASTION_IP=34.225.237.45;  KEY="$HOME/.ssh/css-prod-bastion";    RDS_ID=css-prod ;;
+  test|uat) BASTION_IP=3.225.148.166;  KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
+  prod)     BASTION_IP=34.225.237.45;  KEY="$SSH_DIR/css-prod-bastion";    RDS_ID=css-prod ;;
 esac
-# 允许用开发者临时钥：DEV_KEY=./dev-keys/nonprod-xxx.pem ./db-tunnel.sh test
+# 允许用开发者临时钥：DEV_KEY=deploy-env/ssh/dev-keys/nonprod-xxx.pem ./db-tunnel.sh test
 KEY="${DEV_KEY:-$KEY}"
 [ -f "$KEY" ] || { echo "[FATAL] 找不到私钥 $KEY（管理员钥见 运维访问速查；开发者用 DEV_KEY=... 指定自己的钥）"; exit 1; }
 

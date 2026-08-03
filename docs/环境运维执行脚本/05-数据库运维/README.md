@@ -18,7 +18,7 @@
 ./db-tunnel.sh test                        # 然后客户端连 localhost:5433
 ./db-tunnel.sh uat 5434                    # 同时开两条隧道时用不同端口
 ./db-tunnel.sh test --check                # 只探测链路是否通，不驻留
-DEV_KEY=./dev-keys/nonprod-张三.pem ./db-tunnel.sh test   # 开发者用自己的临时钥
+DEV_KEY=deploy-env/ssh/dev-keys/nonprod-张三.pem ./db-tunnel.sh test   # 开发者用自己的临时钥
 ```
 
 RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动后会打印客户端要填的全部参数。
