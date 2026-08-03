@@ -1,111 +1,149 @@
 # 迁移工具手册 · 老 AWS 账号数据拉取（dev 旧组织 → larry 新组织）
 
-本文件夹 = **老 AWS 账号(`021213872872` / eu-central-1,全容器无 RDS)三个环境的数据拉取工具**。
-把三类东西拉到本机 `备份/` 下,为迁移到 larry 新组织(`582797602427` / us-east-1)做准备:
+本文件夹 = **老 AWS 账号（`021213872872` / eu-central-1，全容器无 RDS）三个环境的访问开通与数据拉取工具**。
+把配置、数据库、S3 拉到本机 `备份/`，为迁移到 larry 新组织（`582797602427` / us-east-1）做准备。
 
-| 类别 | 脚本 | 落地目录 |
-|------|------|---------|
-| 数据库备份 | `拉取数据库.ps1` | `备份\数据库\<环境>\` |
-| docker .env 配置 | `拉取docker-env.ps1` | `备份\docker镜像\<环境>\` |
-| S3 文件 | `拉取S3.ps1` | `备份\s3\<桶>\` |
+三个环境：`dev`(3.124.149.172)、`stage`(52.28.87.199)、`preprod`(3.74.51.100)，登录用户均为 `ubuntu`。
+**2026-08-03 起三台机器 SSH 全部开通**（此前只有 preprod 有）。
 
-三个环境:`preprod`(3.74.51.100,**现只有它有 SSH 权限**)、`dev`(3.124.149.172)、`stage`(52.28.87.199)。
-dev/stage 待将来在对应服务器开通 SSH 后,同一脚本加 `-Source dev|stage` 即可。
+> ⚠️ 老账号是**只读数据迁移源**：除"给自己装 SSH 公钥"外，禁止在其上做任何变更
+> （启停实例、改安全组、删桶对象、改数据一律禁止）；所有写操作都发生在新账号。
+
+---
+
+## 脚本清单
+
+| 脚本 | 做什么 | 产物 |
+|------|--------|------|
+| `装SSH公钥.sh` | 给老账号实例装我方 SSH 公钥（**开通访问，只需跑一次**） | 目标机 `~/.ssh/authorized_keys` |
+| `拉取三环境.sh` | **推荐入口**：一次拉三个环境的容器配置 + 数据库（bash，一次输口令跑完） | `备份/docker镜像/<env>/`、`备份/数据库/<env>/` |
+| `拉取数据库.ps1` | 单环境数据库拉取（PowerShell 版，会逐次弹私钥口令） | `备份/数据库/<env>/` |
+| `拉取docker-env.ps1` | 单环境容器配置拉取（PowerShell 版，同上） | `备份/docker镜像/<env>/` |
+| `拉取S3.ps1` | 拉 S3 桶文件，可选回推到新账号 | `备份/s3/<桶>/` |
+| `源环境.env` | 三台机器的 HOST/USER/KEY + AWS profile/桶清单（**gitignore**） | — |
 
 ---
 
 ## 一次性准备
 
-1. 复制 `源环境.env.example` → `源环境.env`,确认各环境 HOST/USER/KEY(私钥 = `~/.ssh/wenchao`,带 passphrase)。
-2. 拉 S3 需 dev 账号凭证:`aws configure --profile css-src`(dev 账号 `021213872872` 的 AK/SK,region eu-central-1)。
-   - dev 账号 IAM key 见审计《05》轮换清单(`AKIA…GQG7J65` 是审计临时用的,务必换成最小权限的迁移专用 key)。
-3. (可选,回推用)larry 账号凭证:`aws configure --profile css-dst`(`582797602427`,us-east-1)。
+1. `源环境.env` 已配好（三台 HOST/USER/KEY，私钥 `~/.ssh/wenchao`，passphrase 见 `deploy-env/密码.local.md`）。
+2. 老账号 AWS 凭证：本机 profile 名是 **`css-client`**（身份 `arn:aws:iam::021213872872:user/Dev`，在 Administrators 组）。
+   > 历史文档里写的 `css-src` 是**不存在的** profile 名，已在 `源环境.env` 里改正。
+3. 新账号凭证：本机 **default** profile 就是新账号运维号 `css-api`（`582797602427`），无需切换。
 
 ---
 
-## 操作 1 · 数据库备份
+## 操作 0 · 开通 SSH 访问（`装SSH公钥.sh`）
 
-### 脚本方式(推荐)
-```powershell
-.\拉取数据库.ps1                     # 默认 preprod,自动发现 postgres 容器与其 POSTGRES_DB,导 custom .dump
-.\拉取数据库.ps1 -AllDatabases        # 用 pg_dumpall 导整实例(含角色),产物 .sql.gz
-.\拉取数据库.ps1 -Source dev          # 将来 dev/stage SSH 开通后
-```
-产物在 `备份\数据库\<环境>\`。
-
-### 手动等价命令(不用脚本时)
-> preprod 实测:两个库容器 `css-backend__db`(主库 db=`postgres`)、`css-backend__ocr-db`(OCR 库 db=`ocr_catalog`),用户都是 `postgres`。
 ```bash
-# 1) SSH 上服务器,容器内 pg_dump 到远端 /tmp(custom 格式)
-ssh -i ~/.ssh/wenchao ubuntu@3.74.51.100 \
-  "docker exec css-backend__db  pg_dump -U postgres -Fc postgres     > /tmp/preprod_main.dump; \
-   docker exec css-backend__ocr-db pg_dump -U postgres -Fc ocr_catalog > /tmp/preprod_ocr.dump"
-# 2) scp 回本地
-scp -i ~/.ssh/wenchao ubuntu@3.74.51.100:/tmp/preprod_*.dump "备份/数据库/preprod/"
-# 3) 恢复到新库
-pg_restore --no-owner --no-privileges -d <目标库> preprod_main.dump
+./装SSH公钥.sh dev            # 单个环境
+./装SSH公钥.sh all            # dev + stage + preprod（幂等，已装过的跳过）
+./装SSH公钥.sh dev ~/.ssh/别的钥.pub   # 指定公钥，缺省 ~/.ssh/wenchao.pub
 ```
 
-## 操作 2 · docker .env 配置
+**它解决什么问题**：dev / stage 原本只有客户自己的 key pair `css`（我方无私钥），SSH 直连 `Permission denied`；
+这两台机器**没有 IAM instance profile、没被 SSM 托管**，所以 Session Manager 也走不通。
 
-### 脚本方式
-```powershell
-.\拉取docker-env.ps1                   # 产物:备份\docker镜像\<环境>\<容器>.env + _磁盘env清单.txt
-```
-导出的 env **含真实凭证**,只用于本地比对/迁移,勿提交(`备份\` 已被 .gitignore 排除)。
+**怎么破的局**：用 **EC2 Instance Connect**——AWS 原生通道，把公钥临时（60 秒）推进实例授权列表，
+脚本在这个窗口内 SSH 进去，把公钥**永久**追加到 `~/.ssh/authorized_keys`，之后就是普通 SSH。
 
-### 手动等价命令
+前置：调用者需 `ec2-instance-connect:SendSSHPublicKey` 权限（`Dev` 用户在 Administrators 组，已具备）；
+实例需预装 `ec2-instance-connect` 包（AWS 官方 Ubuntu AMI 默认有）；安全组 22 端口放行本机出口 IP（三台均已放行）。
+
+**已执行（2026-08-03）**：dev ✅、stage ✅ 装入并复验通过；preprod 本就可登录。
+
+---
+
+## 操作 1 · 拉配置 + 数据库（`拉取三环境.sh`，推荐）
+
 ```bash
-# 列出各容器注入的环境变量
-ssh -i ~/.ssh/wenchao ubuntu@3.74.51.100 \
-  'for c in $(docker ps --format "{{.Names}}"); do echo "### $c"; \
-     docker inspect --format "{{range .Config.Env}}{{println .}}{{end}}" $c; done'
+./拉取三环境.sh                      # = all all：三个环境的配置 + 数据库全拉
+./拉取三环境.sh dev db               # 只拉 dev 的两个库
+./拉取三环境.sh all env              # 只拉三个环境的容器配置
+SSH_KEY_PASSPHRASE=xxx ./拉取三环境.sh   # 免交互（口令也可留空，脚本会提示输入一次）
 ```
 
-## 操作 3 · S3 文件
+**为什么另做 bash 版而不用同目录的 .ps1**：本机 Windows `ssh-agent` 服务是 **Disabled**（启用要提权），
+而 `~/.ssh/wenchao` 带 passphrase——PowerShell 里的 `ssh.exe` 每次连接都弹口令，六次拉取要输六次。
+bash 版在脚本内起 git-bash 自带的 ssh-agent（跑完自动 kill），**一次解锁跑完全程**。.ps1 保留作单环境手动使用。
 
-### 脚本方式
+### ⚠️ 关于"三个环境的 .env 文件"
+
+**这三台机器磁盘上没有 `.env` 文件**（2026-08-03 全盘搜索确认，含隐藏文件）。
+部署由 **GitLab Runner** 在临时目录 `/builds/css_new/css-backend` 里执行 `docker compose up`，
+`.env` 是 CI 流水线生成的临时文件，**容器起来后即随工作目录一起删除**。
+
+所以这三个环境的运行时配置，**唯一可得来源是运行中容器的注入环境变量**
+（`docker inspect --format '{{range .Config.Env}}...'`）——脚本拉的就是它，每容器一个 `.env` 文件。
+拿到的值与当时 CI 写进 `.env` 的值等价（compose 的 `env_file`/`environment` 最终都注入成容器环境变量）。
+
+**已执行（2026-08-03）**：dev 20 个容器、stage 21 个、preprod 20 个，共 61 份配置。
+
+### 数据库形态（三台一致）
+
+| 容器 | 库 | dev | stage | preprod |
+|---|---|---|---|---|
+| `css-backend__db` | `postgres`（主库） | 83 MB / 154 表 | 86 MB / 154 表 | 46 MB / 146 表 |
+| `css-backend__ocr-db` | `ocr_catalog`（OCR 库） | ~8 MB / 4 表 | ~8 MB / 4 表 | ~8 MB / 4 表 |
+
+dump 直接经 SSH 管道回本地（**不在源服务器 /tmp 落盘**，不留痕不占盘），落地后校验 `PGDMP` 文件头。
+
+> **值得注意的发现**：dev/stage 的 `alembic_version` 是 `e8f2a4b6c1d3`，preprod 是 `e1f2a3b4c5d6`——
+> dev/stage 跑在比 preprod **更超前**的代码上。判断迁移链缺口时以此为准。
+
+---
+
+## 操作 2 · 把备份载入新账号非生产 RDS
+
+用 **`../环境运维执行脚本/05-数据库运维/restore-old-env-backup.sh`**（不是 `restore-dump-via-gw.sh`——
+那个会覆盖正在用的 test/uat 库）：
+
+```bash
+bash ../环境运维执行脚本/05-数据库运维/restore-old-env-backup.sh all
+bash ../环境运维执行脚本/05-数据库运维/restore-old-env-backup.sh --list   # 只看现有库
+```
+
+恢复成 `css-old-<源环境>-main-备份_YYYYMMDD` / `css-old-<源环境>-ocr-备份_YYYYMMDD` 六个**独立留档库**。
+**已执行（2026-08-03）**，源库与备份库全表行数指纹逐字节一致（详见该脚本所在目录的 README）。
+
+---
+
+## 操作 3 · S3 文件（`拉取S3.ps1`）
+
 ```powershell
 .\拉取S3.ps1 -SizeOnly                              # 先只统计各桶大小/对象数
-.\拉取S3.ps1                                         # 下载 源环境.env 的 SRC_S3_BUCKETS 全部桶到 备份\s3\
+.\拉取S3.ps1                                         # 下载 源环境.env 的 SRC_S3_BUCKETS 全部桶
 .\拉取S3.ps1 -Bucket chain-serve-test                # 只拉单桶
-.\拉取S3.ps1 -PushToDst -DstBucket css-test-storage  # 下载后回推到 larry 新桶(需先建好目的桶)
+.\拉取S3.ps1 -PushToDst -DstBucket css-test-storage  # 下载后回推到新账号（需先建好目的桶）
 ```
 
-### 手动等价命令
+手动等价（注意 profile 是 `css-client`）：
+
 ```bash
-aws s3 ls  s3://chain-serve-test --recursive --summarize --human-readable --profile css-src --region eu-central-1  # 先看大小
-aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-src --region eu-central-1                # 下载
-aws s3 sync "备份/s3/chain-serve-test" s3://<larry新桶>       --profile css-dst --region us-east-1                  # 回推(迁移)
+aws s3 ls  s3://chain-serve-test --recursive --summarize --human-readable --profile css-client --region eu-central-1
+aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-client --region eu-central-1
 ```
 
 ---
 
-## 迁移完整流程建议
+## 迁移完整流程
 
-1. `拉取S3.ps1 -SizeOnly` 评估数据量 → 三个脚本(或上面手动命令)落地全部数据到 `备份\`。
-2. 在 larry 新组织按目标环境建库/桶(DB 走新 RDS `css-non-prod`/`css-prod`,库名规范 `css-<env>-main`/`css-<env>-ocr`,见 ../环境运维执行脚本/04、05;S3 新建桶)。
-3. 恢复 DB 推荐用 `../环境运维执行脚本/05-数据库运维/restore-dump-via-gw.sh <env>`(本地 dump → S3 中转桶 → 网关机 pg_restore);`拉取S3.ps1 -PushToDst` 或 `aws s3 sync` 回推文件。
-4. 用 `备份\docker镜像\` 里导出的旧配置对照,把有效值填进 SSM Parameter Store `/css/<env>/backend.env`(唯一事实源;本地底稿 = 工作区根 `deploy-env\<env>\backend.env`。真实密钥迁移后建议全部轮换,见审计《05》)。
+1. `装SSH公钥.sh all` 开通访问（已完成）。
+2. `拉取三环境.sh` 落地配置 + 数据库（已完成）；`拉取S3.ps1 -SizeOnly` 评估 S3 数据量。
+3. `restore-old-env-backup.sh all` 把三环境数据载入新账号 RDS 做留档（已完成）。
+4. 用 `备份/docker镜像/` 里的旧配置对照，把有效值填进 SSM Parameter Store `/css/<env>/backend.env`
+   （唯一事实源；本地底稿 = 工作区根 `deploy-env/<env>/backend.env`）。**真实密钥迁移后建议全部轮换**。
+5. 环境投产时才用 `restore-dump-via-gw.sh` 灌进 `css-<env>-main`，随后**必须**跑 `anonymize-db.sh` 脱敏。
 
-> ⚠️ 所有产物都落在根 `备份\`(数据库/docker镜像/s3),`备份\` 与 `源环境.env` 都含敏感数据,已在根 `.gitignore` 排除,切勿提交或外传。
+> ⚠️ `备份/` 下全部产物（数据库 dump、容器配置、S3 文件）与 `源环境.env` 都含**真实凭证与真实个人数据**，
+> 已在根 `.gitignore` 排除，切勿提交或外传。
 
 ---
 
 ## 可视化页面（老账号 021213872872 / eu-central-1）
 
-拉取前后到老账号控制台核对源头，到本机目录核对落地产物：
-
-1. **EC2 实例列表**（三台源服务器）：
-   - 直达：<https://eu-central-1.console.aws.amazon.com/ec2/home?region=eu-central-1#Instances:>
-   - 看什么：`dev`(3.124.149.172) / `preprod`(3.74.51.100) / `stage`(52.28.87.199) 三台实例的运行状态与公网 IP——拉取前确认目标机 Running、IP 与 `源环境.env` 一致。
-2. **S3 桶列表**：
-   - 直达：<https://console.aws.amazon.com/s3/buckets>
-   - 看什么：各桶名称与对象数/大小，和 `拉取S3.ps1 -SizeOnly` 的统计对照；确认 `源环境.env` 的 `SRC_S3_BUCKETS` 没漏桶。
-3. **本机落地产物目录** `C:\github-code\chain-serve\备份\`：
-   - `数据库\<环境>\` —— .dump / .sql.gz 备份文件
-   - `docker镜像\<环境>\` —— 各容器 .env 导出 + 磁盘 env 清单
-   - `s3\<桶>\` —— 桶文件镜像
-   - 拉取后核对文件大小、时间戳是否符合预期。
-
-> ⚠️ 老账号是**只读数据迁移源**：控制台只用来查看核对，勿在其上做任何变更（启停实例、改安全组、删桶对象等一律禁止）；所有写操作都发生在新账号（582797602427）。
+1. **EC2 实例列表**：<https://eu-central-1.console.aws.amazon.com/ec2/home?region=eu-central-1#Instances:>
+   - 三台源服务器：`css-dev`(i-072a709f0205514e3) / `css-stage`(i-02d75a88344591383) / `css-preprod`(i-08f640a82749cffdf)
+   - 拉取前确认目标机 Running、公网 IP 与 `源环境.env` 一致。
+2. **S3 桶列表**：<https://console.aws.amazon.com/s3/buckets> —— 桶名与对象数/大小，和 `-SizeOnly` 统计对照。
+3. **本机落地产物** `C:\github-code\chain-serve\备份\`：`数据库\<环境>\`、`docker镜像\<环境>\`、`s3\<桶>\`。

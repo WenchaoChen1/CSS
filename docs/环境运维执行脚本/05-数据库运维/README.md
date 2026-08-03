@@ -1,10 +1,10 @@
 # 05-数据库运维 —— 建库 / 数据同步与恢复 / 脱敏 / 库账号与改密 / 对象 owner（原 05-数据同步）
 
-本目录共 **9 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
+本目录共 **10 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
 
 通用注意：
 
-- ⚠️ 除 `restore-dump-via-gw.sh` 和 `anonymize-db.sh`（在**本机**执行，经 S3/SSM 落到 AWS 内机器）外，其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
+- ⚠️ 除 `restore-dump-via-gw.sh`、`restore-old-env-backup.sh` 和 `anonymize-db.sh`（在**本机**执行，经 S3/SSM 落到 AWS 内机器）外，其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
 - master 密码从 Secrets Manager 取（`rds!` 前缀 secret），命令行传参即可，勿写进文件；各库账号密码见 `运维访问速查.local.md`。
 - 库名规范（2026-07-28 拍板）：`css-<env>-main` / `css-<env>-ocr`，含连字符——SQL 内脚本已用双引号处理，DSN 里可直接使用。
 - ⚠️ **PG 版本对应**：导数据前核对源/目标 **大版本**（新实例 PG16.14），pg_dump/pg_restore 客户端版本**不得低于服务端大版本**；跨大版本恢复前先在测试库演练。
@@ -65,6 +65,45 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 
 - 前置：堡垒机已由 css-terraform `network` stack 建成并挂 `css-gw-non-prod` / `css-gw-prod` profile（SSM + 读 css-dbsync 桶 + 读 `rds!` secret）——nonprod=`css-non-prod-bastion` ✅；prod 用 `css-prod-bastion` ✅。
 - 目标是 prod 时脚本要求输入 `prod` 二次确认（覆盖恢复生产库）；网关机装的是 psql16，匹配新实例 PG16。
+
+### `restore-old-env-backup.sh` — 把老账号三环境的数据库备份，恢复成非生产 RDS 上的**独立留档库**（不碰现有环境库）
+
+```bash
+./restore-old-env-backup.sh <dev|stage|preprod|all> [YYYYMMDD]
+./restore-old-env-backup.sh --list        # 只列出 RDS 上现有的库，不做任何改动
+```
+
+**与上面 `restore-dump-via-gw.sh` 的区别（为什么不复用它）**：
+
+| | `restore-dump-via-gw.sh` | `restore-old-env-backup.sh` |
+|---|---|---|
+| 用途 | **环境投产**：把数据灌进正在用的环境库 | **留档快照**：把老环境的某天状态存起来备查 |
+| 目标库 | 硬编码 `css-<env>-main`/`css-<env>-ocr` | `css-old-<源环境>-main-备份_YYYYMMDD`（带日期，每次新库） |
+| 覆盖行为 | 带 `--clean --if-exists`，**清空覆盖** | **不带 --clean**；库已存在则**跳过**，绝不替人删数据 |
+| 接应用 | 是（backend.env 指向它） | 否，不接任何应用 |
+
+链路与 `restore-dump-via-gw.sh` 相同（本地 dump → S3 中转桶 → SSM 在网关机上 pg_restore）。
+dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump 文件名解析。
+
+**两个 Windows 侧的坑（脚本已处理，改动时勿退回）**：
+
+1. dump 路径在 `备份/数据库/` 下**含中文**，而 `aws.exe` 是 Windows 原生程序——git-bash 把含中文的路径
+   当参数传给它时会按 ANSI 编码破坏（实测报 `/c/github-code/chain-serve//ݿ/dev/... does not exist`）。
+   脚本改用 **stdin 重定向**（`aws s3 cp - s3://... < "$DUMP"`），由 bash 自己开文件，绕开参数传递。
+2. 库名里的中文**在链路上是完好的**（已用 hex 实证：远端与库内均为正确 UTF-8 `e5a487e4bbbd`=备份）；
+   终端里看到的乱码只是 Windows 控制台按 GBK 解码 aws CLI 输出所致，**不是库名坏了**。核验请用
+   `select encode(convert_to(datname,'UTF8'),'hex') ...`，别信终端回显。
+
+**已执行（2026-08-03）**：六个库全部恢复成功，且源库与备份库的**全表行数指纹逐字节一致**：
+
+| 源环境 | 表数 | 总行数 | 指纹 md5 | alembic |
+|---|---|---|---|---|
+| dev | 154 | 237,096 | `6e6bb1f095fea40efff0165e8a7c589a` | `e8f2a4b6c1d3` |
+| stage | 154 | 262,003 | `6b7f6e0928627f35169e42322e2aac3e` | `e8f2a4b6c1d3` |
+| preprod | 146 | 88,254 | `b526e41746528bade32ad97db0135b7b` | `e1f2a3b4c5d6` |
+
+> ⚠️ 这六个库**含老环境的真实 PII，未脱敏**。它们不接应用、仅供查数据/比对 schema；
+> 长期留存请考虑 `mask-residual-pii.sh`，或用完即 `DROP DATABASE "css-old-<env>-main-备份_<日期>"`。
 
 ### `anonymize-db.sh` — 非生产库脱敏：邮箱/手机加扰 + 口令哈希统一（导入真实数据后**必须**执行一次）
 
