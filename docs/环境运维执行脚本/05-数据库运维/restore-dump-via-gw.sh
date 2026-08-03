@@ -2,7 +2,7 @@
 # 把本地 pg_dump -Fc 备份恢复到私有子网里的 RDS（本地无法直连时用）：
 #   本地 dump → S3 中转桶 css-dbsync-<账号> → SSM Run Command 在网关机上执行
 #   （装 psql 客户端 → 从 Secrets Manager 取 RDS 托管密码 → 建库/pgvector → pg_restore → 清理）。
-# 前置：网关机已由 06-服务器密钥与访问/create-gateway.sh 挂 css-gw-<组> profile（SSM + 读桶 + 读 rds! 密码）。
+# 前置：堡垒机由 css-terraform <组>/network stack 创建并挂 css-gw-<组> profile（SSM + 读中转桶 + 读 rds! 密码）。
 # 目标库名按 2026-07-28 规范：css-<env>-main / css-<env>-ocr（ocr 自动加 pgvector）。
 # 用法: ./restore-dump-via-gw.sh <test|uat|prod> <main库dump> <ocr库dump>
 #   例: ./restore-dump-via-gw.sh test ../../../备份/数据库/preprod/preprod_main_xxx.dump ../../../备份/数据库/preprod/preprod_ocr_xxx.dump
@@ -17,8 +17,8 @@ REGION="us-east-1"
 [ -f "$OCR_DUMP" ]  || { echo "文件不存在: $OCR_DUMP"; exit 1; }
 
 case "$ENV_NAME" in
-  test|uat) GW_NAME=css-non-prod-bastion; RDS_ID=css-non-prod ;;   # 2026-07-30 由 css-non-prod-gw 改名
-  prod)     GW_NAME=css-prod-bastion; RDS_ID=css-prod ;;
+  test|uat) GW_GROUP=css-non-prod; RDS_ID=css-non-prod ;;
+  prod)     GW_GROUP=css-prod;     RDS_ID=css-prod ;;
   *) echo "环境必须是 test|uat|prod"; exit 1 ;;
 esac
 if [ "$ENV_NAME" = "prod" ]; then
@@ -37,8 +37,10 @@ SECRET_ARN=$(awsq rds describe-db-instances --db-instance-identifier "$RDS_ID" -
 echo "目标 RDS: $RDS_ID ($ENDPOINT)  库: css-$ENV_NAME-main / css-$ENV_NAME-ocr"
 
 # ---- 网关机（SSM 目标）----
-GW_ID=$(awsq ec2 describe-instances --filters "Name=tag:Name,Values=$GW_NAME" "Name=instance-state-name,Values=running" --query 'Reservations[0].Instances[0].InstanceId')
-[ "$GW_ID" != "None" ] || { echo "网关机 $GW_NAME 未运行（先跑 06-服务器密钥与访问/create-gateway.sh）"; exit 1; }
+# 用【控制面标签对】定位堡垒机而不是 Name：Name 是可改展示名（2026-07-30 改名就把本脚本搞失效过），
+# Environment=css-shared + EnvironmentGroup=<组> 在 EC2 里唯一对应该组堡垒机，是规范约定、稳定。
+GW_ID=$(awsq ec2 describe-instances --filters "Name=tag:Environment,Values=css-shared" "Name=tag:EnvironmentGroup,Values=$GW_GROUP" "Name=instance-state-name,Values=running" --query 'Reservations[].Instances[].InstanceId' | awk '{print $1}')
+[ -n "$GW_ID" ] && [ "$GW_ID" != "None" ] || { echo "[FATAL] 找不到 $GW_GROUP 组运行中的堡垒机（Environment=css-shared + EnvironmentGroup=$GW_GROUP）"; exit 1; }
 echo -n "等待网关机注册到 SSM"
 for i in $(seq 1 30); do
   ONLINE=$(awsq ssm describe-instance-information --filters "Key=InstanceIds,Values=$GW_ID" --query 'InstanceInformationList[0].PingStatus' 2>/dev/null || echo "")
@@ -51,7 +53,7 @@ if ! aws --region "$REGION" s3api head-bucket --bucket "$BUCKET" 2>/dev/null; th
   aws --region "$REGION" s3api create-bucket --bucket "$BUCKET" >/dev/null
   aws --region "$REGION" s3api put-public-access-block --bucket "$BUCKET" \
     --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
-  aws --region "$REGION" s3api put-bucket-tagging --bucket "$BUCKET" --tagging 'TagSet=[{Key=Group,Value=css-ops}]'
+  aws --region "$REGION" s3api put-bucket-tagging --bucket "$BUCKET" --tagging 'TagSet=[{Key=EnvironmentGroup,Value=css-non-prod},{Key=Environment,Value=css-shared},{Key=ManagedBy,Value=script-restore-dump-via-gw}]'
   echo "中转桶创建: $BUCKET"
 fi
 aws --region "$REGION" s3 cp "$MAIN_DUMP" "s3://$BUCKET/$ENV_NAME/main.dump" --only-show-errors

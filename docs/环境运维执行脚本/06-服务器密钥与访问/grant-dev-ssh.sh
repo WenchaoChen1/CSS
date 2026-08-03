@@ -117,8 +117,11 @@ done
 
 # 3) 记入发放台账（不含任何密钥材料，可入库；实时有效状态以 revoke-dev-ssh.sh --list 为准）
 LEDGER="$(cd "$(dirname "$0")" && pwd)/dev-ssh发放记录.md"
-printf -- '- %s 发放/续期 `%s`（%s）到期 **%s**，范围=堡垒机%s\n' \
-  "$(date -u +%F)" "$DEV" "$TARGET" "$EXPIRY" "${APPS[*]:+ + 应用机 ${APPS[*]}}" >> "$LEDGER"
+if [ ${#APPS[@]} -gt 0 ]; then TIER="档位B：隧道 + 可登应用机 shell（${APPS[*]}）"; else TIER="档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）"; fi
+printf -- '- %s `%s` @ %s 堡垒机（%s）｜到期 **%s** UTC｜%s\n' \
+  "$(date -u +%F)" "$DEV" "$TARGET" \
+  "$([ "$TARGET" = prod ] && echo 'css-prod-bastion 34.225.237.45，仅通 prod 应用机' || echo 'css-non-prod-bastion 3.225.148.166，通 test/uat 应用机与共享 RDS')" \
+  "$EXPIRY" "$TIER" >> "$LEDGER"
 echo "已记入台账: $LEDGER"
 
 cat <<EOT

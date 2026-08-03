@@ -89,8 +89,12 @@ WHERE table_schema='public' AND column_name ILIKE '%password%hash%'
 " >> /tmp/anon.sql
 
 cat /tmp/anon.sql
-echo "--- 执行（单事务）---"
-{ echo 'BEGIN;'; cat /tmp/anon.sql; echo 'COMMIT;'; } | \$PSQL
+echo "--- 执行（单事务）+ 写脱敏标记表 ---"
+# 标记表：从此"这个库脱过敏没有"由标记决定，不再靠猜值形态（2026-08-03 加，与 mask-residual-pii.sh 共用同一张表）
+{ echo 'BEGIN;'; cat /tmp/anon.sql
+  echo "CREATE TABLE IF NOT EXISTS _css_pii_masked (id serial PRIMARY KEY, masked_at timestamptz NOT NULL DEFAULT now(), masked_by text NOT NULL, mode text NOT NULL, note text);"
+  echo "INSERT INTO _css_pii_masked(masked_by, mode, note) VALUES ('anonymize-db.sh', 'prefix-suffix', 'email 加前缀1/phone 加后缀1/口令统一——注意该口径只断可达性不断身份，彻底去身份请跑 mask-residual-pii.sh --all');"
+  echo 'COMMIT;'; } | \$PSQL
 rm -f /tmp/anon.sql
 
 echo "--- 脱敏后校验 ---"
