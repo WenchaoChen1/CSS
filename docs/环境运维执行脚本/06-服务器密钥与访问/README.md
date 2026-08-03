@@ -16,7 +16,7 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 ```bash
 ./setup-ssh-key.sh [公钥文件] [实例名或ID ...]        # 公钥缺省 ~/.ssh/wenchao.pub；key pair 名=文件名去 .pub
 ./setup-ssh-key.sh ~/.ssh/wenchao.pub                 # 只导入 key pair（新建实例用 --key-name 引用）
-./setup-ssh-key.sh ~/.ssh/wenchao.pub css-non-prod-gw # 导入 + 装到网关机（已建实例无法事后绑 key pair，只能这样补）
+./setup-ssh-key.sh ~/.ssh/wenchao.pub css-non-prod-bastion # 导入 + 装到堡垒机（传实例 Name；已建实例无法事后绑 key pair，只能这样补）
 ```
 
 幂等：指纹一致则跳过；补装实例需已注册 SSM（未注册会跳过）。
@@ -24,7 +24,7 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 ### `create-instance-keys.sh` — 一机一钥：为每台机器创建专属 ed25519 key pair（私钥落本机 `~/.ssh/<名>.pem`），经 SSM 把「专属公钥 + 个人公钥」写进 `authorized_keys`（幂等去重）
 
 ```bash
-./create-instance-keys.sh [个人公钥文件] [只处理某台: css-test|css-uat|css-non-prod-gw]
+./create-instance-keys.sh [个人公钥文件] [只处理某台（按 key pair 名）: css-test|css-uat|css-non-prod-gw]
 ./create-instance-keys.sh                             # 三台全做，个人公钥默认 ~/.ssh/wenchao.pub
 ./create-instance-keys.sh ~/.ssh/wenchao.pub css-uat  # 只补 uat 一台
 ```

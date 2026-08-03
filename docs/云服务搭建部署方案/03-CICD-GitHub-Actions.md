@@ -1,5 +1,6 @@
 # CI/CD 方案：GitHub Actions × 新组织仓库（v2.2）
 
+> 📜（2026-08-03 补注：文中"CI 只推镜像/deploy job 已注释"为当时状态——**自动部署已于 2026-07-28 晚恢复**，现状见 docs/cicd-操作手册.md。）
 > 📜 **历史存档（2026-07-31 标注）**：本文是 CI/CD 设计与拍板记录（v2.2，2026-07-28）。CI/CD 主体已按此落地且仍有效（push test/uat 自动构建+migrate+SSM 部署；main 只构建、prod 手动 Run workflow），但文中**基础设施细节多处已过时**，现状以 css-terraform（33 stack，`css-terraform/使用说明/`）与 [../新aws账号/README.md](../新aws账号/README.md) 为准。已知变化：① 标签键 `CssEnv`/`Group` 已彻底废除，改为 `Environment`/`EnvironmentGroup`（SSM 部署与 IAM 条件均按 `Environment` 定位）；② 网关机已改名 **css-non-prod-bastion**（nginx 反代早已停用；kafka-ui 只走开发入口 ALB `css-non-prod-entry`，业务 ALB 8085 已撤）；③ test/uat 应用机 2026-07-30 重建，实例 ID 已变；④ uat 库已建成（css-uat-main/css-uat-ocr，=test 数据）；⑤ prod 堡垒机 css-prod-bastion 已建，应用机/RDS/ALB/NAT 仍等 Paid plan（`enable_prod_compute` 门控）；⑥ `css-deploy-*` OIDC 角色已收编进 css-terraform 的 css-github stack（角色名/ARN 未变）；⑦ 旧共用 SG 已拆为每环境独立 app-sg/alb-sg。具体 ID/地址一律见 css-terraform 与工作区根 `运维访问速查.local.md`。
 
 > 📖 **配置与使用手册**（怎么配、怎么跑、出问题怎么查）已并入脚本文件夹：总流程见 [../新aws账号/README.md](../新aws账号/README.md)，[GitHub Actions → 08](../新aws账号/08-github-actions推镜像/README.md)，[SSM + EC2 deploy.sh → 09](../新aws账号/09-ssm-run-command/README.md)。本文是设计方案。

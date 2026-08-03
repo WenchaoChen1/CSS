@@ -65,7 +65,11 @@ FROM information_schema.columns
 WHERE table_schema='public' AND data_type IN ('text','character varying','character')
   AND column_name ILIKE '%email%' AND column_name NOT ILIKE '%type%'
 UNION ALL
--- phone 加后缀 1；与 email 同样做幂等保护（NOT LIKE '%1'），否则重跑一次多加一个 1
+-- phone 加后缀 1；与 email 同样做幂等保护（NOT LIKE '%1'），否则重跑一次多加一个 1。
+-- 已知边界（2026-08-03 复检确认，本注释禁用 ASCII 双引号——它会截断外层 psql 的引号参数）：
+--   值形态的幂等判断无法区分【已脱敏】和【原始值恰好以 1 结尾/开头】：首轮对全新导入的数据，
+--   尾号为 1 的真实手机号（约 1/10）与 1 开头的真实邮箱（罕见）会被跳过而保留原值。
+--   要 100% 覆盖需改用标记表/换脱敏形态（待拍板，见 05/README）。
 SELECT format('UPDATE %I.%I SET %I = %I || ''1'' WHERE %I IS NOT NULL AND %I NOT LIKE ''%%1'';',
               table_schema, table_name, column_name, column_name, column_name, column_name)
 FROM information_schema.columns
@@ -95,15 +99,17 @@ echo "--- 脱敏后校验 ---"
   \$PSQL -tAc "select '未加前缀的邮箱残留: '||count(*) from \$SAMPLE_TBL where email is not null and email not like '1%'"
 }
 # 真校验：为每个 password_hash 列生成"实际去重计数"查询再回喂执行（此前把常量 1 填进 format，
-# 无论成败都打印 "1 种哈希 / 1 行"，等于没校验——2026-08-03 修）
+# 无论成败都打印 "1 种哈希 / 1 行"，等于没校验——2026-08-03 修）。
+# ⚠️ PSQL 是 docker run（无卷挂载），容器看不见主机 /tmp——回喂必须走 stdin（同上方脱敏事务的管道模式），
+#    不能用 psql -f 读文件（2026-08-03 二轮复检修正：-f 会报文件不存在，在 set -e 下把成功的脱敏误判成失败）。
 \$PSQL -tAc "
 SELECT format('SELECT ''%s.%s: ''||count(DISTINCT %I)||'' 种哈希 / ''||count(%I)||'' 行'' FROM %I.%I;',
               table_schema, table_name, column_name, column_name, table_schema, table_name)
 FROM information_schema.columns
 WHERE table_schema='public' AND column_name ILIKE '%password%hash%'" > /tmp/hashchk.sql
-\$PSQL -tAf /tmp/hashchk.sql || true
+\$PSQL -tA < /tmp/hashchk.sql || true
 # 断言：所有 password_hash 列的去重种数必须都是 1（脱敏后全库统一口令）
-BAD=\$(\$PSQL -tAf /tmp/hashchk.sql | awk -F'[:/]' '{gsub(/[^0-9]/,"",\$2); if (\$2+0 > 1) c++} END{print c+0}')
+BAD=\$(\$PSQL -tA < /tmp/hashchk.sql | awk -F'[:/]' '{gsub(/[^0-9]/,"",\$2); if (\$2+0 > 1) c++} END{print c+0}')
 [ "\${BAD:-0}" -eq 0 ] || { echo "[FATAL] 有 \$BAD 个 password_hash 列的哈希种数 >1，脱敏未彻底"; exit 1; }
 rm -f /tmp/hashchk.sql
 REOF

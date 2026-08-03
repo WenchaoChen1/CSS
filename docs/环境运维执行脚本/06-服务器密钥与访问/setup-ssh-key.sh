@@ -4,7 +4,7 @@
 #                           （已建实例无法事后绑 key pair，只能这样补；网关机就是这种情况）。
 # 用法: ./setup-ssh-key.sh [公钥文件] [实例名或ID ...]
 #   例: ./setup-ssh-key.sh ~/.ssh/wenchao.pub                     # 只导入 key pair
-#       ./setup-ssh-key.sh ~/.ssh/wenchao.pub css-non-prod-gw      # 导入 + 装到网关机
+#       ./setup-ssh-key.sh ~/.ssh/wenchao.pub css-non-prod-bastion  # 导入 + 装到堡垒机（实例 Name，2026-07-30 改名后）
 # key pair 名 = 公钥文件名去掉 .pub（wenchao.pub → wenchao）。幂等：指纹一致则跳过。
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"

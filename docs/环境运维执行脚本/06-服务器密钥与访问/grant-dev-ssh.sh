@@ -21,6 +21,8 @@ set -euo pipefail
 
 DEV="${1:?用法: grant-dev-ssh.sh <开发者名> <有效天数> [nonprod|prod] [apps...]}"
 DAYS="${2:?缺有效天数，如 30}"
+[[ "$DEV" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "[FATAL] 开发者名只允许 字母/数字/_/-（会拼进远程命令与 authorized_keys 标签）"; exit 1; }
+[[ "$DAYS" =~ ^[0-9]+$ ]] || { echo "[FATAL] 有效天数必须是纯数字"; exit 1; }
 TARGET="${3:-nonprod}"
 shift $(( $# >= 3 ? 3 : 2 ))
 APPS=("$@")
@@ -74,6 +76,7 @@ run_ssm() { # $1=instance-id  $2=命令
         --query 'CommandInvocations[0].CommandPlugins[0].Output' --output text; return 1;; esac
     sleep 2
   done
+  [ "$s" = "Success" ] || { echo "SSM 执行超时（状态 $s）"; return 1; }
   aws ssm list-command-invocations --region "$REGION" --command-id "$cid" --details \
     --query 'CommandInvocations[0].CommandPlugins[0].Output' --output text | tail -2
 }

@@ -17,6 +17,7 @@ set -euo pipefail
 HOST="${1:?用法: create-db-accounts.sh <rds主机> <master密码> [test|uat|both]}"
 PASS="${2:?缺 master 密码}"
 SCOPE="${3:-both}"
+case "$SCOPE" in test|uat|both) ;; *) echo "[FATAL] SCOPE 只能是 test|uat|both（收到: $SCOPE）——拼错时绝不能静默轮换密码"; exit 1 ;; esac
 
 PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
 gen() { openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 20; }
@@ -74,20 +75,22 @@ if [ "$SCOPE" = "uat" ] || [ "$SCOPE" = "both" ]; then
   grant_db css-uat-ocr  css_app_uat css_dev
 fi
 
-# ── 断言：css_ops 必须能连本实例上【每一个】css-* 库（含今后新建的）──
-# 依赖 rds_superuser 继承，不依赖逐库授权。若 AWS 改了 rds_superuser 行为，这里会立刻炸出来，
-# 届时的补救是给 grant_db 的调用加上 css_ops（或 GRANT postgres TO css_ops）。
-BAD=$(PSQL -d postgres -tAc "SELECT count(*) FROM pg_database WHERE datname LIKE 'css%' AND NOT has_database_privilege('css_ops',datname,'CONNECT')" | tr -d '[:space:]')
-if [ "${BAD:-1}" = "0" ]; then
-  echo "✅ 断言通过：css_ops 对全部 css-* 库均有 CONNECT（经 rds_superuser 继承，新建库自动覆盖）"
-else
-  echo "[FATAL] 有 $BAD 个 css-* 库 css_ops 连不上——rds_superuser 继承失效，需改用显式授权！"; exit 1
-fi
-
 echo
 echo "===== 生成的账号密码（请立刻抄进 运维访问速查.local.md，本输出不留存）====="
 for r in "${!PW[@]}"; do printf '%-14s %s\n' "$r" "${PW[$r]}"; done
 echo "master(postgres) 密码见 Secrets Manager（rds! 托管，7 天自动轮换）"
+
+# ── 断言：css_ops 必须能连本实例上【每一个】css-* 库（含今后新建的）──
+# 依赖 rds_superuser 继承，不依赖逐库授权。若 AWS 改了 rds_superuser 行为，这里会立刻炸出来，
+# 届时的补救是给 grant_db 的调用加上 css_ops（或 GRANT postgres TO css_ops）。
+# ⚠️ 断言必须放在密码打印【之后】：脚本一进来就轮换了全部密码，断言若先执行且失败，
+#    新密码没打印就退出 = 所有账号变成无人知晓的密码（2026-08-03 复检修正顺序）。
+BAD=$(PSQL -d postgres -tAc "SELECT count(*) FROM pg_database WHERE datname LIKE 'css%' AND NOT has_database_privilege('css_ops',datname,'CONNECT')" | tr -d '[:space:]')
+if [ "${BAD:-1}" = "0" ]; then
+  echo "✅ 断言通过：css_ops 对全部 css-* 库均有 CONNECT（经 rds_superuser 继承，新建库自动覆盖）"
+else
+  echo "[FATAL] 有 $BAD 个 css-* 库 css_ops 连不上——rds_superuser 继承失效，需改用显式授权！（上方密码已生效，务必先抄录）"; exit 1
+fi
 echo
 echo "# prod：待 prod RDS 建成后执行 ——"
 echo "#   ./create-db-accounts.sh <prod-rds主机> <prod-master密码> && 另建 css_app_prod（仅 css-prod-main/ocr）"

@@ -73,7 +73,7 @@
 ### 回滚 / 手动指定环境部署
 
 **怎么找**：Actions → CICD → 右侧 **Run workflow** 下拉（灰色按钮）。
-**填什么**：Branch 选对应分支 → `environment` 选目标环境 → `image_tag` 填要回退到的不可变版本 tag（`<env>-vN`，如 `test-v12`，从 ECR 控制台或上次成功 run 的日志里查）→ **Run workflow**。填了 tag 会跳过构建直接部署旧镜像；prod 仍要过审批。
+**填什么**：Branch 选对应分支 → `environment` 选目标环境 → `image_tag` 填要回退到的不可变版本 tag（`<env>-vN`，如 `test-v12`，从 ECR 控制台或上次成功 run 的日志里查）→ **Run workflow**。填了 tag 会跳过构建直接部署旧镜像；prod 的闸 = 必须手动 Run workflow 本身（Free 计划无环境审批）。
 填了 `image_tag` 会跳过构建、直接把该版本部署上去；命令行兜底同样可用：`../09-远程执行与手动部署/deploy-env.sh <env> all <env>-vN`。
 
 ### 推送结果（AWS 侧）
@@ -82,14 +82,14 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 
 ## 三、发布操作（命令行侧）
 
-> 现阶段下表的 push 只触发**推镜像**（`<env>-vN`）；推完后手动 `bash docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh <env>` 完成部署。
+> push test/uat 即**全自动**：构建 → 推镜像（`<env>-vN`）→ migrate → SSM 部署（2026-07-28 晚起）；`09/deploy-env.sh` 仅作 CI 之外的兜底/回滚。
 
 | 目标 | 命令 |
 |------|------|
 | 发 test | `git push neworg test` |
 | 发 uat | `git checkout uat && git merge test && git push neworg uat` |
-| 发 prod | `git checkout main && git merge uat && git push neworg main` → 去 Actions 审批（恢复 deploy job 后） |
-| 同步老仓库 | 先合到 `upstream-sync`（不触发部署），验证后再进 test——见 [../cicd-操作手册.md](../cicd-操作手册.md) |
+| 发 prod | `git checkout main && git merge uat && git push neworg main`（只构建）→ Actions 手动 Run workflow 触发部署（人工闸） |
+| 同步老仓库 | 先合到 `upstream-sync`（不触发部署），验证后再进 test——见 [../../cicd-操作手册.md](../../cicd-操作手册.md) |
 
 ## 四、workflow 文件本身（要改流水线时）
 

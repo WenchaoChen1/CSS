@@ -3,7 +3,7 @@
 > 📍 2026-07-31 自 docs/环境/ 迁入本目录。
 
 > 2026-07-31 更新；§7 为剩余待办。
-> 方案原理见 [../云服务搭建部署方案/03-CICD-GitHub-Actions.md](云服务搭建部署方案/03-CICD-GitHub-Actions.md)。
+> 方案原理见 [云服务搭建部署方案/03-CICD-GitHub-Actions.md](云服务搭建部署方案/03-CICD-GitHub-Actions.md)。
 > **现状**：push `test`/`uat` 分支 = 全自动（构建 → migrate → SSM 部署）；push `main` 只构建镜像，
 > prod 部署走 Actions 手动 Run workflow。部署按 `tag:Environment` 定位目标机。
 > CI 用的 OIDC 身份提供方与 `css-deploy-*` 三角色已集中由 `css-terraform` 的 `css-github` stack 管理

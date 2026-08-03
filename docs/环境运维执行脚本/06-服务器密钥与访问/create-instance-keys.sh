@@ -3,14 +3,14 @@
 # 再经 SSM 把「该机专属公钥 + 你的个人公钥（wenchao）」一起写进该机 ec2-user 的 authorized_keys。
 #   css-test-app    → key pair css-test
 #   css-uat-app     → key pair css-uat
-#   css-non-prod-gw  → key pair css-non-prod-gw
+#   css-non-prod-bastion（原名 css-non-prod-gw）→ key pair css-non-prod-gw（钥名沿用旧名，与 ~/.ssh/css-non-prod-gw.pem 一致）
 #
 # ⚠️ AWS 的私钥【只在创建那一刻返回一次】，之后再也取不到：本地 .pem 丢了只能删 key pair 重建。
 # ⚠️ 实例的 KeyName 元数据是启动时属性，运行中的机器【改不了】（AWS 限制），所以控制台上
 #    css-test-app/css-uat-app 仍显示 KeyName=wenchao。这不影响实际登录——决定谁能登录的是
 #    机器上的 authorized_keys，本脚本写的就是它。要让元数据也一致只能重建实例（没必要）。
 #
-# 用法: ./create-instance-keys.sh [个人公钥文件] [只处理某台: css-test|css-uat|css-non-prod-gw]
+# 用法: ./create-instance-keys.sh [个人公钥文件] [只处理某台（按 key pair 名）: css-test|css-uat|css-non-prod-gw]
 #   例: ./create-instance-keys.sh                       # 三台全做，个人公钥默认 ~/.ssh/wenchao.pub
 #       ./create-instance-keys.sh ~/.ssh/wenchao.pub css-uat
 set -euo pipefail
@@ -27,7 +27,7 @@ PERSONAL_LINE="$(tr -d '\r\n' < "$PERSONAL_PUB")"
 PERSONAL_NAME="$(basename "$PERSONAL_PUB" .pub)"
 
 # 实例名:key pair 名
-PAIRS="css-test-app:css-test css-uat-app:css-uat css-non-prod-gw:css-non-prod-gw"
+PAIRS="css-test-app:css-test css-uat-app:css-uat css-non-prod-bastion:css-non-prod-gw"
 
 for entry in $PAIRS; do
   INST_NAME="${entry%%:*}"; KEYNAME="${entry##*:}"

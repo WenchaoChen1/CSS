@@ -70,17 +70,23 @@ for db in css-$ENV_NAME-main css-$ENV_NAME-ocr; do
   P -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='\$db'" | grep -q 1 || P -d postgres -c "CREATE DATABASE \"\$db\";"
 done
 P -d 'css-$ENV_NAME-ocr' -c 'CREATE EXTENSION IF NOT EXISTS vector;'
-# --clean 会对不存在的对象报 warning（正常），但连不上/版本不兼容/中途崩是硬失败——记录退出码后据实判定，不能一律吞掉
-pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-main' main.dump; RC_MAIN=\$?
-pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-ocr'  ocr.dump;  RC_OCR=\$?
-echo \"--- pg_restore 退出码: main=\$RC_MAIN ocr=\$RC_OCR（0=完全成功，1=有 warning 需看上文，其它=硬失败）---\"
+# --clean 会对不存在的对象报 warning（正常，pg_restore 返回 1），但连不上/版本不兼容/中途崩是硬失败——
+# 记录退出码后据实判定。⚠️ 两个已踩过的 heredoc 坑（2026-08-03 两轮复检修正）：
+#   1) 本远程脚本 set -e：捕获必须写成 pg_restore ... || RC=(问号变量) 的“或”形式；
+#      写成先执行再取问号变量，pg_restore 返回 1（常规 warning）就会当场打死整个远程脚本；
+#   2) 本 heredoc 未加引号：注释/代码里禁止出现反引号（会在本地展开时被当命令执行），
+#      双引号写 " 本身即可、不要写 \\"（反斜杠会原样带进远端，把比较操作数变成带引号字面量）。
+RC_MAIN=0; RC_OCR=0
+pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-main' main.dump || RC_MAIN=\$?
+pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-ocr'  ocr.dump  || RC_OCR=\$?
+echo "--- pg_restore 退出码: main=\$RC_MAIN ocr=\$RC_OCR（0=完全成功，1=有 warning 需看上文，其它=硬失败）---"
 echo '--- 校验 ---'
 TBL=\$(P -d 'css-$ENV_NAME-main' -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public'" | tr -d '[:space:]')
-echo \"main 表数: \$TBL\"
+echo "main 表数: \$TBL"
 P -d 'css-$ENV_NAME-main' -tAc "SELECT 'alembic: '||version_num FROM alembic_version" || true
 # 硬失败判定：表数为 0 说明恢复根本没成功
-[ \"\${TBL:-0}\" -gt 0 ] || { echo '[FATAL] main 库 public schema 表数为 0——恢复失败'; exit 1; }
-[ \"\$RC_MAIN\" -le 1 ] && [ \"\$RC_OCR\" -le 1 ] || { echo '[FATAL] pg_restore 硬失败（退出码 >1）'; exit 1; }
+[ "\${TBL:-0}" -gt 0 ] || { echo '[FATAL] main 库 public schema 表数为 0——恢复失败'; exit 1; }
+[ "\$RC_MAIN" -le 1 ] && [ "\$RC_OCR" -le 1 ] || { echo '[FATAL] pg_restore 硬失败（退出码 >1）'; exit 1; }
 P -d 'css-$ENV_NAME-ocr'  -tAc "SELECT 'ocr 表数: '||count(*) FROM pg_tables WHERE schemaname='public'"
 rm -f /tmp/main.dump /tmp/ocr.dump
 EOF
