@@ -50,24 +50,27 @@ echo "===== 创建/更新库账号（scope=$SCOPE）====="
 PW[css_ops]=$(gen); ensure_role css_ops "${PW[css_ops]}"
 PSQL -d postgres -c "GRANT rds_superuser TO css_ops;"
 
+# dev：跨环境共用角色——必须在 SCOPE 判断【之外】创建，否则单独跑 SCOPE=uat 时
+# 下面 grant_db 会引用不存在的 css_dev 而失败（2026-08-03 修）
+PW[css_dev]=$(gen); ensure_role css_dev "${PW[css_dev]}"
+PSQL -d postgres -c 'ALTER ROLE css_dev CREATEDB;'   # 允许建新库（其自建库归其所有、可自删；css-* 存量库非其所有、删不动）
+
 if [ "$SCOPE" = "test" ] || [ "$SCOPE" = "both" ]; then
   PW[css_app_test]=$(gen); ensure_role css_app_test "${PW[css_app_test]}"
-  PW[css_dev]=$(gen);      ensure_role css_dev      "${PW[css_dev]}"
-  PSQL -d postgres -c 'ALTER ROLE css_dev CREATEDB;'   # 允许建新库（其自建库归其所有、可自删；css-* 存量库非其所有、删不动）
-  grant_db css-test-main css_app_test css_dev
-  grant_db css-test-ocr  css_app_test css_dev
+  grant_db css-test-main css_app_test css_dev css_ops
+  grant_db css-test-ocr  css_app_test css_dev css_ops
 fi
 
 if [ "$SCOPE" = "uat" ] || [ "$SCOPE" = "both" ]; then
   PW[css_app_uat]=$(gen); ensure_role css_app_uat "${PW[css_app_uat]}"
-  grant_db css-uat-main css_app_uat css_dev
-  grant_db css-uat-ocr  css_app_uat css_dev
+  grant_db css-uat-main css_app_uat css_dev css_ops
+  grant_db css-uat-ocr  css_app_uat css_dev css_ops
 fi
 
 echo
 echo "===== 生成的账号密码（请立刻抄进 运维访问速查.local.md，本输出不留存）====="
 for r in "${!PW[@]}"; do printf '%-14s %s\n' "$r" "${PW[$r]}"; done
-echo "master(postgres) 密码见 Secrets Manager（rds! 托管，90 天轮换）"
+echo "master(postgres) 密码见 Secrets Manager（rds! 托管，7 天自动轮换）"
 echo
 echo "# prod：待 prod RDS 建成后执行 ——"
 echo "#   ./create-db-accounts.sh <prod-rds主机> <prod-master密码> && 另建 css_app_prod（仅 css-prod-main/ocr）"

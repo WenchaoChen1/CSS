@@ -21,6 +21,14 @@ mkdir -p "$ENV_DIR"
 render() {  # $1=参数名 $2=目标文件；Parameter Store 不可用时回退目标位置已有文件
   if aws ssm get-parameter --region "$REGION" --name "$1" --with-decryption \
        --query 'Parameter.Value' --output text > "$2.tmp" 2>/dev/null; then
+    # 覆盖前先备份并提示差异：这里是"远程 → 本地底稿"的反向覆盖，本地未推送的编辑会被冲掉
+    # （与 11-parameter-store/put-params.sh 的防误覆盖对称；2026-08-03 加）
+    if [ -f "$2" ] && ! cmp -s <(tr -d '\r' < "$2") <(tr -d '\r' < "$2.tmp"); then
+      cp "$2" "$2.local-bak"
+      echo "⚠️ 本地底稿与 Parameter Store 不一致，已备份原文件到 $2.local-bak；差异键（只列 KEY）："
+      diff <(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' "$2" | sort -u) \
+           <(grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' "$2.tmp" | sort -u) | grep -E '^[<>]' | tr -d '=' | sed 's/^/      /' || true
+    fi
     mv "$2.tmp" "$2"; echo "已从 Parameter Store 渲染: $1"
   else
     rm -f "$2.tmp"

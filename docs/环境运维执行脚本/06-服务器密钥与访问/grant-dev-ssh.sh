@@ -39,10 +39,16 @@ mkdir -p "$KEYDIR"
 KEY="$KEYDIR/${TARGET}-${DEV}.pem"
 TAG="dev-${DEV}"
 
-EXPIRY=$(date -u -d "+${DAYS} days" +%Y%m%dT%H%M 2>/dev/null || date -u -v+"${DAYS}"d +%Y%m%dT%H%M)
-EXPIRY="${EXPIRY}Z"
+# ⚠️ expiry-time 格式：**纯 12 位 YYYYMMDDHHMM，不带 "T"、不带 "Z"**。
+# 踩坑记录（2026-08-03 实测定性，sshd 调试日志 "bad key options: invalid expires time"）：
+#   ① 原先写成 ISO 风格 20260830T0808Z —— 非法，OpenSSH 会【拒绝整条 key】，表现为发出去的钥匙一律
+#      Permission denied（此前发过的钥匙其实从未生效）；
+#   ② 去掉 T 只留 Z 仍然失败 —— 本机 sshd 是 OpenSSH_8.7p1（AL2023），其 parse_absolute_time()
+#      只接受 8/12/14 位纯数字，**不支持 Z（UTC）后缀**（Z 是更高版本才加的）。
+# 不带 Z 时按【服务器本地时区】解释；三台目标机实测均为 UTC，故用 date -u 生成即语义正确。
+EXPIRY=$(date -u -d "+${DAYS} days" +%Y%m%d%H%M 2>/dev/null || date -u -v+"${DAYS}"d +%Y%m%d%H%M)
 
-echo "===== 发放开发者密钥：$DEV / $TARGET / 到期 $EXPIRY (UTC) ====="
+echo "===== 发放开发者密钥：$DEV / $TARGET / 到期 $EXPIRY UTC ====="
 
 if [ -f "$KEY" ]; then
   echo "已存在 $KEY —— 复用（只刷新到期时间/目标机器）"
@@ -86,6 +92,11 @@ echo '堡垒机条目已写入'"
 app_id() { aws ec2 describe-instances --region "$REGION" \
   --filters "Name=tag:Name,Values=css-$1-app" "Name=instance-state-name,Values=running" \
   --query 'Reservations[0].Instances[0].InstanceId' --output text | tr -d '\r'; }
+if [ "$TARGET" = "prod" ] && [ ${#APPS[@]} -gt 0 ]; then
+  # 防跨环境串钥：test/uat 应用机属非生产组，prod 的开发者钥绝不能装上去
+  echo "⚠️ 目标是 prod，忽略 apps 参数 [${APPS[*]}]（test/uat 应用机属非生产组，不接受 prod 开发者钥）"
+  APPS=()
+fi
 for app in "${APPS[@]}"; do
   case "$app" in test|uat) ;; *) echo "跳过未知应用机 [$app]（只支持 test/uat）"; continue ;; esac
   ID=$(app_id "$app")

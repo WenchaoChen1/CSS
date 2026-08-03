@@ -31,7 +31,7 @@ SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命�
 |-----------|------|------|------|----------------|
 | `test` | test | 无（数据可弃） | 无 | `Environment=css-test` |
 | `uat` | uat | migrate 前自动 | 无 | `Environment=css-uat` |
-| `main` | prod | migrate 前自动 + alembic 核对 | **只构建不部署；部署=手动 Run workflow**（GitHub Free 无环境审批的替代闸） | `Environment=css-prod` |
+| `main` | prod | migrate 前自动快照（alembic_version 核对属人工步骤，见 cicd 手册） | **只构建不部署；部署=手动 Run workflow**（GitHub Free 无环境审批的替代闸） | `Environment=css-prod` |
 | `upstream-sync` | —（老仓库合并中转，不触发） | — | — | — |
 
 回滚 = Actions → Run workflow → 选环境 + 填上一个不可变版本 tag `<env>-vN`（如 `test-v12`，从 ECR 或上次成功 run 日志查）；

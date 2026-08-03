@@ -23,10 +23,14 @@ case "$ROLE" in
   *) echo "⚠️ 非常规账号 [$ROLE]，确认无误则继续"; ;;
 esac
 
+# 输入校验（2026-08-03 加）：角色名与密码都会拼进 SQL，不校验则含单引号即语句破裂、可注入任意 SQL（以 master 身份）
+[[ "$ROLE" =~ ^[a-z_][a-z0-9_]{0,62}$ ]] || { echo "[FATAL] 角色名只允许小写字母/数字/下划线（首字符非数字）: $ROLE"; exit 1; }
+
 [ -n "$NEWPW" ] || NEWPW=$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 20)
+[[ "$NEWPW" =~ ^[A-Za-z0-9]{12,}$ ]] || { echo "[FATAL] 密码只允许纯字母数字且 ≥12 位（避免 SQL/URL 转义问题）"; exit 1; }
 
 docker run --rm -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -d postgres -v ON_ERROR_STOP=1 \
-  -c "ALTER ROLE ${ROLE} LOGIN PASSWORD '${NEWPW}';"
+  -c "ALTER ROLE \"${ROLE}\" LOGIN PASSWORD '${NEWPW}';"
 
 echo "===== 密码已修改 ====="
 printf '%-14s %s\n' "$ROLE" "$NEWPW"

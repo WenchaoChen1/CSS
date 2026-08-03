@@ -38,7 +38,7 @@
 直达：`https://github.com/Chain-Serve-Solutions/Chain-Service-Solutions-Backend/settings/environments`
 
 **命名规则（2026-07-29 用户拍板）：GitHub environment 名 = 分支名，一律相同。** 即 **`test` / `uat` / `main`** 三个。
-原先生产用的 `production` 是三者中唯一的例外命名，已废弃——workflow 的 `environment:` 表达式与 `07-获取应用iam密钥/create-iam.sh` 的信任策略均已改为 `main` 并重跑生效。
+原先生产用的 `production` 是三者中唯一的例外命名，已废弃——workflow 的 `environment:` 表达式与 OIDC 信任策略均已改为 `main` 并生效（信任策略现由 css-terraform `css-github` stack 管理；原 07 目录的 create-iam.sh 已删除）。
 
 | 环境名 | 对应分支 | 对应部署环境（`DEPLOY_ENV`） | 你要做什么 |
 |--------|----------|------------------------------|------------|
@@ -93,7 +93,7 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 
 ## 四、workflow 文件本身（要改流水线时）
 
-位置：两仓库各自的 `.github/workflows/cicd.yml`（Backend 还有 `deploy/aws/{build-push.sh,ssm-run.sh}`；Frontend 有 `.github/scripts/ssm-run.sh`）。job 结构：lint（仅检查本次改动的文件，与 pre-commit 语义一致）→（unit-test/typecheck 观察模式）→ build-push →（**已注释**）migrate（仅 Backend，uat/prod 先快照）→（**已注释**）deploy——取消注释即恢复自动部署。改动走正常分支流程，**改 workflow 也要经 test 验证再晋级**。
+位置：两仓库各自的 `.github/workflows/cicd.yml`（Backend 还有 `deploy/aws/{build-push.sh,ssm-run.sh}`；Frontend 有 `.github/scripts/ssm-run.sh`）。job 结构：lint（仅检查本次改动的文件，与 pre-commit 语义一致）→（unit-test/typecheck 观察模式）→ build-push → migrate（仅 Backend，uat/prod 先快照）→ deploy。**migrate/deploy 自 2026-07-28 晚已启用**（早期版本曾注释掉，文档若见"已注释"字样均为过时描述）。改动走正常分支流程，**改 workflow 也要经 test 验证再晋级**。
 
 ## 五、常见失败对照
 

@@ -17,7 +17,7 @@ REGION="us-east-1"
 [ -f "$OCR_DUMP" ]  || { echo "文件不存在: $OCR_DUMP"; exit 1; }
 
 case "$ENV_NAME" in
-  test|uat) GW_NAME=css-non-prod-gw;   RDS_ID=css-non-prod ;;
+  test|uat) GW_NAME=css-non-prod-bastion; RDS_ID=css-non-prod ;;   # 2026-07-30 由 css-non-prod-gw 改名
   prod)     GW_NAME=css-prod-bastion; RDS_ID=css-prod ;;
   *) echo "环境必须是 test|uat|prod"; exit 1 ;;
 esac
@@ -61,7 +61,8 @@ echo "dump 已上传 s3://$BUCKET/$ENV_NAME/"
 # ---- 网关机上执行恢复（命令经 python json 编码，避免引号/换行踩坑）----
 REMOTE=$(cat <<EOF
 set -euo pipefail
-command -v pg_restore >/dev/null || dnf install -y postgresql16 >/dev/null 2>&1 || dnf install -y postgresql15 >/dev/null
+# 客户端大版本必须 ≥ 服务端（RDS 为 PG16）——装不上就退出，绝不静默降级到 15（跨大版本恢复会出问题）
+command -v pg_restore >/dev/null || dnf install -y postgresql16 >/dev/null 2>&1 || { echo '[FATAL] 装不上 postgresql16 客户端（不降级到 15，跨大版本恢复不可靠）'; exit 1; }
 export PGPASSWORD=\$(aws secretsmanager get-secret-value --region $REGION --secret-id '$SECRET_ARN' --query SecretString --output text | python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])')
 P() { psql -h $ENDPOINT -U postgres -v ON_ERROR_STOP=1 "\$@"; }
 cd /tmp && aws s3 cp s3://$BUCKET/$ENV_NAME/main.dump . --only-show-errors && aws s3 cp s3://$BUCKET/$ENV_NAME/ocr.dump . --only-show-errors
@@ -69,11 +70,17 @@ for db in css-$ENV_NAME-main css-$ENV_NAME-ocr; do
   P -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='\$db'" | grep -q 1 || P -d postgres -c "CREATE DATABASE \"\$db\";"
 done
 P -d 'css-$ENV_NAME-ocr' -c 'CREATE EXTENSION IF NOT EXISTS vector;'
-pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-main' main.dump || true
-pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-ocr'  ocr.dump  || true
+# --clean 会对不存在的对象报 warning（正常），但连不上/版本不兼容/中途崩是硬失败——记录退出码后据实判定，不能一律吞掉
+pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-main' main.dump; RC_MAIN=\$?
+pg_restore --no-owner --no-privileges --clean --if-exists -h $ENDPOINT -U postgres -d 'css-$ENV_NAME-ocr'  ocr.dump;  RC_OCR=\$?
+echo \"--- pg_restore 退出码: main=\$RC_MAIN ocr=\$RC_OCR（0=完全成功，1=有 warning 需看上文，其它=硬失败）---\"
 echo '--- 校验 ---'
-P -d 'css-$ENV_NAME-main' -tAc "SELECT 'main 表数: '||count(*) FROM pg_tables WHERE schemaname='public'"
+TBL=\$(P -d 'css-$ENV_NAME-main' -tAc "SELECT count(*) FROM pg_tables WHERE schemaname='public'" | tr -d '[:space:]')
+echo \"main 表数: \$TBL\"
 P -d 'css-$ENV_NAME-main' -tAc "SELECT 'alembic: '||version_num FROM alembic_version" || true
+# 硬失败判定：表数为 0 说明恢复根本没成功
+[ \"\${TBL:-0}\" -gt 0 ] || { echo '[FATAL] main 库 public schema 表数为 0——恢复失败'; exit 1; }
+[ \"\$RC_MAIN\" -le 1 ] && [ \"\$RC_OCR\" -le 1 ] || { echo '[FATAL] pg_restore 硬失败（退出码 >1）'; exit 1; }
 P -d 'css-$ENV_NAME-ocr'  -tAc "SELECT 'ocr 表数: '||count(*) FROM pg_tables WHERE schemaname='public'"
 rm -f /tmp/main.dump /tmp/ocr.dump
 EOF
@@ -95,7 +102,13 @@ done
 aws --region "$REGION" ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$GW_ID" \
   --query '{status:Status,out:StandardOutputContent,err:StandardErrorContent}' --output json | tr -d '\r'
 
-# ---- 清理中转对象 ----
+# ---- 清理中转对象（无论成败都清，避免 dump 留在 S3）----
 aws --region "$REGION" s3 rm "s3://$BUCKET/$ENV_NAME/" --recursive --only-show-errors
-echo "===== 恢复流程结束（状态见上方 status；pg_restore 的 warning 属正常）====="
+
+# ---- 据实反映结果：失败必须非 0 退出，上层/CI 才能感知 ----
+if [ "$ST" != "Success" ]; then
+  echo "[FATAL] 恢复失败（SSM 状态 $ST）——看上方 out/err 定位；目标库可能处于不完整状态，勿直接使用"
+  exit 1
+fi
+echo "===== 恢复成功（pg_restore 的 warning 属正常）====="
 echo "提醒: /css/$ENV_NAME/backend.env 里 POSTGRES_DB=css-$ENV_NAME-main、OCR 两个 URL 指向 css-$ENV_NAME-ocr，改完重跑 11-parameter-store/put-params.sh"

@@ -26,7 +26,12 @@ PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U
 
 # RDS 的 master(postgres) 不是真 superuser：改 owner / 改他人默认权限都要求先成为目标角色成员（幂等）
 PSQL -d postgres -c "GRANT ${ROLE} TO postgres;"
-PSQL -d postgres -c "GRANT css_dev TO postgres;"
+# css_dev 是非生产共用的开发账号，prod 不建它——prod 环境跳过所有 css_dev 相关语句（2026-08-03 修）
+HAS_DEV=0
+if [ "$ENV_NAME" != "prod" ]; then
+  HAS_DEV=1
+  PSQL -d postgres -c "GRANT css_dev TO postgres;"
+fi
 
 for db in "css-${ENV_NAME}-main" "css-${ENV_NAME}-ocr"; do
   echo "===== 移交 $db 的 public schema 对象 owner → $ROLE ====="
@@ -82,10 +87,12 @@ END
 SQL
 
   # 移交后：让 css_dev 仍能读写该角色将来新建的对象（默认权限按"建对象的角色"生效，故要为新 owner 声明）
-  PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT ALL ON TABLES TO css_dev;"
-  PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT ALL ON SEQUENCES TO css_dev;"
-  PSQL -d "$db" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO css_dev;"
-  PSQL -d "$db" -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO css_dev;"
+  if [ "$HAS_DEV" = 1 ]; then
+    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT ALL ON TABLES TO css_dev;"
+    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT ALL ON SEQUENCES TO css_dev;"
+    PSQL -d "$db" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO css_dev;"
+    PSQL -d "$db" -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO css_dev;"
+  fi
 
   # 核对：public schema 内还有多少对象不属于新 owner
   echo -n "剩余非 ${ROLE} owner 的表数（应为 0）: "

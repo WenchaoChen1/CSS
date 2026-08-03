@@ -2,7 +2,7 @@
 
 > **主链路是 CI**：push 代码到 `test`/`uat`/`main` 分支，GitHub Actions 自动构建并推送（tag `<env>-vN`）。
 > 本目录脚本用于三种场景：**CI 挂了应急**、**首次给新环境灌镜像**、**本机调试构建产物**。
-> 两个脚本与 CI 完全同源（都调 Backend 仓库 `deploy/compose/*.yml` 的构建定义），不存在"手动打的和 CI 不一样"。
+> 两个脚本与 CI **后端镜像**同源（都调 Backend 仓库 `deploy/compose/*.yml` 的构建定义）；前端镜像 CI 侧由前端仓库自己的 workflow 构建，本目录是用同一份 compose 定义在本机构建，产物等价但链路不同。
 
 ## 脚本清单
 

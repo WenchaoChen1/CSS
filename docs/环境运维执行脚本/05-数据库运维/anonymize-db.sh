@@ -65,8 +65,9 @@ FROM information_schema.columns
 WHERE table_schema='public' AND data_type IN ('text','character varying','character')
   AND column_name ILIKE '%email%' AND column_name NOT ILIKE '%type%'
 UNION ALL
-SELECT format('UPDATE %I.%I SET %I = %I || ''1'' WHERE %I IS NOT NULL;',
-              table_schema, table_name, column_name, column_name, column_name)
+-- phone 加后缀 1；与 email 同样做幂等保护（NOT LIKE '%1'），否则重跑一次多加一个 1
+SELECT format('UPDATE %I.%I SET %I = %I || ''1'' WHERE %I IS NOT NULL AND %I NOT LIKE ''%%1'';',
+              table_schema, table_name, column_name, column_name, column_name, column_name)
 FROM information_schema.columns
 WHERE table_schema='public' AND data_type IN ('text','character varying','character')
   AND column_name ILIKE '%phone%' AND column_name NOT ILIKE '%type%'
@@ -93,8 +94,18 @@ echo "--- 脱敏后校验 ---"
   \$PSQL -tAc "select 'email: '||email from \$SAMPLE_TBL where email is not null limit 3"
   \$PSQL -tAc "select '未加前缀的邮箱残留: '||count(*) from \$SAMPLE_TBL where email is not null and email not like '1%'"
 }
-\$PSQL -tAc "SELECT format('%I.%I: %s 种哈希 / %s 行', table_schema, table_name, 1, 1)
-  FROM information_schema.columns WHERE table_schema='public' AND column_name ILIKE '%password%hash%'" || true
+# 真校验：为每个 password_hash 列生成"实际去重计数"查询再回喂执行（此前把常量 1 填进 format，
+# 无论成败都打印 "1 种哈希 / 1 行"，等于没校验——2026-08-03 修）
+\$PSQL -tAc "
+SELECT format('SELECT ''%s.%s: ''||count(DISTINCT %I)||'' 种哈希 / ''||count(%I)||'' 行'' FROM %I.%I;',
+              table_schema, table_name, column_name, column_name, table_schema, table_name)
+FROM information_schema.columns
+WHERE table_schema='public' AND column_name ILIKE '%password%hash%'" > /tmp/hashchk.sql
+\$PSQL -tAf /tmp/hashchk.sql || true
+# 断言：所有 password_hash 列的去重种数必须都是 1（脱敏后全库统一口令）
+BAD=\$(\$PSQL -tAf /tmp/hashchk.sql | awk -F'[:/]' '{gsub(/[^0-9]/,"",\$2); if (\$2+0 > 1) c++} END{print c+0}')
+[ "\${BAD:-0}" -eq 0 ] || { echo "[FATAL] 有 \$BAD 个 password_hash 列的哈希种数 >1，脱敏未彻底"; exit 1; }
+rm -f /tmp/hashchk.sql
 REOF
 )
 
@@ -122,7 +133,14 @@ while :; do
 done
 echo "状态: $ST"
 awsq ssm get-command-invocation --command-id "$CID" --instance-id "$ID" --query StandardOutputContent 2>/dev/null || true
-[ "$ST" = "Success" ] || awsq ssm get-command-invocation --command-id "$CID" --instance-id "$ID" --query StandardErrorContent 2>/dev/null | tail -20
+
+# ⚠️ 失败必须非 0 退出：脱敏失败=库里仍有真实 PII，绝不能打印"完成"让人误以为安全（2026-08-03 修）
+if [ "$ST" != "Success" ]; then
+  awsq ssm get-command-invocation --command-id "$CID" --instance-id "$ID" --query StandardErrorContent 2>/dev/null | tail -20
+  echo ""
+  echo "[FATAL] 脱敏失败（状态 $ST）——库内可能仍有真实邮箱/手机号/口令哈希，排查后必须重跑"
+  exit 1
+fi
 
 echo ""
 echo "===== 脱敏完成：所有账号口令现为 '$NEW_PASSWORD' ====="

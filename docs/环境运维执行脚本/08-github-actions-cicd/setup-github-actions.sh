@@ -40,11 +40,17 @@ for repo in "${REPOS[@]}"; do
   # ---- 2) Environments：名字=分支名（test / uat / main）；main 试着加 Required reviewers（Free 计划会被拒，无妨）----
   gh api -X PUT "repos/$FULL/environments/test" >/dev/null
   gh api -X PUT "repos/$FULL/environments/uat"  >/dev/null
-  gh api -X PUT "repos/$FULL/environments/main" \
-    --input - >/dev/null <<EOF
+  # main 环境：Free 私有仓库不支持 Required reviewers，带 reviewers 的请求会被拒 →
+  # 先试带审批人，失败则退回创建纯环境（人工闸由"手动 Run workflow"承担）。2026-08-03 加容错。
+  if gh api -X PUT "repos/$FULL/environments/main" --input - >/dev/null 2>&1 <<EOF
 { "reviewers": [ { "type": "User", "id": $REVIEWER_ID } ] }
 EOF
-  echo "  Environments ×3 已创建（test / uat / main；main 审批人: $REVIEWER）"
+  then
+    echo "  Environments ×3 已创建（test / uat / main；main 审批人: $REVIEWER）"
+  else
+    gh api -X PUT "repos/$FULL/environments/main" >/dev/null
+    echo "  Environments ×3 已创建（test / uat / main；⚠️ Free 计划不支持 Required reviewers，main 无审批人——生产闸=手动 Run workflow）"
+  fi
 
   # ---- 3) 校验 ----
   echo "  当前 variables:"
