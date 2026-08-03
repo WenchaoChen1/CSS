@@ -3,8 +3,8 @@
 # 库名规范：css-<env>-main / css-<env>-ocr。角色与授权：
 #   css_app_test  → 仅 css-test-main / css-test-ocr 读写（应用/运维）
 #   css_app_uat   → 仅 css-uat-main  / css-uat-ocr  读写
-#   css_dev       → 可建新库(CREATEDB)；test+uat 四库读写改数据；不能删 css-* 库（非 owner）——
-#                   注意：PG 语义下它能删【自己新建的】库（owner 可删自有库），删不了 test/uat 存量库
+#   css_dev       → 【只读】（2026-08-03 拍板收紧：原为 CREATEDB+四库读写）——对非生产实例上
+#                   所有库只有 CONNECT+SELECT，不能建库不能写；存量权限收敛用 make-css-dev-readonly.sh
 #   css_ops       → rds_superuser（全库超级权限，人用；通过堡垒机隧道连）
 #   （css_app_prod / prod 待 prod RDS 建成后另跑，见文末）
 # 轮换：重跑本脚本即全员轮换（ALTER ROLE ... PASSWORD 重设并打印新值）；轮换后同步改 运维访问速查 与应用配置。
@@ -22,7 +22,7 @@ case "$SCOPE" in test|uat|both) ;; *) echo "[FATAL] SCOPE 只能是 test|uat|bot
 PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
 gen() { openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 20; }
 
-grant_db() { # $1=db  $2...=授权角色
+grant_db() { # $1=db  $2...=【读写】角色（应用账号）
   local db="$1"; shift
   PSQL -d postgres -c "REVOKE CONNECT ON DATABASE \"$db\" FROM PUBLIC;"
   for r in "$@"; do
@@ -32,6 +32,18 @@ grant_db() { # $1=db  $2...=授权角色
     PSQL -d "$db" -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO $r;"
     PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $r;"
     PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $r;"
+  done
+}
+
+grant_ro() { # $1=db  $2...=【只读】角色（css_dev）——只给 CONNECT+USAGE+SELECT，默认权限也只 SELECT
+  local db="$1"; shift
+  for r in "$@"; do
+    PSQL -d postgres -c "GRANT CONNECT ON DATABASE \"$db\" TO $r;"
+    PSQL -d "$db" -c "GRANT USAGE ON SCHEMA public TO $r;"
+    PSQL -d "$db" -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO $r;"
+    PSQL -d "$db" -c "GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO $r;"
+    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $r;"
+    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO $r;"
   done
 }
 
@@ -61,18 +73,22 @@ PSQL -d postgres -c "GRANT rds_superuser TO css_ops;"
 # dev：跨环境共用角色——必须在 SCOPE 判断【之外】创建，否则单独跑 SCOPE=uat 时
 # 下面 grant_db 会引用不存在的 css_dev 而失败（2026-08-03 修）
 PW[css_dev]=$(gen); ensure_role css_dev "${PW[css_dev]}"
-PSQL -d postgres -c 'ALTER ROLE css_dev CREATEDB;'   # 允许建新库（其自建库归其所有、可自删；css-* 存量库非其所有、删不动）
+PSQL -d postgres -c 'ALTER ROLE css_dev NOCREATEDB NOCREATEROLE;'   # 2026-08-03 拍板：css_dev 全实例只读，不能建库
 
 if [ "$SCOPE" = "test" ] || [ "$SCOPE" = "both" ]; then
   PW[css_app_test]=$(gen); ensure_role css_app_test "${PW[css_app_test]}"
-  grant_db css-test-main css_app_test css_dev
-  grant_db css-test-ocr  css_app_test css_dev
+  grant_db css-test-main css_app_test
+  grant_db css-test-ocr  css_app_test
+  grant_ro css-test-main css_dev
+  grant_ro css-test-ocr  css_dev
 fi
 
 if [ "$SCOPE" = "uat" ] || [ "$SCOPE" = "both" ]; then
   PW[css_app_uat]=$(gen); ensure_role css_app_uat "${PW[css_app_uat]}"
-  grant_db css-uat-main css_app_uat css_dev
-  grant_db css-uat-ocr  css_app_uat css_dev
+  grant_db css-uat-main css_app_uat
+  grant_db css-uat-ocr  css_app_uat
+  grant_ro css-uat-main css_dev
+  grant_ro css-uat-ocr  css_dev
 fi
 
 echo

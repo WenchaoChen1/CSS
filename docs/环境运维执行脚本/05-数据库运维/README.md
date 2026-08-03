@@ -1,6 +1,6 @@
 # 05-数据库运维 —— 建库 / 数据同步与恢复 / 脱敏 / 库账号与改密 / 对象 owner（原 05-数据同步）
 
-本目录共 **10 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
+本目录共 **12 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
 
 通用注意：
 
@@ -78,7 +78,7 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 | | `restore-dump-via-gw.sh` | `restore-old-env-backup.sh` |
 |---|---|---|
 | 用途 | **环境投产**：把数据灌进正在用的环境库 | **留档快照**：把老环境的某天状态存起来备查 |
-| 目标库 | 硬编码 `css-<env>-main`/`css-<env>-ocr` | `css-old-<源环境>-main-备份_YYYYMMDD`（带日期，每次新库） |
+| 目标库 | 硬编码 `css-<env>-main`/`css-<env>-ocr` | `backup_<YYYYMMDD>_old_<源环境>_<main\|ocr>`（带日期，每次新库；**库名一律英文**） |
 | 覆盖行为 | 带 `--clean --if-exists`，**清空覆盖** | **不带 --clean**；库已存在则**跳过**，绝不替人删数据 |
 | 接应用 | 是（backend.env 指向它） | 否，不接任何应用 |
 
@@ -90,20 +90,44 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 1. dump 路径在 `备份/数据库/` 下**含中文**，而 `aws.exe` 是 Windows 原生程序——git-bash 把含中文的路径
    当参数传给它时会按 ANSI 编码破坏（实测报 `/c/github-code/chain-serve//ݿ/dev/... does not exist`）。
    脚本改用 **stdin 重定向**（`aws s3 cp - s3://... < "$DUMP"`），由 bash 自己开文件，绕开参数传递。
-2. 库名里的中文**在链路上是完好的**（已用 hex 实证：远端与库内均为正确 UTF-8 `e5a487e4bbbd`=备份）；
-   终端里看到的乱码只是 Windows 控制台按 GBK 解码 aws CLI 输出所致，**不是库名坏了**。核验请用
-   `select encode(convert_to(datname,'UTF8'),'hex') ...`，别信终端回显。
+2. ~~库名带中文~~ **2026-08-03 当天即改**：首版库名带「备份」二字，虽经 hex 实证中文在整条链路上完好
+   （乱码只是 Windows 控制台按 GBK 解码 aws CLI 输出），但按新规范【库名一律英文、backup_ 前缀放最前】
+   已全部用 `rename-db.sh` 改为 `backup_20260803_old_*`，脚本命名逻辑同步更新。
 
 **已执行（2026-08-03）**：六个库全部恢复成功，且源库与备份库的**全表行数指纹逐字节一致**：
 
-| 源环境 | 表数 | 总行数 | 指纹 md5 | alembic |
+| RDS 上的库名 | 表数 | 总行数 | 指纹 md5 | alembic |
 |---|---|---|---|---|
-| dev | 154 | 237,096 | `6e6bb1f095fea40efff0165e8a7c589a` | `e8f2a4b6c1d3` |
-| stage | 154 | 262,003 | `6b7f6e0928627f35169e42322e2aac3e` | `e8f2a4b6c1d3` |
-| preprod | 146 | 88,254 | `b526e41746528bade32ad97db0135b7b` | `e1f2a3b4c5d6` |
+| `backup_20260803_old_dev_main` (+`_ocr`) | 154 | 237,096 | `6e6bb1f095fea40efff0165e8a7c589a` | `e8f2a4b6c1d3` |
+| `backup_20260803_old_stage_main` (+`_ocr`) | 154 | 262,003 | `6b7f6e0928627f35169e42322e2aac3e` | `e8f2a4b6c1d3` |
+| `backup_20260803_old_preprod_main` (+`_ocr`) | 146 | 88,254 | `b526e41746528bade32ad97db0135b7b` | `e1f2a3b4c5d6` |
 
 > ⚠️ 这六个库**含老环境的真实 PII，未脱敏**。它们不接应用、仅供查数据/比对 schema；
-> 长期留存请考虑 `mask-residual-pii.sh`，或用完即 `DROP DATABASE "css-old-<env>-main-备份_<日期>"`。
+> 长期留存请考虑 `mask-residual-pii.sh`，或用完即 `DROP DATABASE backup_<日期>_old_<env>_main`。
+
+### `rename-db.sh` — 重命名非生产 RDS 上的一个库（经 SSM 网关机执行）
+
+```bash
+./rename-db.sh <旧库名> <新库名> [--kick]   # --kick=先断掉该库全部连接（仅用于无应用使用的库）
+./rename-db.sh "css-old-dev-main-备份_20260803" backup_20260803_old_dev_main --kick
+```
+
+- 新库名强制英文规范 `^[a-z][a-z0-9_]*$`（不合规直接拒绝）；新名已存在/旧名不存在都会失败退出。
+- 库上有活动连接时 PG 拒绝 RENAME——报错会列出占用连接；确认无应用使用后加 `--kick` 断开重试。
+- 已执行（2026-08-03）：六个 `css-old-*-备份_*` 库全部改为 `backup_20260803_old_*`。
+
+### `make-css-dev-readonly.sh` — 把 css_dev 收敛为非生产实例全库只读
+
+```bash
+./make-css-dev-readonly.sh    # 无参数；收敛 + 逐库验证（可INSERT 必须为 0，否则非 0 退出）
+```
+
+做三件事：① `ALTER ROLE css_dev NOCREATEDB NOCREATEROLE`；② 对每个库（含 `backup_*`，排除 rdsadmin）
+撤销全部写权限、只留 CONNECT+USAGE+SELECT；③ 改写默认权限，postgres / `css_app_*` 今后新建的表也只给 SELECT。
+
+- **新建/恢复一个库之后要重跑一次**（PG 的授权与默认权限都不跨库）。
+- `create-db-accounts.sh` 的 css_dev 段已同步改为只读口径（重跑那边不会把写权限加回来）。
+- 已执行（2026-08-03）：10 库验证全过（每库 可SELECT=表数、可INSERT=0），CREATEDB=f。
 
 ### `anonymize-db.sh` — 非生产库脱敏：邮箱/手机加扰 + 口令哈希统一（导入真实数据后**必须**执行一次）
 
@@ -179,7 +203,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 |------|------|
 | `css_app_test` | 仅 `css-test-main` / `css-test-ocr` 读写（应用/运维） |
 | `css_app_uat` | 仅 `css-uat-main` / `css-uat-ocr` 读写 |
-| `css_dev` | 可建新库（CREATEDB）；test+uat 四库读写改数据；不能删 `css-*` 存量库（非 owner）——但 PG 语义下能删【自己新建的】库 |
+| `css_dev` | **只读**（2026-08-03 收紧：原为 CREATEDB+四库读写）：对非生产实例上**所有库**（含 `backup_*` 留档库）只有 CONNECT+SELECT；不能建库、不能写、不能建对象。存量权限收敛/新库补授权 → `make-css-dev-readonly.sh` |
 | `css_ops` | `rds_superuser`（全库超级权限，人用；通过堡垒机隧道连）。**对今后新建的库自动有权限**——靠 rds_superuser 成员继承，不需要逐库授权；脚本内置断言，机制失效会立刻报错（2026-08-03 实测确认：新建库 + REVOKE PUBLIC + 零显式授权 → css_ops 仍可连） |
 
 - 隔离手段：每个库 `REVOKE CONNECT FROM PUBLIC` 后只 GRANT 给授权角色；master(postgres) 是 superuser 不受影响。

@@ -20,6 +20,7 @@
 | `拉取数据库.ps1` | 单环境数据库拉取（PowerShell 版，会逐次弹私钥口令） | `备份/数据库/<env>/` |
 | `拉取docker-env.ps1` | 单环境容器配置拉取（PowerShell 版，同上） | `备份/docker镜像/<env>/` |
 | `拉取S3.ps1` | 拉 S3 桶文件，可选回推到新账号 | `备份/s3/<桶>/` |
+| `数据库隧道.sh` | **本机直连老环境数据库**（SSH 隧道到 EC2 上的容器库，**不经任何堡垒机**） | 本地端口 → 容器 5432 |
 | `源环境.env` | 三台机器的 HOST/USER/KEY + AWS profile/桶清单（**gitignore**） | — |
 
 ---
@@ -51,6 +52,9 @@
 实例需预装 `ec2-instance-connect` 包（AWS 官方 Ubuntu AMI 默认有）；安全组 22 端口放行本机出口 IP（三台均已放行）。
 
 **已执行（2026-08-03）**：dev ✅、stage ✅ 装入并复验通过；preprod 本就可登录。
+
+> 🔒 **装上去的公钥不带任何个人标识**：只写「类型 + 密钥体」两段，`.pub` 尾部的 `用户名@机器名`
+> 注释会被脚本剥掉（2026-08-03 要求，已同步清理 dev/stage 上已装条目；preprod 的条目本就无注释）。
 
 ---
 
@@ -131,8 +135,22 @@ bash ../环境运维执行脚本/05-数据库运维/restore-old-env-backup.sh al
 bash ../环境运维执行脚本/05-数据库运维/restore-old-env-backup.sh --list   # 只看现有库
 ```
 
-恢复成 `css-old-<源环境>-main-备份_YYYYMMDD` / `css-old-<源环境>-ocr-备份_YYYYMMDD` 六个**独立留档库**。
-**已执行（2026-08-03）**，源库与备份库全表行数指纹逐字节一致（详见该脚本所在目录的 README）。
+恢复成 `backup_<YYYYMMDD>_old_<源环境>_main` / `..._ocr` 六个**独立留档库**（库名一律英文，backup_ 前缀在最前）。
+**已执行（2026-08-03）**：`backup_20260803_old_{dev,stage,preprod}_{main,ocr}`，
+源库与备份库全表行数指纹逐字节一致（详见该脚本所在目录的 README）。
+
+### 直连老环境数据库（`数据库隧道.sh`）
+
+```bash
+./数据库隧道.sh dev                  # localhost:5433 → dev 主库（库 postgres，用户 postgres）
+./数据库隧道.sh stage ocr 5434       # localhost:5434 → stage OCR 库（ocr_catalog）
+./数据库隧道.sh preprod main 5433 --check   # 只探测通不通，不驻留
+```
+
+与新账号 `05-数据库运维/db-tunnel.sh`（连私网 RDS，必须经堡垒机）不同：老环境的库跑在 EC2 自己的
+docker 容器里、EC2 有公网 IP，**直连该机，不走堡垒机**。容器 5432 未发布到宿主机端口，
+脚本先查容器 IP 再开 `-L` 隧道。密码在 `备份/docker镜像/<env>/css-backend__db.env` 的 `POSTGRES_PASSWORD`。
+已实测（2026-08-03）：dev/stage/preprod 三条隧道 `--check` 全通。
 
 ---
 

@@ -6,8 +6,9 @@
 #   --clean --if-exists，会**清空覆盖**正在用的 test/uat 库。本脚本是【留档快照】用的：
 #   每次恢复到一个带日期后缀的**全新库**，不触碰任何现有环境库，也不接任何应用。
 #
-# 目标库命名：css-old-<源环境>-main-备份_YYYYMMDD / css-old-<源环境>-ocr-备份_YYYYMMDD
-#   前缀 css-old- 明确标示「来自老账号」，避免与新账号的 css-test-main 等环境库混淆。
+# 目标库命名（2026-08-03 规范：库名一律英文、backup_ 前缀放最前）：
+#   backup_<YYYYMMDD>_old_<源环境>_main / backup_<YYYYMMDD>_old_<源环境>_ocr
+#   `old` 标示「来自老账号」，避免与新账号的 css-test-main 等环境库混淆；全小写+下划线，SQL 无需引号。
 #
 # 通路：本地 dump → S3 中转桶 css-dbsync-<账号> → SSM 在网关机上 pg_restore（RDS 在私有子网，本地直连不了）。
 #
@@ -103,8 +104,8 @@ for src in $SRCS; do
   DS="$DATE_SUFFIX"
   [ -n "$DS" ] || DS=$(basename "$MAIN_DUMP" | sed -nE 's/.*_([0-9]{8})_[0-9]{6}\.dump/\1/p')
   [ -n "$DS" ] || { echo "[$src] ❌ 无法从文件名解析日期，请显式传第二个参数"; FAILED=1; continue; }
-  DB_MAIN="css-old-$src-main-备份_$DS"
-  DB_OCR="css-old-$src-ocr-备份_$DS"
+  DB_MAIN="backup_${DS}_old_${src}_main"
+  DB_OCR="backup_${DS}_old_${src}_ocr"
   echo "[$src] $(basename "$MAIN_DUMP") → \"$DB_MAIN\""
   echo "[$src] $(basename "$OCR_DUMP")  → \"$DB_OCR\""
 

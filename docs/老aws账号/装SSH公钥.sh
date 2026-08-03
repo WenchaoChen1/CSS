@@ -63,11 +63,13 @@ install_one() {  # $1=环境名 dev|stage|preprod
     echo "[$env] 临时公钥已推送，60 秒内完成永久安装"
   fi
 
-  # 永久追加（幂等：按公钥主体去重）
-  local KEYBODY; KEYBODY=$(awk '{print $2}' "$PUBKEY")
+  # 永久追加（幂等：按公钥主体去重）。
+  # ⚠️ 只装「类型 + 密钥体」两段，**去掉 .pub 尾部的注释**（那里通常是 用户名@机器名 的个人标识，
+  #   2026-08-03 要求：装到客户服务器上的公钥不得带个人标识）。
+  local KEYBODY KEYLINE; KEYBODY=$(awk '{print $2}' "$PUBKEY"); KEYLINE=$(awk '{print $1" "$2}' "$PUBKEY")
   rc=$(timeout 30 ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 "$user@$ip" \
     "mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && \
-     if grep -q '$KEYBODY' ~/.ssh/authorized_keys; then echo ALREADY; else echo '$(cat "$PUBKEY")' >> ~/.ssh/authorized_keys && echo ADDED; fi" 2>&1 | tail -1)
+     if grep -q '$KEYBODY' ~/.ssh/authorized_keys; then echo ALREADY; else echo '$KEYLINE' >> ~/.ssh/authorized_keys && echo ADDED; fi" 2>&1 | tail -1)
   case "$rc" in
     ADDED)   echo "[$env] ✅ 公钥已永久写入 authorized_keys" ;;
     ALREADY) echo "[$env] ✅ 公钥本就已在（跳过）" ;;
