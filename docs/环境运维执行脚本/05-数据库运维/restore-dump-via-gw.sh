@@ -110,8 +110,13 @@ done
 aws --region "$REGION" ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$GW_ID" \
   --query '{status:Status,out:StandardOutputContent,err:StandardErrorContent}' --output json | tr -d '\r'
 
-# ---- 清理中转对象（无论成败都清，避免 dump 留在 S3）----
+# ---- 清理中转桶（无论成败都清，避免 dump 留在 S3）----
+# 2026-08-03 拍板：临时桶"用完即删桶"（此前只清对象，空桶常驻导致文档与实况漂移）。
+# rb 要求桶空：若删桶失败（如另一环境的恢复正在用同一桶），仅告警不失败——下次收尾会再试。
 aws --region "$REGION" s3 rm "s3://$BUCKET/$ENV_NAME/" --recursive --only-show-errors
+aws --region "$REGION" s3 rb "s3://$BUCKET" 2>/dev/null \
+  && echo "中转桶已删除: $BUCKET" \
+  || echo "[WARN] 中转桶未删（非空或权限）——可稍后手动 bash delete-dbsync-bucket.sh"
 
 # ---- 据实反映结果：失败必须非 0 退出，上层/CI 才能感知 ----
 if [ "$ST" != "Success" ]; then

@@ -51,7 +51,7 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 本地无法直连私有子网 RDS 时用（✅ 2026-07-28 已用它把 preprod 备份载入 test 库）。链路：
 
 ```
-本地 pg_dump -Fc 备份 → S3 中转桶 css-dbsync-<账号>（私有+PAB 全开，**用时自动创建、用完清空对象**；不常驻、不入 TF）
+本地 pg_dump -Fc 备份 → S3 中转桶 css-dbsync-<账号>（私有+PAB 全开，**用时自动创建、用完自动删桶**；不常驻、不入 TF——2026-08-03 拍板收尾从"清空对象"改为"删桶"）
   → SSM Run Command 在网关机上执行：装 psql16 客户端 → 从 Secrets Manager 自取 RDS 托管密码（密码不出 AWS）
   → 建库（css-<env>-main / css-<env>-ocr，ocr 自动加 pgvector）→ pg_restore → 清理（S3 dump 用完即删）
 ```
@@ -65,6 +65,16 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 
 - 前置：堡垒机已由 css-terraform `network` stack 建成并挂 `css-gw-non-prod` / `css-gw-prod` profile（SSM + 读 css-dbsync 桶 + 读 `rds!` secret）——nonprod=`css-non-prod-bastion` ✅；prod 用 `css-prod-bastion` ✅。
 - 目标是 prod 时脚本要求输入 `prod` 二次确认（覆盖恢复生产库）；网关机装的是 psql16，匹配新实例 PG16。
+
+### `delete-dbsync-bucket.sh` — 手动删除中转桶（兜底）
+
+restore 脚本收尾会自动删桶；若当时桶被占用（如另一环境恢复在跑）未删成，用本脚本兜底。
+幂等：桶不存在直接成功；桶非空默认拒绝，确认无用后加 `--force` 连对象一起删。
+
+```bash
+bash delete-dbsync-bucket.sh           # 桶空则删
+bash delete-dbsync-bucket.sh --force   # 清空对象后删桶
+```
 
 ### `restore-old-env-backup.sh` — 把老账号三环境的数据库备份，恢复成非生产 RDS 上的**独立留档库**（不碰现有环境库）
 
