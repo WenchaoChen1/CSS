@@ -47,6 +47,13 @@ declare -A PW
 echo "===== 创建/更新库账号（scope=$SCOPE）====="
 
 # ops：全库超级账号（人用）
+# 【为什么 css_ops 对今后新建的库也自动有权限——不需要逐库授权】（2026-08-03 实测确认）：
+#   css_ops 的 rolsuper=false，本身不绕过库级 CONNECT 检查；但它是 rds_superuser 的成员
+#   （inherit=true），而 RDS 的 rds_superuser 对本实例的库天然持有 CONNECT。
+#   实测证据：新建一个库 → REVOKE CONNECT FROM PUBLIC → 不做任何显式授权 →
+#            has_database_privilege('css_ops', 新库, 'CONNECT') = true；且以 css_ops 真实登录成功。
+#   所以保障机制就是下面这一行 GRANT，**不要**再去逐库 GRANT CONNECT（那既冗余又会让人误以为
+#   "每建一个库都得补一次"，早晚漏）。脚本末尾有断言，万一 AWS 改了 rds_superuser 行为会立刻报错。
 PW[css_ops]=$(gen); ensure_role css_ops "${PW[css_ops]}"
 PSQL -d postgres -c "GRANT rds_superuser TO css_ops;"
 
@@ -57,14 +64,24 @@ PSQL -d postgres -c 'ALTER ROLE css_dev CREATEDB;'   # 允许建新库（其自�
 
 if [ "$SCOPE" = "test" ] || [ "$SCOPE" = "both" ]; then
   PW[css_app_test]=$(gen); ensure_role css_app_test "${PW[css_app_test]}"
-  grant_db css-test-main css_app_test css_dev css_ops
-  grant_db css-test-ocr  css_app_test css_dev css_ops
+  grant_db css-test-main css_app_test css_dev
+  grant_db css-test-ocr  css_app_test css_dev
 fi
 
 if [ "$SCOPE" = "uat" ] || [ "$SCOPE" = "both" ]; then
   PW[css_app_uat]=$(gen); ensure_role css_app_uat "${PW[css_app_uat]}"
-  grant_db css-uat-main css_app_uat css_dev css_ops
-  grant_db css-uat-ocr  css_app_uat css_dev css_ops
+  grant_db css-uat-main css_app_uat css_dev
+  grant_db css-uat-ocr  css_app_uat css_dev
+fi
+
+# ── 断言：css_ops 必须能连本实例上【每一个】css-* 库（含今后新建的）──
+# 依赖 rds_superuser 继承，不依赖逐库授权。若 AWS 改了 rds_superuser 行为，这里会立刻炸出来，
+# 届时的补救是给 grant_db 的调用加上 css_ops（或 GRANT postgres TO css_ops）。
+BAD=$(PSQL -d postgres -tAc "SELECT count(*) FROM pg_database WHERE datname LIKE 'css%' AND NOT has_database_privilege('css_ops',datname,'CONNECT')" | tr -d '[:space:]')
+if [ "${BAD:-1}" = "0" ]; then
+  echo "✅ 断言通过：css_ops 对全部 css-* 库均有 CONNECT（经 rds_superuser 继承，新建库自动覆盖）"
+else
+  echo "[FATAL] 有 $BAD 个 css-* 库 css_ops 连不上——rds_superuser 继承失效，需改用显式授权！"; exit 1
 fi
 
 echo

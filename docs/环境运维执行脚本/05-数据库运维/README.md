@@ -11,6 +11,20 @@
 
 ## 脚本清单
 
+### `db-tunnel.sh` — 一键打开【本机 → RDS】SSH 隧道，供 Navicat/DBeaver/psql 直连（不经过应用代码）
+
+```bash
+./db-tunnel.sh <test|uat|prod> [本地端口]   # 端口缺省 5433；前台运行，Ctrl+C 关闭
+./db-tunnel.sh test                        # 然后客户端连 localhost:5433
+./db-tunnel.sh uat 5434                    # 同时开两条隧道时用不同端口
+./db-tunnel.sh test --check                # 只探测链路是否通，不驻留
+DEV_KEY=./dev-keys/nonprod-张三.pem ./db-tunnel.sh test   # 开发者用自己的临时钥
+```
+
+RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动后会打印客户端要填的全部参数。
+前置：本机出口 IP 在堡垒机 22 端口白名单内 + 有私钥（管理员钥见速查，开发者钥用 `../06-服务器密钥与访问/grant-dev-ssh.sh` 发）。
+密码见 `../运维访问速查.local.md`；三种连接方式的完整对比见 [`../本地连接数据库.md`](../本地连接数据库.md)。
+
 ### `create-databases.sh` — 在 RDS 实例上按规范创建各环境业务库（ocr 库自动加 pgvector 扩展）
 
 ```bash
@@ -101,7 +115,7 @@
 | `css_app_test` | 仅 `css-test-main` / `css-test-ocr` 读写（应用/运维） |
 | `css_app_uat` | 仅 `css-uat-main` / `css-uat-ocr` 读写 |
 | `css_dev` | 可建新库（CREATEDB）；test+uat 四库读写改数据；不能删 `css-*` 存量库（非 owner）——但 PG 语义下能删【自己新建的】库 |
-| `css_ops` | `rds_superuser`（全库超级权限，人用；通过堡垒机隧道连） |
+| `css_ops` | `rds_superuser`（全库超级权限，人用；通过堡垒机隧道连）。**对今后新建的库自动有权限**——靠 rds_superuser 成员继承，不需要逐库授权；脚本内置断言，机制失效会立刻报错（2026-08-03 实测确认：新建库 + REVOKE PUBLIC + 零显式授权 → css_ops 仍可连） |
 
 - 隔离手段：每个库 `REVOKE CONNECT FROM PUBLIC` 后只 GRANT 给授权角色；master(postgres) 是 superuser 不受影响。
 - **重跑本脚本即全员轮换密码**（ALTER ROLE 重设并打印新值）；新密码立刻抄进 `运维访问速查.local.md` 并同步应用配置。`css_app_prod` 待 prod RDS 建成后另跑。

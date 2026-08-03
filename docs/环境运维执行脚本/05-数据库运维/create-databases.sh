@@ -28,5 +28,17 @@ for env in "$@"; do
   psql_run -d "$OCR" -c "CREATE EXTENSION IF NOT EXISTS vector;"
   echo "pgvector 就绪: $OCR"
 done
+
+# 运维账号 css_ops 对【新建库】的访问校验（不做授权，只核对）：
+# css_ops 是 rds_superuser 成员，对本实例的库天然有 CONNECT——**新建库自动覆盖，无需逐库授权**
+# （2026-08-03 实测确认，机制说明见 create-db-accounts.sh 顶部注释）。这里只断言，防机制变化悄悄失效。
+if psql_run -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='css_ops'" | grep -q 1; then
+  BAD=$(psql_run -d postgres -tAc "SELECT count(*) FROM pg_database WHERE datname LIKE 'css%' AND NOT has_database_privilege('css_ops',datname,'CONNECT')" | tr -d '[:space:]')
+  [ "${BAD:-1}" = "0" ] && echo "✅ css_ops 对新建库自动有权限（rds_superuser 继承，已校验）" \
+    || { echo "[FATAL] $BAD 个库 css_ops 连不上——继承机制失效，见 create-db-accounts.sh 注释"; exit 1; }
+else
+  echo "提示: css_ops 角色尚未创建——跑 ./create-db-accounts.sh 建号（届时自动获得全部库权限）"
+fi
+
 echo "===== 建库完成 ====="
 echo "提醒: 环境变量里同步改 POSTGRES_DB=css-<env>-main、OCR_DATABASE_URL/OCR_ALEMBIC_DATABASE_URL 指向 css-<env>-ocr"
