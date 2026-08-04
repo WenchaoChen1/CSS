@@ -211,4 +211,22 @@ aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-cli
   （`../环境运维执行脚本/05-数据库运维/rewrite-file-urls.sh`）
 - 匿名 list 老桶被拒（只公开了对象读），故必须用老账号只读 profile；跨账号无法一条 `aws s3 sync` 直传，
   本脚本用双 session 流式转发解决
-- 2026-08-04 实测规模：`chain-serve-test` **58118 对象 / 6.99 GB**（老 dev/stage/preprod 共用此桶）
+- **剥前缀**：`--strip-prefix`（默认 `eu-central-1/files/`）——2026-08-04 拍板"文件直落桶根"，
+  后端代码已配合改造（S3_LOCATION 置空即不拼前缀）。少数**文件名本身含斜杠**的对象剥前缀后在控制台
+  仍显示为目录，那是文件名问题不做处理（改名会破坏与库内 URL 的对应）。
+- **只搬引用**：`--only-referenced` 省约 70%——老桶是三个老环境共用的，58121 对象/6.99GB 是三家总和；
+  实测各环境引用量：preprod 12673、dev 20675、stage 21735 唯一 URL；我方 test 库引用 13134 个
+  = **2.10 GB 且 100% 命中**。需先开隧道（`../环境运维执行脚本/05-数据库运维/db-tunnel.sh <env>`）。
+  代价：桶内约 3 千个"孤儿"对象不会搬；不确定时用默认全量。
+- 2026-08-04 实测规模：`chain-serve-test` **58121 对象 / 6.99 GB**（老 dev/stage/preprod 共用此桶）
+
+## `purge-new-bucket.sh` — 清空新账号某环境的应用桶（重新同步前用）
+
+```bash
+./purge-new-bucket.sh <test|uat|prod|dev>          # 预演：只统计+列样本
+./purge-new-bucket.sh <test|uat|prod|dev> --yes    # 实际清空（只删对象，不删桶）
+```
+
+三重保护：默认预演、实删要 `--yes`、prod 还要手输环境名。
+**已执行（2026-08-04）**：清掉 test 桶 102 个历史遗留对象（07-29 从已退役旧桶 sync 来、库内零引用、
+key 带即将废弃的 `us-east-1/` 前缀）。约 20 天后彻底迁移若重新导库，可再用它清桶重新同步。

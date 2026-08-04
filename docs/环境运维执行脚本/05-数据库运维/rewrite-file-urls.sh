@@ -16,33 +16,38 @@
 #   · 可回退：--revert 反向替换（新→老）
 #
 # 用法:
-#   ./rewrite-file-urls.sh <test|uat|prod> [--dry-run] [--revert] [--old-host 域名]
+#   ./rewrite-file-urls.sh <test|uat|prod> [--dry-run] [--revert] [--old-base 前缀]
 #     --dry-run    只统计每张表会改多少行，不写入（建议先跑）
 #     --revert     反向：把新桶域名改回老桶域名（回滚用）
-#     --old-host   老域名，默认 https://chain-serve-test.s3.amazonaws.com
+#     --old-base   老 URL 前缀（含无用的 key 路径段），默认
+#                  https://chain-serve-test.s3.amazonaws.com/eu-central-1/files/
+#                  —— 2026-08-04 决策"文件直落桶根"后，改写要连带去掉 `eu-central-1/files/` 这段：
+#                  老 URL  https://chain-serve-test.s3.amazonaws.com/eu-central-1/files/<uuid>_<名>
+#                  新 URL  https://s3.us-east-1.amazonaws.com/css-<env>-<账号>/<uuid>_<名>
+#                  与 老aws账号/migrate-s3-to-new.sh 的 --strip-prefix 必须口径一致
 # 前置: 目标机 SSM Online（本脚本经 ../09-远程执行与手动部署/run.sh 在机上跑 psql，RDS 仅内网可达）
 set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"; shift || true
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "用法: $0 <test|uat|prod> [--dry-run] [--revert] [--old-host 域名]"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|prod) ;; *) echo "用法: $0 <test|uat|prod> [--dry-run] [--revert] [--old-base 前缀]"; exit 1 ;; esac
 
-DRY=0; REVERT=0; OLD_HOST="https://chain-serve-test.s3.amazonaws.com"
+DRY=0; REVERT=0; OLD_BASE="https://chain-serve-test.s3.amazonaws.com/eu-central-1/files/"
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
     --revert) REVERT=1 ;;
-    --old-host) OLD_HOST="$2"; shift ;;
+    --old-base) OLD_BASE="$2"; shift ;;
     *) echo "[FAIL] 未知参数: $1"; exit 1 ;;
   esac
   shift
 done
 
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-# 新前缀 = 代码拼 URL 的规则 {S3_ENDPOINT_URL}/{S3_STORAGE_BUCKET_NAME}（见 pkg/files_uploading/botocore_upload.py）
-NEW_HOST="https://s3.us-east-1.amazonaws.com/css-${ENV_NAME}-${ACCOUNT_ID}"
+# 新前缀 = 代码拼 URL 的规则 {S3_ENDPOINT_URL}/{S3_STORAGE_BUCKET_NAME}/ + key（key 无前缀，文件直落桶根）
+NEW_BASE="https://s3.us-east-1.amazonaws.com/css-${ENV_NAME}-${ACCOUNT_ID}/"
 
-if [ "$REVERT" = 1 ]; then FROM="$NEW_HOST"; TO="$OLD_HOST"; else FROM="$OLD_HOST"; TO="$NEW_HOST"; fi
+if [ "$REVERT" = 1 ]; then FROM="$NEW_BASE"; TO="$OLD_BASE"; else FROM="$OLD_BASE"; TO="$NEW_BASE"; fi
 
 echo "===== 库内文件 URL 改写（$ENV_NAME）====="
 echo "FROM: $FROM"
@@ -79,10 +84,14 @@ BEGIN
 END \$do\$;
 SELECT tbl || '.' || col || ' -> ' || cnt || ' 行' FROM _rw ORDER BY cnt DESC;
 $([ "$DRY" = 1 ] && echo 'ROLLBACK;' || echo 'COMMIT;')
--- 改写后残留核对：仍指向老域名的行数（幂等验证，应为 0）
-SELECT 'residual_old_host=' || coalesce(sum(c), 0) FROM (
-  SELECT count(*) c FROM file WHERE file_url LIKE '${OLD_HOST}%'
+-- 改写后残留核对：仍指向老前缀的行数（幂等验证，实际执行后应为 0）
+SELECT 'residual_old_base=' || coalesce(sum(c), 0) FROM (
+  SELECT count(*) c FROM file WHERE file_url LIKE '${OLD_BASE}%'
 ) t;
+-- 另报仍指向老域名但【不在预期路径下】的行（若 >0 说明还有其它 key 前缀，需追加一次带 --old-base 的改写）
+SELECT 'other_old_host_paths=' || count(*) FROM file
+ WHERE file_url LIKE 'https://chain-serve-test.s3.amazonaws.com/%'
+   AND file_url NOT LIKE '${OLD_BASE}%';
 SQLEOF
 )
 B64=$(printf '%s' "$SQL" | base64 -w0)
