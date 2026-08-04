@@ -13,6 +13,7 @@
 | 方案一：独立服务器 + ECR CI/CD | **初步方案**（落地快、改动小）：单台 EC2 承载应用与自托管中间件，RDS 独立，复用并扩展现有 `部署包/` 三栈，按审计逐条硬化 | [01-独立服务器方案.md](01-独立服务器方案.md) |
 | 方案二：Serverless 优化 | **优化方案**（去自托管、按需伸缩、可观测）：前端 CloudFront、后端 Fargate、队列 Kafka→**SQS**、RabbitMQ→Amazon MQ、Redis→ElastiCache、cron→EventBridge | [02-Serverless优化方案.md](02-Serverless优化方案.md) |
 | CI/CD：GitHub Actions | **两套方案共用**：GitHub Actions 触发打包（build+push ECR）与部署（SSM/ECS），OIDC 免静态密钥、Environments 审批、不可变镜像 tag | [03-CICD-GitHub-Actions.md](03-CICD-GitHub-Actions.md) |
+| uat 部署方案 | **执行计划**（2026-08-04 实查制定）：uat 从"只建机"到三栈可用——三个硬缺口（SSM 参数是占位符 / ECR 零镜像 / uat 分支无 CI）+ 两个决策点（代码线、地址口径）+ 分阶段步骤与坑表 | [04-uat部署方案.md](04-uat部署方案.md) |
 
 建议路径：**先用方案一上线**（复用已跑通的工具链，最快拿到合规、可用的生产环境），再按方案二**分阶段演进**（每阶段独立可回退）。两套方案的 CI/CD 均由 **GitHub Actions** 触发。
 
