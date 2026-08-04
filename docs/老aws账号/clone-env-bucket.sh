@@ -10,24 +10,35 @@
 #   migrate-s3-to-new.sh  老账号 → test 桶（跨账号，走本机流式）
 #   clone-env-bucket.sh   test 桶 → uat/prod/dev 桶（同账号，服务端复制）    ← 本脚本
 #
-# 增量 + 幂等（与 migrate 脚本同口径）：比对 key+size，只复制目标缺失/不同的；不删除目标独有对象
-# （那些是该环境自己产生的文件）。20 天后彻底迁移时按同样两步重跑即可。
+# ⚠️⚠️ 【仅限 2026-08-04 首次全量扇出】此后【禁止】在新账号桶之间复制！
+#   原因（用户 2026-08-04 明确）：从今天起 test 桶里会混入 **test 环境自己产生的文件**（有人在 test 上传的），
+#   那些是 test 独有的业务数据，**绝不能**被扇到 uat/prod/dev 去。而桶间复制无法区分
+#   "老账号历史文件" 和 "test 自产文件"。
+#   ⇒ 今后要补的只是【老账号新增的部分】，正确做法是四个环境【各自】从老账号增量拉：
+#        ./migrate-s3-to-new.sh test   &&  ./migrate-s3-to-new.sh uat
+#        ./migrate-s3-to-new.sh prod   &&  ./migrate-s3-to-new.sh dev
+#      跨账号虽走本机带宽，但 20 天增量很小，且语义绝对干净（源永远是老账号）。
+#   ⇒ 防误用硬门槛：**目标桶非空即拒绝执行**（首次时 uat/prod/dev 都是空桶才放行）。
+#
+# 增量 + 幂等：比对 key+size，只复制目标缺失/不同的；不删除目标独有对象。
 #
 # 用法:
 #   ./clone-env-bucket.sh <源env> <目标env...> [--dry-run] [--jobs N]
 #   ./clone-env-bucket.sh test uat prod dev            # test 的内容克隆到其余三桶
 #   ./clone-env-bucket.sh test uat --dry-run           # 预演
+#     --allow-nonempty  解除"目标桶必须为空"的门槛（⚠️ 会把源环境自产文件也复制过去，慎用）
 set -euo pipefail
 cd "$(dirname "$0")"
 
 SRC_ENV="${1:-}"; shift || true
 case "$SRC_ENV" in test|uat|prod|dev) ;; *) echo "用法: $0 <源env> <目标env...> [--dry-run] [--jobs N]"; exit 1 ;; esac
 
-DRY=0; JOBS=16; TARGETS=()
+DRY=0; JOBS=16; TARGETS=(); ALLOW_NONEMPTY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
     --jobs) JOBS="$2"; shift ;;
+    --allow-nonempty) ALLOW_NONEMPTY=1 ;;
     test|uat|prod|dev) TARGETS+=("$1") ;;
     *) echo "[FAIL] 未知参数: $1"; exit 1 ;;
   esac
@@ -48,6 +59,14 @@ for T in "${TARGETS[@]}"; do
   [ "$T" != "$SRC_ENV" ] || { echo "跳过 $T（与源相同）"; continue; }
   echo
   echo "---- $SRC_ENV → $T ----"
+  # 硬门槛：目标桶非空 = 不是首次扇出（该环境可能已有自产文件）→ 拒绝，避免把源环境自产文件污染过去
+  DST_N=$(aws s3api list-objects-v2 --bucket "css-${T}-${ACCOUNT_ID}" --max-keys 1           --output json --query 'length(Contents||`[]`)' 2>/dev/null || echo 0)
+  if [ "${DST_N:-0}" != "0" ] && [ "$ALLOW_NONEMPTY" != 1 ]; then
+    echo "[拒绝] 目标桶 css-${T}-${ACCOUNT_ID} 非空 —— 桶间克隆【只允许首次】（见脚本头部说明）。"
+    echo "       今后补老账号新增内容请用：./migrate-s3-to-new.sh $T"
+    echo "       确知要覆盖式补齐才加 --allow-nonempty（会把源环境自产文件也带过来！）"
+    continue
+  fi
   SRC_BUCKET="css-${SRC_ENV}-${ACCOUNT_ID}" DST_BUCKET="css-${T}-${ACCOUNT_ID}" \
   DRY="$DRY" JOBS="$JOBS" "$PY" - <<'PYEOF'
 import os, sys, boto3, threading, queue

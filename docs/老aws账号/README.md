@@ -233,8 +233,18 @@ aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-cli
 **为什么不各自从老账号拉**：四桶各拉一遍 = 28GB 走本机带宽；同账号同区域的桶间复制是 **S3 服务端操作**
 （`copy_object`，不经本机、不计流量费）→ 老账号只拉一次进 test，其余三桶从 test 克隆。
 
-分工：`migrate-s3-to-new.sh`（跨账号，走本机流式）→ `clone-env-bucket.sh`（同账号，服务端复制）。
-两者都是增量幂等、不删除目标独有对象，20 天后按同样两步重跑即可。
+### ⚠️ 桶间克隆【只允许首次】——今后一律各自从老账号拉
+
+**用户 2026-08-04 明确**：从今天起 test 桶会混入 **test 环境自己产生的文件**，那些是 test 独有的业务数据，
+**绝不能**被扇到 uat/prod/dev；而桶间复制无法区分"老账号历史文件"和"test 自产文件"。
+
+| 时机 | 正确做法 |
+|---|---|
+| **2026-08-04 首次** | `migrate-s3-to-new.sh test` 拉一次 → `clone-env-bucket.sh test uat prod dev` 扇出（省 21GB 本机流量） |
+| **今后（含 20 天后彻底迁移）** | **四个环境各自从老账号增量拉**，源永远是老账号：<br>`migrate-s3-to-new.sh test` / `uat` / `prod` / `dev`（各跑一次，只补老账号新增部分） |
+
+**防误用硬门槛**：`clone-env-bucket.sh` 检测到**目标桶非空即拒绝执行**（首次时 uat/prod/dev 都是空桶才放行），
+所以物理上不会被误用第二次；真要强来得显式加 `--allow-nonempty`。
 
 ## `purge-new-bucket.sh` — 清空新账号某环境的应用桶（⚠️ 一次性，已用完）
 

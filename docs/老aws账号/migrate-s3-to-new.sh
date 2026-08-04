@@ -20,11 +20,13 @@
 #   剥前缀后它们在控制台仍显示为目录——那是文件名的问题，不是前缀，不做处理（改名会破坏 URL 对应）。
 #
 # 用法:
-#   ./migrate-s3-to-new.sh <test|uat|prod> [--dry-run] [--jobs N] [--src-bucket 桶名] [--prefix 前缀]
+#   ./migrate-s3-to-new.sh <test|uat|prod|dev> [--dry-run] [--jobs N] [--src-bucket 桶名] [--prefix 前缀]
 #     --dry-run     只统计差异（传多少个/多大），不传输
 #     --jobs N      并发数，默认 8
 #     --src-bucket  源桶，默认 chain-serve-test（老 dev/stage/preprod 三环境共用这一个桶）
 #     --prefix      只同步指定 key 前缀（分批用）
+#   ⭐ 常态用法（2026-08-04 起）：**四个环境各自跑一次**，源永远是老账号——
+#      桶间克隆（clone-env-bucket.sh）只用于首次全量扇出，此后禁用（test 桶会混入自产文件）。
 #     --only-referenced  【省 70%】只同步本环境数据库实际引用的对象，而非整桶。
 #                   老桶是老 dev/stage/preprod 三环境【共用】的，58118 对象/6.99GB 是三家总和；
 #                   2026-08-04 实测：test 库只引用 13134 个/2.10GB（且 100% 命中，无缺失）。
@@ -41,7 +43,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"; shift || true
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "用法: $0 <test|uat|prod> [--dry-run] [--jobs N] [--src-bucket 桶] [--prefix 前缀]"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|prod|dev) ;; *) echo "用法: $0 <test|uat|prod|dev> [--dry-run] [--jobs N] [--src-bucket 桶] [--prefix 前缀] [--only-referenced] [--strip-prefix P]"; exit 1 ;; esac
 
 DRY=0; JOBS=8; SRC_BUCKET="chain-serve-test"; PREFIX=""; ONLY_REF=0; DB_PORT=5433
 STRIP_PREFIX="eu-central-1/files/"; STRIP_SET=0
