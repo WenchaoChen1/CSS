@@ -220,7 +220,25 @@ aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-cli
   代价：桶内约 3 千个"孤儿"对象不会搬；不确定时用默认全量。
 - 2026-08-04 实测规模：`chain-serve-test` **58121 对象 / 6.99 GB**（老 dev/stage/preprod 共用此桶）
 
-## `purge-new-bucket.sh` — 清空新账号某环境的应用桶（重新同步前用）
+## `clone-env-bucket.sh` — 新账号【桶间】克隆（服务端复制，不走本机带宽）
+
+```bash
+./clone-env-bucket.sh test uat prod dev            # 把 test 桶内容克隆到其余三桶
+./clone-env-bucket.sh test uat --dry-run           # 预演
+```
+
+**为什么四个桶内容一样**：老账号那个桶是老 dev/stage/preprod **三环境共用**的，历史文件混在一起、
+按环境拆不开 → 2026-08-04 用户拍板：**暂不区分，四个新桶都放同一份历史全量，只有新产生的文件才各归各桶**。
+
+**为什么不各自从老账号拉**：四桶各拉一遍 = 28GB 走本机带宽；同账号同区域的桶间复制是 **S3 服务端操作**
+（`copy_object`，不经本机、不计流量费）→ 老账号只拉一次进 test，其余三桶从 test 克隆。
+
+分工：`migrate-s3-to-new.sh`（跨账号，走本机流式）→ `clone-env-bucket.sh`（同账号，服务端复制）。
+两者都是增量幂等、不删除目标独有对象，20 天后按同样两步重跑即可。
+
+## `purge-new-bucket.sh` — 清空新账号某环境的应用桶（⚠️ 一次性，已用完）
+
+> **2026-08-04 用户明确：清桶只此一次，此后一律只做增量同步、不再清桶。** 保留仅为留档与极端兜底。
 
 ```bash
 ./purge-new-bucket.sh <test|uat|prod|dev>          # 预演：只统计+列样本
