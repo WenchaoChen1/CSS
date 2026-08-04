@@ -66,6 +66,20 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 - 前置：堡垒机已由 css-terraform `network` stack 建成并挂 `css-gw-non-prod` / `css-gw-prod` profile（SSM + 读 css-dbsync 桶 + 读 `rds!` secret）——nonprod=`css-non-prod-bastion` ✅；prod 用 `css-prod-bastion` ✅。
 - 目标是 prod 时脚本要求输入 `prod` 二次确认（覆盖恢复生产库）；网关机装的是 psql16，匹配新实例 PG16。
 
+### `rewrite-file-urls.sh` — 把库中文件 URL 从老账号 S3 桶域名改写成本环境新桶（幂等）
+
+```bash
+./rewrite-file-urls.sh <test|uat|prod> [--dry-run] [--revert] [--old-host 域名]
+```
+
+- **为什么需要**：库里 `file_url` 存的是**永久直链**，从老环境导入的数据全部指向老账号桶
+  `chain-serve-test.s3.amazonaws.com`（2026-08-04 实测 test 库 **8 张表 14313 行**）。老桶目前公开可读，
+  所以图片/发票"看起来正常"——这是一条**隐形跨账号依赖**：老账号关公读或销户，历史文件立刻全 404。
+- **幂等**：`WHERE` 只命中老前缀，改过的行不再匹配 → 重复跑零副作用。**20 天后若重新导库，再跑一次即可。**
+- **动态发现表**：扫 `information_schema` 所有文本列，不硬编码表名——库结构变了也不会漏表。
+- **与文件搬迁解耦**：可先搬后改、也可只改不搬（老桶还公开着）。搭配 `../../老aws账号/migrate-s3-to-new.sh`。
+- 单事务提交，`--dry-run` 预演（自动 ROLLBACK），`--revert` 可反向回滚；prod 需二次确认。
+
 ### `delete-dbsync-bucket.sh` — 手动删除中转桶（兜底）
 
 restore 脚本收尾会自动删桶；若当时桶被占用（如另一环境恢复在跑）未删成，用本脚本兜底。

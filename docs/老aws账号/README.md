@@ -193,3 +193,22 @@ aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-cli
    - 拉取前确认目标机 Running、公网 IP 与 `源环境.env` 一致。
 2. **S3 桶列表**：<https://console.aws.amazon.com/s3/buckets> —— 桶名与对象数/大小，和 `-SizeOnly` 统计对照。
 3. **本机落地产物** `C:\github-code\chain-serve\备份\`：`数据库\<环境>\`、`docker镜像\<环境>\`、`s3\<桶>\`。
+
+## `migrate-s3-to-new.sh` — 老桶 → 新账号环境桶【跨账号流式增量同步】（2026-08-04 新增）
+
+```bash
+./migrate-s3-to-new.sh <test|uat|prod> [--dry-run] [--jobs N] [--src-bucket 桶] [--prefix 前缀]
+```
+
+与 `拉取S3.ps1` 的分工：那个是"全量下载到本地 `备份/s3/` 再可选回推"（要 7.5GB 磁盘、非增量）；
+本脚本**流式直传不落盘 + 增量 + 幂等**，专为"临时迁移 → 约 20 天后彻底迁移再跑一次"设计。
+
+- **增量**：逐对象比对 key+size，只传目标桶缺失/大小不同的；老环境期间新增的文件下次自动补上
+- **不删除**：目标桶多出来的对象（新环境自产文件）绝不动，只做补齐
+- **中断可续**：直接重跑
+- **key 原样保留不重映射**：老对象 key 是 `eu-central-1/files/*`（老配置把桶名/区域填反的产物），
+  新环境是 `us-east-1/*`，前缀不同可同桶共存 → 所以库里只需换 URL 域名前缀
+  （`../环境运维执行脚本/05-数据库运维/rewrite-file-urls.sh`）
+- 匿名 list 老桶被拒（只公开了对象读），故必须用老账号只读 profile；跨账号无法一条 `aws s3 sync` 直传，
+  本脚本用双 session 流式转发解决
+- 2026-08-04 实测规模：`chain-serve-test` **58118 对象 / 6.99 GB**（老 dev/stage/preprod 共用此桶）
