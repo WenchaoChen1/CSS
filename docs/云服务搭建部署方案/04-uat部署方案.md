@@ -1,5 +1,14 @@
 # 04 · uat 环境部署方案（2026-08-04 制定，基于当日实查）
 
+> ✅ **已于当日执行完成**：拍板 D1=test 全量合入、D2=uat-demo.chain-serve.com。
+> 参数灌入（backend v2/frontend v3，唯一修正=WS 地址从 ALB DNS 改域名口径）→ merge test→uat 推送
+> → CI 构建 `uat-v17`(后端)/`uat-v19`(前端) + migrate + deploy core 全自动成功；
+> **前端栈 CI 未部署**（两 workflow 版本号各自编，属预期分工），手动
+> `deploy-env.sh uat frontend uat-v19` 补齐。验收：ALB 目标 healthy、前端 200、
+> `/api` 无 key 401、`css-uat-alb-no-healthy-target` 自动转 OK。
+> 遗留：GoDaddy 的 uat-demo CNAME 待配（WS 功能依赖）；OPENAI/GEMINI/MAPS 三个 key
+> 缺口见 `docs/新老环境配置对比报告-2026-08-04.md`。
+
 > 目标：把 uat 从"只建机未部署"拉到"三栈可用、ALB 200、可登录验收"。
 > 本方案只列计划不执行；执行前逐项过一遍 §1 的前提核查结论。
 
