@@ -128,6 +128,25 @@ aws ssm start-session --target i-0cb9b69b9eb19a9aa    # test；uat=i-0f90c5c061d
 - **Session Manager**（免密钥上机）：<https://us-east-1.console.aws.amazon.com/systems-manager/session-manager>
 - **Key pairs**（应有 5 条：`wenchao` + 专属 `css-test` / `css-uat` / `css-non-prod-gw` / `css-prod-bastion`）：<https://us-east-1.console.aws.amazon.com/ec2/home?region=us-east-1#KeyPairs:>
 
+### `本机-AWS域名不走代理.ps1` — 让浏览器/命令行访问 AWS 时绕过本地代理（解决"双出口"导致的白名单打不开）
+
+```powershell
+powershell -File 本机-AWS域名不走代理.ps1            # 只读查看当前状态
+powershell -File 本机-AWS域名不走代理.ps1 -Apply     # 加入代理排除列表
+powershell -File 本机-AWS域名不走代理.ps1 -Remove    # 撤销
+```
+
+- **要解决的问题**：本机是**双出口**——SSH/psql 等原始 TCP 直连、出口固定 `221.214.0.190`（安全组白名单用它）；
+  而 **HTTP/HTTPS 走本地代理 `127.0.0.1:7897`**，出口是代理服务器 IP（实测 `134.195.101.194`，**会漂移**）。
+  于是"安全组只放 221.x → 浏览器却从 134.x 出去 → 被拦"（实测 502）。
+- **做法**：把 AWS 相关域名加进 WinINET 的 `ProxyOverride`（Chrome/Edge 吃它）+ 用户级 `NO_PROXY`（curl/python/aws cli 吃它）：
+  `*.elb.amazonaws.com`、`*.chain-serve.com`、`*.s3.amazonaws.com`、`*.us-east-1.amazonaws.com`。
+- ✅ **2026-08-05 已执行并实测**：直连出口 = `221.214.0.190`，test kafka-ui `:8085` 从 502 变 **302**（登录页）。
+  好处是不必把会漂移的代理出口写进 terraform 白名单（漂一次就得改代码 + apply）。
+- 生效范围：新开的浏览器标签立即生效（已开的刷新一下）；命令行程序要**重开终端**才读到新 `NO_PROXY`。
+  Firefox 用自己的代理设置，不吃这个，需另配。
+- 顺带收益：S3 直链（图片/发票）也改走直连，不再绕代理绕地球。
+
 ## 注意
 
 - 免费层实测可用的类型：`m7i-flex.large`、`c7i-flex.large`、`t3.micro/small`、`t4g.micro/small`；
