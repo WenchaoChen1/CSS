@@ -13,7 +13,9 @@
 # owner 会被打回 postgres，必须重跑本脚本。
 #
 # 用法: ./reown-db-objects.sh <rds主机> <master密码> <test|uat|prod>
-# 在 VPC 内机器执行（psql 走 docker postgres:16）。
+# 在能连通 RDS 的机器执行：优先用【原生 psql】（堡垒机 dnf 装过 postgresql16），
+# 没有原生客户端时回退 docker postgres:16。所以它在堡垒机 / 应用机 / 装了 Docker 的本机都能跑。
+# （2026-08-05 修：原来硬编码 docker run，在只有原生 psql 的堡垒机上直接报 docker not found。）
 set -euo pipefail
 
 HOST="${1:?用法: reown-db-objects.sh <rds主机> <master密码> <env>}"
@@ -22,7 +24,11 @@ ENV_NAME="${3:?缺环境: test|uat|prod}"
 case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境只能是 test|uat|prod"; exit 1 ;; esac
 
 ROLE="css_app_${ENV_NAME}"
-PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+if command -v psql >/dev/null 2>&1; then
+  PSQL() { PGPASSWORD="$PASS" psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+else
+  PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+fi
 
 # RDS 的 master(postgres) 不是真 superuser：改 owner / 改他人默认权限都要求先成为目标角色成员（幂等）
 PSQL -d postgres -c "GRANT ${ROLE} TO postgres;"
