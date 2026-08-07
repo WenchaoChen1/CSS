@@ -30,7 +30,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"; shift || true
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "用法: $0 <test|uat|prod> [--dry-run] [--revert] [--old-base 前缀]"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "用法: $0 <test|uat|support-ref|prod> [--dry-run] [--revert] [--old-base 前缀]"; exit 1 ;; esac
 
 DRY=0; REVERT=0; OLD_BASE="https://chain-serve-test.s3.amazonaws.com/eu-central-1/files/"
 while [ $# -gt 0 ]; do
