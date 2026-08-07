@@ -20,7 +20,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "用法: $0 <test|uat|prod> [保留版本数] [--yes]"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "用法: $0 <test|uat|support-ref|prod> [保留版本数] [--yes]"; exit 1 ;; esac
 KEEP="${2:-3}"; [ "$KEEP" = "--yes" ] && KEEP=3
 GO=0
 for a in "$@"; do [ "$a" = "--yes" ] && GO=1; done
@@ -40,7 +40,7 @@ echo "--- 正在使用的镜像 $(echo "$RUNNING" | wc -l) 个（绝不删）"
 # 逐仓库挑出"带 <env>-vN tag 且不在运行中"的镜像，按版本号倒序留 KEEP 个
 TO_DEL=""
 for repo in $(docker images --format "{{.Repository}}" | grep -E "/(css-backend|css-frontend)/" | sort -u); do
-  TAGS=$(docker images --format "{{.Tag}}" "$repo" | grep -E "^[a-z]+-v[0-9]+$" | sort -t v -k2 -n -r || true)
+  TAGS=$(docker images --format "{{.Tag}}" "$repo" | grep -E "^[a-z][a-z0-9-]*-v[0-9]+$" | sort -Vr || true)
   [ -n "$TAGS" ] || continue
   N=0
   for t in $TAGS; do

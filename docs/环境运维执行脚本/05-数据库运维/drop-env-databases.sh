@@ -26,9 +26,9 @@ cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"; shift || true
 case "$ENV_NAME" in
-  test|uat) ;;
+  test|uat|support-ref) ;;
   prod) echo "[拒绝] prod 库不允许经脚本删除——生产数据的销毁必须人工上机并留变更记录"; exit 1 ;;
-  *) echo "用法: $0 <test|uat> [--yes] [--no-snapshot]"; exit 1 ;;
+  *) echo "用法: $0 <test|uat|support-ref> [--yes] [--no-snapshot]"; exit 1 ;;
 esac
 
 GO=0; SNAP=1
