@@ -16,7 +16,13 @@ else
   INSTANCE_ID=""
 fi
 REGION="${AWS_REGION:-us-east-1}"
-PY=$(command -v python3 || command -v python) || { echo "需要 python"; exit 1; }
+# python 探测必须【实际执行】验证（2026-08-07 修）：Windows 的 WindowsApps 目录自带
+# python/python3 商店占位 stub，command -v 能找到但一执行就 exit 49——被它坑过。
+PY=""
+for _cand in python3 python; do
+  if "$_cand" -c "1" >/dev/null 2>&1; then PY="$_cand"; break; fi
+done
+[ -n "$PY" ] || { echo "需要可用的 python（当前 PATH 里只有 Microsoft Store 占位 stub 或没有 python）"; exit 1; }
 
 if [ -n "$INSTANCE_ID" ]; then
   # 指定实例：仍校验 SSM Online，免得命令挂在离线机上白等 20 分钟
@@ -32,14 +38,19 @@ else
 fi
 echo "目标实例: $IDS"
 
-# 用 python 生成 JSON 参数，命令内容任意字符都安全
-PARAMS=$(CMD="$CMD" "$PY" -c 'import json,os; print(json.dumps({"commands":[os.environ["CMD"]],"executionTimeout":["3600"]}))')
+# 用 python 生成 JSON 参数，命令内容任意字符都安全。
+# ⚠️ 参数经【临时文件】传给 aws（2026-08-07 修）：deploy-env.sh 的 bundle base64 有 ~27KB，
+# 作为命令行参数会顶到 Windows 32K 命令行上限，aws.exe 直接起不来（exit 49）。
+# 文件放当前目录用相对路径引用——Git Bash 的 /tmp 绝对路径 Windows 版 aws.exe 解析不了。
+PARAMS_FILE=".ssm-params-$$.json"
+trap 'rm -f "$PARAMS_FILE"' EXIT
+CMD="$CMD" "$PY" -c 'import json,os; print(json.dumps({"commands":[os.environ["CMD"]],"executionTimeout":["3600"]}))' > "$PARAMS_FILE"
 
 CMD_ID=$(aws ssm send-command --region "$REGION" \
   --document-name AWS-RunShellScript \
   --instance-ids $IDS \
   --comment "css-cicd $ENV_NAME" \
-  --parameters "$PARAMS" \
+  --parameters "file://$PARAMS_FILE" \
   --query 'Command.CommandId' --output text | tr -d '\r')
 echo "SSM CommandId: $CMD_ID"
 
