@@ -6,18 +6,38 @@
 #      （算法取自目标环境 env：pbkdf2_hmac(PASSWORD_HASH_ALGORITHM, pwd, PASSWORD_SALT, PASSWORD_HASH_ITERATIONS)，
 #       盐值必须与运行环境一致，否则改完仍然登录不上——历史踩过这个坑）
 # 列是动态遍历 information_schema 找的（只认 text/varchar/char），并排除列名含 type 的枚举类字段。
-# 在应用机上经 SSM 执行（它在 VPC 内、能连 RDS）。**prod 环境直接拒绝执行**。
-# 用法: ./anonymize-db.sh <test|uat> [口令，默认 Test1234!]
+# 在应用机上经 SSM 执行（它在 VPC 内、能连 RDS）。
+# prod：仅允许 --emails-phones-only 模式（2026-08-07 用户拍板：prod 数据源自 preprod，要求邮箱前加 1、
+#       手机号后加 1，但【不动口令哈希】——保留 preprod 原口令 + 原 PASSWORD_SALT，用户仍可原口令登录），
+#       且须手输 prod 二次确认。整库口令统一（默认模式）在 prod 永远拒绝。
+# 用法: ./anonymize-db.sh <test|uat> [口令，默认 Test1234!] [--emails-phones-only]
+#       ./anonymize-db.sh prod --emails-phones-only
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
-ENV_NAME="${1:?用法: anonymize-db.sh <test|uat> [口令]}"
-NEW_PASSWORD="${2:-Test1234!}"
+ENV_NAME="${1:?用法: anonymize-db.sh <test|uat|prod> [口令] [--emails-phones-only]}"
+shift || true
+NEW_PASSWORD="Test1234!"
+PII_ONLY=0
+for arg in "$@"; do
+  case "$arg" in
+    --emails-phones-only) PII_ONLY=1 ;;
+    *) NEW_PASSWORD="$arg" ;;
+  esac
+done
 REGION="us-east-1"
 case "$ENV_NAME" in
   test|uat) ;;
-  prod) echo "拒绝：生产数据不做脱敏（本脚本只用于非生产环境）"; exit 1 ;;
-  *) echo "环境必须是 test|uat"; exit 1 ;;
+  prod)
+    if [ "$PII_ONLY" != "1" ]; then
+      echo "拒绝：prod 只允许 --emails-phones-only 模式（只加邮箱前缀/手机号后缀，不改任何口令）"; exit 1
+    fi
+    echo "⚠️ 即将对【生产库】做邮箱/手机号脱敏（email 前加 1、phone 后加 1；不动口令）。"
+    printf '确认请输入 prod: '
+    read -r CONFIRM
+    [ "$CONFIRM" = "prod" ] || { echo "已取消"; exit 1; }
+    ;;
+  *) echo "环境必须是 test|uat|prod"; exit 1 ;;
 esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,17 +49,31 @@ ALGO="$(getvar PASSWORD_HASH_ALGORITHM)"; ALGO="${ALGO:-sha256}"
 SALT="$(getvar PASSWORD_SALT)"
 ITER="$(getvar PASSWORD_HASH_ITERATIONS)"; ITER="${ITER:-100000}"
 DB="$(getvar POSTGRES_DB)"
-[ -n "$SALT" ] || { echo "$ENV_FILE 缺 PASSWORD_SALT"; exit 1; }
 
-# ---- 本机算出新口令的哈希（十六进制），密码明文不出本机 ----
-HASH_HEX=$( (python3 - "$ALGO" "$NEW_PASSWORD" "$SALT" "$ITER" 2>/dev/null || python - "$ALGO" "$NEW_PASSWORD" "$SALT" "$ITER") <<'PY'
+HASH_HEX=""
+if [ "$PII_ONLY" = "1" ]; then
+  echo "目标: $ENV_NAME / 库 $DB（--emails-phones-only：不改口令哈希）"
+else
+  [ -n "$SALT" ] || { echo "$ENV_FILE 缺 PASSWORD_SALT"; exit 1; }
+  # ---- 本机算出新口令的哈希（十六进制），密码明文不出本机 ----
+  HASH_HEX=$( (python3 - "$ALGO" "$NEW_PASSWORD" "$SALT" "$ITER" 2>/dev/null || python - "$ALGO" "$NEW_PASSWORD" "$SALT" "$ITER") <<'PY'
 import hashlib, sys
 algo, pwd, salt, iters = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
 print(hashlib.pbkdf2_hmac(algo, pwd.encode(), salt.encode(), iters).hex())
 PY
-)
-echo "目标: $ENV_NAME / 库 $DB"
-echo "口令 '$NEW_PASSWORD' 的哈希（$ALGO, ${ITER} 次迭代, salt ${SALT:0:8}…）: ${HASH_HEX:0:24}…"
+  )
+  echo "目标: $ENV_NAME / 库 $DB"
+  echo "口令 '$NEW_PASSWORD' 的哈希（$ALGO, ${ITER} 次迭代, salt ${SALT:0:8}…）: ${HASH_HEX:0:24}…"
+fi
+
+# 标记表的 mode/note 按模式区分（注意：note 文本不能含 ASCII 单引号，会截断 SQL 字面量）
+if [ "$PII_ONLY" = "1" ]; then
+  MASK_MODE='prefix-suffix-pii-only'
+  MASK_NOTE='email 加前缀1/phone 加后缀1；口令哈希未动（prod 口径 2026-08-07：保留 preprod 原口令与盐）'
+else
+  MASK_MODE='prefix-suffix'
+  MASK_NOTE='email 加前缀1/phone 加后缀1/口令统一——注意该口径只断可达性不断身份，彻底去身份请跑 mask-residual-pii.sh --all'
+fi
 
 # ---- 远程脚本：动态遍历列 → 生成并执行 UPDATE ----
 REMOTE=$(cat <<REOF
@@ -78,7 +112,8 @@ WHERE table_schema='public' AND data_type IN ('text','character varying','charac
 " > /tmp/anon.sql
 echo "--- 生成 \$(wc -l < /tmp/anon.sql) 条列级 UPDATE ---"
 
-# 密码列：bytea 用 decode()，文本列直接写 hex
+# 密码列：bytea 用 decode()，文本列直接写 hex（--emails-phones-only 模式跳过：不动口令）
+if [ "$PII_ONLY" = "0" ]; then
 \$PSQL -tAc "
 SELECT format(CASE WHEN data_type='bytea'
                    THEN 'UPDATE %I.%I SET %I = decode(''$HASH_HEX'',''hex'');'
@@ -87,13 +122,14 @@ SELECT format(CASE WHEN data_type='bytea'
 FROM information_schema.columns
 WHERE table_schema='public' AND column_name ILIKE '%password%hash%'
 " >> /tmp/anon.sql
+fi
 
 cat /tmp/anon.sql
 echo "--- 执行（单事务）+ 写脱敏标记表 ---"
 # 标记表：从此"这个库脱过敏没有"由标记决定，不再靠猜值形态（2026-08-03 加，与 mask-residual-pii.sh 共用同一张表）
 { echo 'BEGIN;'; cat /tmp/anon.sql
   echo "CREATE TABLE IF NOT EXISTS _css_pii_masked (id serial PRIMARY KEY, masked_at timestamptz NOT NULL DEFAULT now(), masked_by text NOT NULL, mode text NOT NULL, note text);"
-  echo "INSERT INTO _css_pii_masked(masked_by, mode, note) VALUES ('anonymize-db.sh', 'prefix-suffix', 'email 加前缀1/phone 加后缀1/口令统一——注意该口径只断可达性不断身份，彻底去身份请跑 mask-residual-pii.sh --all');"
+  echo "INSERT INTO _css_pii_masked(masked_by, mode, note) VALUES ('anonymize-db.sh', '$MASK_MODE', '$MASK_NOTE');"
   echo 'COMMIT;'; } | \$PSQL
 rm -f /tmp/anon.sql
 
@@ -106,6 +142,8 @@ echo "--- 脱敏后校验 ---"
 # 无论成败都打印 "1 种哈希 / 1 行"，等于没校验——2026-08-03 修）。
 # ⚠️ PSQL 是 docker run（无卷挂载），容器看不见主机 /tmp——回喂必须走 stdin（同上方脱敏事务的管道模式），
 #    不能用 psql -f 读文件（2026-08-03 二轮复检修正：-f 会报文件不存在，在 set -e 下把成功的脱敏误判成失败）。
+# --emails-phones-only 模式跳过（口令未动，去重种数=1 的断言不成立也不该成立）。
+if [ "$PII_ONLY" = "0" ]; then
 \$PSQL -tAc "
 SELECT format('SELECT ''%s.%s: ''||count(DISTINCT %I)||'' 种哈希 / ''||count(%I)||'' 行'' FROM %I.%I;',
               table_schema, table_name, column_name, column_name, table_schema, table_name)
@@ -116,6 +154,7 @@ WHERE table_schema='public' AND column_name ILIKE '%password%hash%'" > /tmp/hash
 BAD=\$(\$PSQL -tA < /tmp/hashchk.sql | awk -F'[:/]' '{gsub(/[^0-9]/,"",\$2); if (\$2+0 > 1) c++} END{print c+0}')
 [ "\${BAD:-0}" -eq 0 ] || { echo "[FATAL] 有 \$BAD 个 password_hash 列的哈希种数 >1，脱敏未彻底"; exit 1; }
 rm -f /tmp/hashchk.sql
+fi
 REOF
 )
 
@@ -153,5 +192,9 @@ if [ "$ST" != "Success" ]; then
 fi
 
 echo ""
-echo "===== 脱敏完成：所有账号口令现为 '$NEW_PASSWORD' ====="
-echo "提醒：口令哈希依赖 PASSWORD_SALT=${SALT:0:8}…；换环境/换盐后必须重跑本脚本，否则登录全失败"
+if [ "$PII_ONLY" = "1" ]; then
+  echo "===== 脱敏完成：email 前缀 1 / phone 后缀 1（口令哈希未动，原账号口令仍然有效）====="
+else
+  echo "===== 脱敏完成：所有账号口令现为 '$NEW_PASSWORD' ====="
+  echo "提醒：口令哈希依赖 PASSWORD_SALT=${SALT:0:8}…；换环境/换盐后必须重跑本脚本，否则登录全失败"
+fi

@@ -29,7 +29,8 @@ PERSONAL_NAME="$(basename "$PERSONAL_PUB" .pub)"
 # 实例名:key pair 名
 # support-ref（2026-08-07 加）：实例由 css-terraform 以 key_name=css-support-ref 新建——建机前先跑本脚本
 # 生成 key pair（实例还不存在时本脚本只建钥、跳过 authorized_keys 写入，新机 cloud-init 会自动装公钥）。
-PAIRS="css-test-app:css-test css-uat-app:css-uat css-support-ref-app:css-support-ref css-non-prod-bastion:css-non-prod-gw"
+# prod（2026-08-07 加）：css-prod/prod/ec2 以 key_name=css-prod-app 建机，同 support-ref 模式先预注册钥。
+PAIRS="css-test-app:css-test css-uat-app:css-uat css-support-ref-app:css-support-ref css-prod-app:css-prod-app css-non-prod-bastion:css-non-prod-gw"
 
 for entry in $PAIRS; do
   INST_NAME="${entry%%:*}"; KEYNAME="${entry##*:}"

@@ -155,12 +155,14 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 
 ### `anonymize-db.sh` — 非生产库脱敏：邮箱/手机加扰 + 口令哈希统一（导入真实数据后**必须**执行一次）
 
-从 preprod/生产导入的库里全是真人邮箱、手机号和真实口令哈希。**非生产环境不允许留真实个人数据**，恢复完必须跑一次脱敏。`prod` 参数脚本会**直接拒绝执行**。
+从 preprod/生产导入的库里全是真人邮箱、手机号和真实口令哈希。**非生产环境不允许留真实个人数据**，恢复完必须跑一次脱敏。
+`prod` 只允许 `--emails-phones-only` 受控模式（2026-08-07 用户拍板：email 前缀 1 + phone 后缀 1，**不动口令哈希**——保留 preprod 原口令与原 PASSWORD_SALT，用户原密码可登录；需手输 `prod` 二次确认）；prod 上的整库口令统一（默认模式）永远拒绝。
 
 ```bash
-./anonymize-db.sh <test|uat> [口令]     # 口令缺省 Test1234!
-# 已执行（2026-07-29）：
-./anonymize-db.sh test
+./anonymize-db.sh <test|uat> [口令] [--emails-phones-only]   # 口令缺省 Test1234!
+./anonymize-db.sh prod --emails-phones-only                  # prod 专用口径
+# 已执行（2026-07-29）：./anonymize-db.sh test
+# 已执行（2026-08-07）：./anonymize-db.sh prod --emails-phones-only（29 列级 UPDATE/688 行，标记 mode=prefix-suffix-pii-only）
 ```
 
 做了三件事（动态遍历 `information_schema` 找列，只认 `text`/`varchar`/`char`，排除列名含 `type` 的枚举字段）：
@@ -217,8 +219,11 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `create-db-accounts.sh` — 在 RDS 上创建库级隔离的登录角色（低权应用账号 + dev + ops 超级账号）
 
 ```bash
-./create-db-accounts.sh <rds主机> <master密码> [test|uat|both]   # 缺省 both
-./create-db-accounts.sh <rds主机> <master密码> both              # 一次建齐 test+uat 全套账号
+./create-db-accounts.sh <rds主机> <master密码> [test|uat|both|prod]   # 缺省 both
+./create-db-accounts.sh <rds主机> <master密码> both                   # 一次建齐 test+uat 全套账号
+./create-db-accounts.sh <prod-rds主机> '<prod-master密码>' prod       # 生产实例：css_ops + css_app_prod，不建 css_dev
+# prod 已执行（2026-08-07，在 css-prod-bastion 上）：css_app_prod（两库读写+owner）+ css_ops 建成，
+# 与非生产实例互不相干（两台独立 RDS，css_ops 同名不同密码）；原生 psql 优先、docker 回退（2026-08-07 补）。
 ```
 
 角色与授权：
@@ -266,6 +271,6 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 
 ## 状态/注意
 
-- 状态：✅ test 库（`css-test-main`/`css-test-ocr`）已于 2026-07-28 用 restore-dump-via-gw.sh 从 preprod 备份载入 `css-non-prod`，并于 **2026-07-29 用 anonymize-db.sh 完成脱敏**（统一口令 `Test1234!`）；uat/prod 库等对应节点就绪后执行（脚本本身免费）。
+- 状态：✅ test 库（`css-test-main`/`css-test-ocr`）已于 2026-07-28 用 restore-dump-via-gw.sh 从 preprod 备份载入 `css-non-prod`，并于 **2026-07-29 用 anonymize-db.sh 完成脱敏**（统一口令 `Test1234!`）；✅ **prod 库（`css-prod-main`/`css-prod-ocr`）已于 2026-08-07 载入当日 preprod 备份**（restore-dump-via-gw.sh prod → create-db-accounts.sh prod → reown → anonymize-db.sh prod --emails-phones-only → rewrite-file-urls.sh prod，链路全通）。
 - 同步完成后核对目标库 `alembic_version` 是否与代码迁移链一致——**不一致勿跑 alembic upgrade**。
 - 切库后同步改环境变量：`POSTGRES_DB=css-<env>-main`，`OCR_DATABASE_URL`/`OCR_ALEMBIC_DATABASE_URL` 指向 `css-<env>-ocr`。

@@ -61,9 +61,14 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# python 命令名：Windows git-bash 常只有 python，Linux 常只有 python3
-PY="$(command -v python3 || command -v python || true)"
-[ -n "$PY" ] || { echo "[FAIL] 找不到 python/python3"; exit 1; }
+# python 命令名：Windows git-bash 常只有 python，Linux 常只有 python3。
+# ⚠️ 不能只 command -v：WindowsApps 的 python3 是商店占位 stub，找得到但执行必败——
+#    必须实际执行验证（同 09-远程执行与手动部署/run.sh 的 2026-08-07 修法；本脚本 2026-08-07 补同款）。
+PY=""
+for _cand in python3 python; do
+  command -v "$_cand" >/dev/null 2>&1 && "$_cand" -c '1' >/dev/null 2>&1 && { PY="$_cand"; break; }
+done
+[ -n "$PY" ] || { echo "[FAIL] 找不到可用的 python/python3"; exit 1; }
 "$PY" -c 'import boto3' 2>/dev/null || { echo "[FAIL] python 缺 boto3：pip install boto3"; exit 1; }
 if [ "$ONLY_REF" = 1 ]; then
   "$PY" -c 'import psycopg2' 2>/dev/null || { echo "[FAIL] --only-referenced 需要 psycopg2：pip install psycopg2-binary"; exit 1; }
