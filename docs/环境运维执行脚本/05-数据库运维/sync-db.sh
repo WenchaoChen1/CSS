@@ -16,9 +16,15 @@ DST="${2:?缺目标 DSN}"
 echo "同步: ${SRC%%\?*}"
 echo "  →   ${DST%%\?*}"
 
-docker run --rm postgres:16 pg_dump --format=custom --no-owner --no-privileges "$SRC" \
-  | docker run --rm -i postgres:16 pg_restore --no-owner --no-privileges --clean --if-exists \
-      --dbname "$DST"
+# 优先原生客户端（堡垒机 dnf 装过 postgresql16，无 docker），没有再回退 docker（2026-08-07）
+if command -v pg_dump >/dev/null 2>&1 && command -v pg_restore >/dev/null 2>&1; then
+  pg_dump --format=custom --no-owner --no-privileges "$SRC" \
+    | pg_restore --no-owner --no-privileges --clean --if-exists --dbname "$DST"
+else
+  docker run --rm postgres:16 pg_dump --format=custom --no-owner --no-privileges "$SRC" \
+    | docker run --rm -i postgres:16 pg_restore --no-owner --no-privileges --clean --if-exists \
+        --dbname "$DST"
+fi
 
 echo "===== 同步完成 ====="
 echo "核对: 目标库表数/行数抽查；alembic_version 是否与代码迁移链一致（不一致勿跑 upgrade）"

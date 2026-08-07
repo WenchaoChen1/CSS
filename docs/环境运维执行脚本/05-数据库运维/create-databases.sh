@@ -12,7 +12,12 @@ PASS="${2:?缺 master 密码}"
 shift 2
 [ $# -ge 1 ] || { echo "至少一个环境: test|uat|support-ref|prod"; exit 1; }
 
-psql_run() { docker run --rm -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+# 优先原生 psql（堡垒机 dnf 装过 postgresql16），没有再回退 docker（与 reown-db-objects.sh 同款，2026-08-07）
+if command -v psql >/dev/null 2>&1; then
+  psql_run() { PGPASSWORD="$PASS" psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+else
+  psql_run() { docker run --rm -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+fi
 
 for env in "$@"; do
   case "$env" in test|uat|support-ref|prod) ;; *) echo "跳过未知环境 $env"; continue;; esac

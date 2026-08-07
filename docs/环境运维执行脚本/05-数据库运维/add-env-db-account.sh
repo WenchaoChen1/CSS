@@ -23,7 +23,12 @@ esac
 ROLE="css_app_${ENV_NAME//-/_}"
 MAIN="css-${ENV_NAME}-main"; OCR="css-${ENV_NAME}-ocr"
 
-PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+# 优先原生 psql（堡垒机 dnf 装过 postgresql16），没有再回退 docker（与 reown-db-objects.sh 同款）
+if command -v psql >/dev/null 2>&1; then
+  PSQL() { PGPASSWORD="$PASS" psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+else
+  PSQL() { docker run --rm -i -e PGPASSWORD="$PASS" postgres:16 psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
+fi
 gen() { openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 20; }
 
 # 前置校验：两库须已存在；css_dev 应已存在（没有则跳过只读授权并提示）
