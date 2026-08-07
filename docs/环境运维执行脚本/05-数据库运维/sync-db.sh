@@ -13,8 +13,10 @@ set -euo pipefail
 SRC="${1:?用法: sync-db.sh <源DSN> <目标DSN>}"
 DST="${2:?缺目标 DSN}"
 
-echo "同步: ${SRC%%\?*}"
-echo "  →   ${DST%%\?*}"
+# 打印时把 DSN 里的密码打码（2026-08-07 修：原样 echo 会把密码留在终端/日志里）
+mask() { echo "$1" | sed -E 's#(://[^:/@]+):[^@]*@#\1:***@#'; }
+echo "同步: $(mask "${SRC%%\?*}")"
+echo "  →   $(mask "${DST%%\?*}")"
 
 # 优先原生客户端（堡垒机 dnf 装过 postgresql16，无 docker），没有再回退 docker（2026-08-07）
 if command -v pg_dump >/dev/null 2>&1 && command -v pg_restore >/dev/null 2>&1; then
