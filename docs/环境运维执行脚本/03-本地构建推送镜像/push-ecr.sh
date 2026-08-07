@@ -3,13 +3,13 @@
 # 实现：渲染环境配置（优先 SSM Parameter Store，回退工作区 deploy-env/<env>/ 已有文件）→ ECR 登录 →
 #       委托后端仓库 deploy/aws/build-push.sh（与 CI 同一套构建定义，双 tag：不可变版本 + <env> 浮动；
 #       CI 版本号为 <env>-vN，本脚本手动推送缺省 <env>-manual-<sha7> 以免与 CI 版本序列混淆）。
-# 用法: ./push-ecr.sh <test|uat|prod> [tag]
+# 用法: ./push-ecr.sh <test|uat|support-ref|prod> [tag]
 # 前置: Docker Desktop 运行中；aws cli 凭证有 ECR push 与本环境参数读取权限；
 #       前端构建需要同级存在 ../CSS_frontend-main（工作区默认布局）。
 set -euo pipefail
 
-ENV_NAME="${1:?用法: push-ecr.sh <test|uat|prod> [tag]}"
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境必须是 test|uat|prod"; exit 1 ;; esac
+ENV_NAME="${1:?用法: push-ecr.sh <test|uat|support-ref|prod> [tag]}"
+case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境必须是 test|uat|support-ref|prod"; exit 1 ;; esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"           # 工作区根 chain-serve/

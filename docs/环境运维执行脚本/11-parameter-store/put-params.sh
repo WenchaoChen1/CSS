@@ -10,12 +10,12 @@
 #            ② 打印【键级】差异（只列变了哪些 KEY，不回显值）③ 要求输入 yes 确认后才覆盖。
 #   这样在控制台页面手动改过参数后，跑本脚本不会不知不觉把页面改动冲掉。
 #
-# 用法: ./put-params.sh <test|uat|prod> [-y]     # -y = 跳过确认（备份与差异提示照常）
+# 用法: ./put-params.sh <test|uat|support-ref|prod> [-y]     # -y = 跳过确认（备份与差异提示照常）
 # 注意: Windows git-bash 下 aws.exe 读中文路径/编码会炸——本脚本先拷到 ASCII 临时路径并设 UTF-8。
 set -euo pipefail
 
-ENV_NAME="${1:?用法: put-params.sh <test|uat|prod> [-y]}"
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境必须是 test|uat|prod"; exit 1 ;; esac
+ENV_NAME="${1:?用法: put-params.sh <test|uat|support-ref|prod> [-y]}"
+case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境必须是 test|uat|support-ref|prod"; exit 1 ;; esac
 YES="${2:-}"
 REGION="us-east-1"
 export AWS_CLI_FILE_ENCODING=UTF-8

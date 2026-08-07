@@ -12,7 +12,7 @@
 # ⚠️ 每次跑 restore-dump-via-gw.sh / sync-db.sh（都以 postgres 身份 --no-owner 恢复）之后，
 # owner 会被打回 postgres，必须重跑本脚本。
 #
-# 用法: ./reown-db-objects.sh <rds主机> <master密码> <test|uat|prod>
+# 用法: ./reown-db-objects.sh <rds主机> <master密码> <test|uat|support-ref|prod>
 # 在能连通 RDS 的机器执行：优先用【原生 psql】（堡垒机 dnf 装过 postgresql16），
 # 没有原生客户端时回退 docker postgres:16。所以它在堡垒机 / 应用机 / 装了 Docker 的本机都能跑。
 # （2026-08-05 修：原来硬编码 docker run，在只有原生 psql 的堡垒机上直接报 docker not found。）
@@ -20,10 +20,11 @@ set -euo pipefail
 
 HOST="${1:?用法: reown-db-objects.sh <rds主机> <master密码> <env>}"
 PASS="${2:?缺 master 密码}"
-ENV_NAME="${3:?缺环境: test|uat|prod}"
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境只能是 test|uat|prod"; exit 1 ;; esac
+ENV_NAME="${3:?缺环境: test|uat|support-ref|prod}"
+case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境只能是 test|uat|support-ref|prod"; exit 1 ;; esac
 
-ROLE="css_app_${ENV_NAME}"
+# PG 角色名不允许连字符（support-ref → css_app_support_ref），统一转下划线
+ROLE="css_app_${ENV_NAME//-/_}"
 if command -v psql >/dev/null 2>&1; then
   PSQL() { PGPASSWORD="$PASS" psql -h "$HOST" -U postgres -v ON_ERROR_STOP=1 "$@"; }
 else
@@ -92,12 +93,14 @@ END
 \$do\$;
 SQL
 
-  # 移交后：让 css_dev 仍能读写该角色将来新建的对象（默认权限按"建对象的角色"生效，故要为新 owner 声明）
+  # 移交后：让 css_dev 仍能【只读】该角色将来新建的对象（默认权限按"建对象的角色"生效，故要为新 owner 声明）。
+  # 2026-08-07 修：原来给的是 GRANT ALL，会推翻 2026-08-03 拍板的"css_dev 全实例只读"
+  # （make-css-dev-readonly.sh）——每跑一次 reown 就把写权限加回来。收敛为 SELECT。
   if [ "$HAS_DEV" = 1 ]; then
-    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT ALL ON TABLES TO css_dev;"
-    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT ALL ON SEQUENCES TO css_dev;"
-    PSQL -d "$db" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO css_dev;"
-    PSQL -d "$db" -c "GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO css_dev;"
+    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT SELECT ON TABLES TO css_dev;"
+    PSQL -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE ${ROLE} IN SCHEMA public GRANT SELECT ON SEQUENCES TO css_dev;"
+    PSQL -d "$db" -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO css_dev;"
+    PSQL -d "$db" -c "GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO css_dev;"
   fi
 
   # 核对：public schema 内还有多少对象不属于新 owner

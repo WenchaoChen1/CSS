@@ -5,7 +5,7 @@
 # 本机无论如何都直连不到，只能经堡垒机转发（详见 ../本地连接数据库.md）。
 #
 # 用法:
-#   ./db-tunnel.sh <test|uat|prod> [本地端口]     # 端口缺省 5433，前台运行，Ctrl+C 关闭
+#   ./db-tunnel.sh <test|uat|support-ref|prod> [本地端口]     # 端口缺省 5433，前台运行，Ctrl+C 关闭
 #   ./db-tunnel.sh test --check                   # 只探测隧道链路是否通（不驻留）
 # 例:
 #   ./db-tunnel.sh test            # 然后客户端连 localhost:5433 / 库 css-test-main / 用户 css_dev
@@ -14,8 +14,8 @@
 # 账号密码见 ../运维访问速查.local.md（本脚本只建隧道，不碰任何凭证）。
 set -uo pipefail
 
-ENV_NAME="${1:?用法: db-tunnel.sh <test|uat|prod> [本地端口|--check]}"
-case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境必须是 test|uat|prod"; exit 1 ;; esac
+ENV_NAME="${1:?用法: db-tunnel.sh <test|uat|support-ref|prod> [本地端口|--check]}"
+case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境必须是 test|uat|support-ref|prod"; exit 1 ;; esac
 ARG2="${2:-5433}"
 CHECK=0; [ "$ARG2" = "--check" ] && { CHECK=1; LPORT=5433; } || LPORT="$ARG2"
 REGION=us-east-1
@@ -24,8 +24,8 @@ export MSYS_NO_PATHCONV=1 PYTHONUTF8=1
 # ---- 目标：堡垒机 + RDS 实例（按环境组）。私钥集中在工作区 deploy-env/ssh/（2026-08-03 自 ~/.ssh 迁入）----
 SSH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../deploy-env/ssh" && pwd)"
 case "$ENV_NAME" in
-  test|uat) BASTION_IP=3.225.148.166;  KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
-  prod)     BASTION_IP=34.225.237.45;  KEY="$SSH_DIR/css-prod-bastion";    RDS_ID=css-prod ;;
+  test|uat|support-ref) BASTION_IP=3.225.148.166;  KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
+  prod)                 BASTION_IP=34.225.237.45;  KEY="$SSH_DIR/css-prod-bastion";    RDS_ID=css-prod ;;
 esac
 # 允许用开发者临时钥：DEV_KEY=deploy-env/ssh/dev-keys/nonprod-xxx.pem ./db-tunnel.sh test
 KEY="${DEV_KEY:-$KEY}"
