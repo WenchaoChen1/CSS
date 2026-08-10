@@ -7,7 +7,10 @@
 #                   所有库只有 CONNECT+SELECT，不能建库不能写；存量权限收敛用 make-css-dev-readonly.sh
 #   css_ops       → rds_superuser（全库超级权限，人用；通过堡垒机隧道连）
 #   css_app_prod  → 仅 css-prod-main / css-prod-ocr 读写（SCOPE=prod，生产实例专用：建 css_ops+css_app_prod，
-#                   【不建 css_dev】——2026-08-03 拍板 prod 不设开发者只读账号；2026-08-07 实现）
+#                   本脚本【不建 css_dev】；2026-08-07 实现）
+#                   ⚠️ 2026-08-10 用户拍板：prod 也要 css_dev 只读账号（推翻 08-03 的"生产不设只读账号"）——
+#                      但**不要**在本脚本里建（重跑=全员轮换会换掉 css_app_prod 的在用密码），
+#                      走增量脚本：./add-readonly-db-account.sh <prod-rds> '<master密码>' prod
 # 轮换：重跑本脚本即全员轮换（ALTER ROLE ... PASSWORD 重设并打印新值）；轮换后同步改 运维访问速查 与应用配置。
 #      ⚠️ SCOPE=prod 只轮换生产实例上的 css_ops/css_app_prod，与非生产实例互不相干（两台独立 RDS）。
 # 隔离手段：对每个库 REVOKE CONNECT FROM PUBLIC，再只 GRANT 给授权角色；master(postgres)是
@@ -79,7 +82,7 @@ PSQL -d postgres -c "GRANT rds_superuser TO css_ops;"
 
 # dev：跨环境共用角色——必须在 SCOPE 判断【之外】创建，否则单独跑 SCOPE=uat 时
 # 下面 grant_db 会引用不存在的 css_dev 而失败（2026-08-03 修）。
-# prod 不建 css_dev（2026-08-03 拍板：生产实例不设开发者只读账号）。
+# prod 的 css_dev 不在这里建（见文件头：走 add-readonly-db-account.sh，避免轮换语义误伤在用密码）。
 if [ "$SCOPE" != "prod" ]; then
   PW[css_dev]=$(gen); ensure_role css_dev "${PW[css_dev]}"
   PSQL -d postgres -c 'ALTER ROLE css_dev NOCREATEDB NOCREATEROLE;'   # 2026-08-03 拍板：css_dev 全实例只读，不能建库

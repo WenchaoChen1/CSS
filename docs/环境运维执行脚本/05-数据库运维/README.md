@@ -216,6 +216,27 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 > ⚠️ **residual 模式后库里仍是"1+真实身份"的形态**（那是 anonymize 的既有口径，非本脚本引入）。
 > 要做到真正"认不出是谁"，跑 `--all`——代价是全部测试账号登录名改变，需同步通知使用者。**这一步待拍板**。
 
+### `add-readonly-db-account.sh` — 给某环境两库追加一个【只读】角色（纯增量，不轮换任何既有密码）
+
+```bash
+./add-readonly-db-account.sh <rds主机> <master密码> <test|uat|support-ref|prod> [角色名=css_dev] [--rotate]
+# prod 已执行（2026-08-10，在 css-prod-bastion 上）：建 css_dev 只读，实测 147+4 表可 SELECT、可 INSERT=0
+```
+
+与另两个建号脚本的分工（**别用错**）：
+
+| 脚本 | 语义 | prod |
+|---|---|---|
+| `create-db-accounts.sh` | 建全套账号，**重跑=全员轮换密码**（在 prod 上重跑会换掉 css_app_prod 在用密码 → 应用掉线） | 支持（SCOPE=prod），但只建 css_ops+css_app_prod |
+| `add-env-db-account.sh` | 给非生产实例追加一个环境的**读写**应用角色 | 显式拒绝 |
+| **本脚本** | 纯增量追加**只读**角色，幂等、不轮换 | ✅ 支持（需手输 `prod` 确认） |
+
+只读口径：CONNECT + USAGE(schema) + SELECT(表/序列)，显式 REVOKE 写权限与 CREATE，角色 NOCREATEDB/NOCREATEROLE；末尾自动验证「可 SELECT=表数、可 INSERT=0」，不达标非 0 退出。
+
+⚠️ **两个实测踩坑（已固化在脚本注释里）**：
+1. **默认权限必须挂 owner 名下**：两库表 owner 是 `css_app_<env>`（reown 过），所以除了 `ALTER DEFAULT PRIVILEGES IN SCHEMA public ...`，**必须**再下一遍 `ALTER DEFAULT PRIVILEGES FOR ROLE css_app_<env> ...`——否则今天验证全过，下次上线加了新表 css_dev 就看不见。
+2. **不能带 `NOSUPERUSER`**：RDS 的 master 自身不是真 superuser，会报 `permission denied to alter role`（2026-08-10 实测）。新建角色本来就非 superuser，脚本改为断言 `rolsuper=f`。
+
 ### `create-db-accounts.sh` — 在 RDS 上创建库级隔离的登录角色（低权应用账号 + dev + ops 超级账号）
 
 ```bash
