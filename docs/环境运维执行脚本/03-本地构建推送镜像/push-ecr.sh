@@ -8,6 +8,11 @@
 #       前端构建需要同级存在 ../CSS_frontend-main（工作区默认布局）。
 set -euo pipefail
 
+# Git Bash 的 MSYS 路径转换会把 /css/... 形式的 SSM 参数名当路径改写（2026-08-11 在 remote-build-push.sh 踩坑）；
+# 中文 Windows 上 aws.exe 默认 GBK 编码 stdout，参数值含 ⚠/中文时报 gbk codec 错，强制 UTF-8。
+# 注意 MSYS_NO_PATHCONV 下 git.exe 不认 /c/... 绝对路径——git 调用一律子 shell cd。
+export MSYS_NO_PATHCONV=1 PYTHONUTF8=1
+
 ENV_NAME="${1:?用法: push-ecr.sh <test|uat|support-ref|prod> [tag]}"
 case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境必须是 test|uat|support-ref|prod"; exit 1 ;; esac
 
@@ -43,7 +48,7 @@ getvar() { { grep -E "^$1=" "$ENV_DIR/backend.env" || true; } | tail -1 | cut -d
 export ECR_REGISTRY="$(getvar ECR_REGISTRY)"
 [ -n "$ECR_REGISTRY" ] || { echo "backend.env 缺 ECR_REGISTRY"; exit 1; }
 
-SHA=$(git -C "$BACKEND" rev-parse --short=7 HEAD 2>/dev/null | tr -d '\r' || echo unknown)
+SHA=$( (cd "$BACKEND" && git rev-parse --short=7 HEAD) 2>/dev/null | tr -d '\r' || echo unknown)
 TAG="${2:-$ENV_NAME-manual-$SHA}"
 
 aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"

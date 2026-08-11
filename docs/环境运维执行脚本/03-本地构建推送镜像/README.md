@@ -34,6 +34,19 @@
 或 `<env>-local-<sha7>`（build-images），刻意与 CI 序列分开。push 时同时更新 `<env>` 浮动 tag，
 EC2 的 compose 默认拉浮动 tag。
 
+### `remote-build-push.sh` — 云上应用机构建并推送（本机无 Docker 时的通道；support-ref 无 CI 的正规重建入口）
+
+```bash
+./remote-build-push.sh <test|uat|support-ref|prod> [tag] [backend|frontend|all]   # tag 缺省 <env>-manual-<sha7>；scope 缺省 all
+./remote-build-push.sh support-ref             # support-ref 全量重建（约 20-60 分钟）
+```
+
+流程：本地渲染配置 → 打包前后端源码+`deploy-env/<env>` → 临时 S3 中转（预签名 URL，桶/对象用完即删）→
+ECR push token 经 SSM SecureString 下发（实例角色只有 pull，token 以本机调用者身份鉴权）→
+SSM Run Command 在**目标环境应用机**上跑同一份 `deploy/aws/build-push.sh`。构建串行（`COMPOSE_PARALLEL_LIMIT=1`）防 2vCPU 机 OOM。
+前置：本机 aws cli 凭证有 ECR push/SSM/S3 权限（**不需要本机 Docker**）；完整构建日志在目标机 `/opt/css-build/build.log`。
+构建完成后部署：`bash ../09-远程执行与手动部署/deploy-env.sh <env> all <tag>`。
+
 **本地 dev 环境的镜像**：不走本目录——用 `CSS_backend-main\deploy\windows\本地dev.ps1 build`
 （dev 栈在本机 compose 里直接 build，不推 ECR）。
 

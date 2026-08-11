@@ -6,6 +6,9 @@
 #       （按 Environment=css-<env> 定位取不到它们；05-数据库运维 的删库/恢复类脚本要用）
 set -euo pipefail
 
+# 中文 Windows 上 python 默认 GBK 编码 stdout，回显含中文/emoji 的远程输出会 UnicodeEncodeError（2026-08-11）
+export PYTHONUTF8=1
+
 if [ "${1:-}" = "--instance" ]; then
   INSTANCE_ID="${2:?缺实例 ID}"
   CMD="${3:?缺要执行的命令}"
