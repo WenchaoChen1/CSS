@@ -179,4 +179,5 @@ npm run plop:cc      # scaffold a new component from _plop-templates
 ## 跨项目通用注意事项
 
 - **Git / 分支：** 分支和提交信息都以 YouTrack 任务 ID 为准（例如 `CSS-2: ...`）；后端通过 pre-commit 的 `commit-msg` 钩子强制执行这一点。CI 用的是 GitLab（每个项目里的 `.gitlab-ci.yml`），不是 GitHub Actions。
+- **分支卫生（切回原分支）：** 每次合并——或任何 AI 自动切换分支的操作——需要 checkout 到其他分支时，操作完成后**必须切回操作前所在的原分支**（切换前先记录起始分支）。绝不能让仓库停留在与用户开始时不同的分支上。
 - **环境：** 每个项目都需要自己的 `.env`（从 `.env.example` 复制）。后端的 `Makefile` 和 Compose 文件会从中读取 `ENV`、`PLATFORM`、镜像名、端口以及所有服务凭证。
