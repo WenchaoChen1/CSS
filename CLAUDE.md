@@ -1,18 +1,18 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code (claude.ai/code) 在本仓库中处理代码时提供指导。
 
-## Repository layout
+## 仓库结构
 
-This is a **CSS (Chain Serve)** monorepo-style workspace containing two independently-deployed projects plus a database snapshot:
+这是一个 **CSS (Chain Serve)** 的 monorepo 式工作区，包含两个独立部署的项目外加一份数据库快照：
 
-| Path | What it is |
+| 路径 | 说明 |
 |------|------------|
-| `CSS_backend-main/` | Python / FastAPI backend (Poetry, Docker Compose, Alembic) |
+| `CSS_backend-main/` | Python / FastAPI 后端（Poetry、Docker Compose、Alembic） |
 | `CSS_frontend-main/` | React 19 + TypeScript + Vite SPA |
 | `备份/` | 数据库/S3/docker-env 迁移产物（含旧快照，gitignore；原根目录 postgres_backup_20260628.sql 已归档移除） |
 
-The two projects have **separate toolchains, CI pipelines, and `.env` files**. Work on them independently — `cd` into the relevant project before running commands.
+两个项目拥有**各自独立的工具链、CI 流水线和 `.env` 文件**。请分别独立处理它们——运行命令前先 `cd` 进入相应项目目录。
 
 ---
 
@@ -31,64 +31,64 @@ The two projects have **separate toolchains, CI pipelines, and `.env` files**. W
 
 ---
 
-## Project handover status (read first)
+## 项目交接状态（先读）
 
-This codebase is being **taken over from another team**. Critical context that is NOT obvious from the code:
+本代码库正在**从另一个团队接手**。以下是从代码本身看不出来的关键背景：
 
-- **Only `main` (from GitHub) is available.** The other team's active dev work lived in **GitLab and was never pushed to GitHub**, so the code here may lag behind their real dev environment.
-- **The DB snapshot is newer than the code.** `postgres_backup_20260628.sql` (2026-06-28) is ~2.5 months ahead of `main` (latest migration `2026_04_10`, revision `c868e4eb8b15`). Its `alembic_version` very likely points at revisions that **do not exist** in `migrations/versions/` here — do **not** run `alembic upgrade/downgrade` against the imported snapshot.
-- **The snapshot is binary (`pg_dump -Fc`), despite the `.sql` extension** (file header `PGDMP`). Restore with `pg_restore`, NOT `psql`.
+- **只有 `main`（来自 GitHub）可用。** 对方团队正在进行的开发工作放在 **GitLab 上，从未推送到 GitHub**，因此这里的代码可能落后于他们真实的开发环境。
+- **数据库快照比代码新。** `postgres_backup_20260628.sql`（2026-06-28）比 `main`（最新迁移 `2026_04_10`，revision `c868e4eb8b15`）领先约 2.5 个月。它的 `alembic_version` 极可能指向这里 `migrations/versions/` 中**并不存在**的 revision——**切勿**对导入的快照运行 `alembic upgrade/downgrade`。
+- **快照是二进制格式（`pg_dump -Fc`），尽管扩展名是 `.sql`**（文件头为 `PGDMP`）。请用 `pg_restore` 恢复，切勿用 `psql`。
 
-### Local databases (three, in the one container `css-backend__db`)
+### 本地数据库（三个，都在同一个容器 `css-backend__db` 内）
 
-| Database | Source | Used by |
+| 数据库 | 来源 | 使用方 |
 |----------|--------|---------|
-| `css_dev` | `alembic upgrade head` + **best-effort snapshot data import** | **the app (working DB, `POSTGRES_DB=css_dev`)** |
-| `postgres` | clean `alembic upgrade head`, empty | clean code-schema baseline / reference |
-| `css_dump` | raw restored snapshot (`pg_restore`) | schema & data comparison — app does **not** connect here |
+| `css_dev` | `alembic upgrade head` + **尽力而为的快照数据导入** | **应用本身（工作库，`POSTGRES_DB=css_dev`）** |
+| `postgres` | 干净的 `alembic upgrade head`，空库 | 干净的代码 schema 基线 / 参考 |
+| `css_dump` | 原样恢复的快照（`pg_restore`） | schema 与数据对比——应用**不会**连接这里 |
 
-The app/alembic target whichever DB `POSTGRES_DB` names (see `config/postgres_settings.py`; `migrations/env.py` reuses the same settings), so alembic only ever touches the named DB. Postgres is exposed on host `localhost:5432` (postgres/postgres) via the Windows override.
+应用和 alembic 都以 `POSTGRES_DB` 所指定的库为目标（见 `config/postgres_settings.py`；`migrations/env.py` 复用同一套配置），因此 alembic 只会操作被指定的那个库。通过 Windows override，Postgres 暴露在宿主机的 `localhost:5432`（postgres/postgres）上。
 
-**`css_dev` data was imported best-effort from `css_dump` via dblink**（原 `db_compare/` 调和脚本，**该目录已于 2026-07-28 删除**——main 已是 preprod 代码，旧 css_dev 调和流程作废）, copying only columns common to both schemas with FK checks off. Because the schemas diverged, `css_dev` has these **deliberate divergences from the pure code schema** (dev-only):
-- `businesstype` enum gained value `MANUFACTURER` (snapshot had it).
-- `company.user_id` had its `NOT NULL` dropped (snapshot rows have no owner; that's a code-only user_management column).
-- `company_audit_log` is **empty** (its id column is uuid in code but integer in the snapshot — unresolved type divergence).
-- The 14 snapshot-only `manufacturer_*` / `payment_method` / `product_attribute*` tables do **not** exist in `css_dev` (no code tables for them), so that data was dropped.
+**`css_dev` 的数据是通过 dblink 从 `css_dump` 尽力而为导入的**（原 `db_compare/` 调和脚本，**该目录已于 2026-07-28 删除**——main 已是 preprod 代码，旧 css_dev 调和流程作废），只复制两边 schema 共有的列，并关闭了 FK 检查。由于两边 schema 已经分叉，`css_dev` 相对纯代码 schema 存在以下**有意为之的分歧**（仅限 dev）：
+- `businesstype` 枚举增加了值 `MANUFACTURER`（快照中带有该值）。
+- `company.user_id` 的 `NOT NULL` 被去掉（快照中的行没有 owner；那是仅存在于代码中的 user_management 列）。
+- `company_audit_log` 是**空的**（其 id 列在代码中是 uuid、在快照中是 integer——尚未解决的类型分歧）。
+- 那 14 张仅快照中有的 `manufacturer_*` / `payment_method` / `product_attribute*` 表在 `css_dev` 中**并不存在**（代码中没有对应的表），因此这部分数据被丢弃了。
 
-~~To rebuild `css_dev` from scratch via `db_compare/*.sql`~~ **已作废（2026-07-28）**：`db_compare/` 已删除；旧 css_dev 对应旧代码线，勿在其上跑新迁移。开发库以 preprod 备份恢复或空库 `alembic upgrade head` 重建（见 `备份/数据库/`）。
+~~通过 `db_compare/*.sql` 从零重建 `css_dev`~~ **已作废（2026-07-28）**：`db_compare/` 已删除；旧 css_dev 对应旧代码线，勿在其上跑新迁移。开发库以 preprod 备份恢复或空库 `alembic upgrade head` 重建（见 `备份/数据库/`）。
 
-Compare the two to discover which migrations are missing from GitHub:
+对比两者即可发现 GitHub 上缺失了哪些迁移：
 ```
 docker exec css-backend__db pg_dump -U postgres --schema-only --no-owner postgres  > schema_code.sql
 docker exec css-backend__db pg_dump -U postgres --schema-only --no-owner css_dump > schema_dump.sql
 ```
 
-### `.env` files（⚠️ 上游遗留模型说明——本地 dev 已改走工作区 `deploy-env/dev/backend.env` + `本地dev.ps1`，本节仅供参照上游 Makefile 流程）
+### `.env` 文件（⚠️ 上游遗留模型说明——本地 dev 已改走工作区 `deploy-env/dev/backend.env` + `本地dev.ps1`，本节仅供参照上游 Makefile 流程）
 
-Both projects need a `.env` (now present, generated from each `.env.example`). Two musts:
-- The backend `.env` is a **runtime `env_file`, NOT baked into the image** — editing it needs only a container restart, not a rebuild.
-- Backend `API_KEY` **must equal** frontend `VITE_X_API_KEY`, or every request is rejected by the `/api` `check_api_key` guard. The frontend points at `http://localhost:8080` (the backend nginx port = backend `PORT`).
-- **`.env.example` is incomplete.** `config/catalog_ocr_settings.py` requires `CATALOG_OCR_BASE_URL` and `CATALOG_OCR_API_KEY` (no defaults), but they are absent from `.env.example`. Missing them raises a pydantic `ValidationError` that blocks boot of **all four** app entrypoints (the shared `Settings` won't instantiate). They are included in the generated `.env`. When sanity-checking env vars, trust the `config/*.py` pydantic classes, not `.env.example`.
+两个项目都需要一个 `.env`（现已存在，由各自的 `.env.example` 生成）。两条必须遵守的：
+- 后端 `.env` 是**运行时的 `env_file`，不会烤进镜像**——修改它只需重启容器，无需重新构建。
+- 后端 `API_KEY` **必须等于**前端 `VITE_X_API_KEY`，否则每个请求都会被 `/api` 的 `check_api_key` 守卫拒绝。前端指向 `http://localhost:8080`（后端 nginx 端口 = 后端 `PORT`）。
+- **`.env.example` 并不完整。** `config/catalog_ocr_settings.py` 需要 `CATALOG_OCR_BASE_URL` 和 `CATALOG_OCR_API_KEY`（无默认值），但 `.env.example` 中没有它们。缺少它们会抛出 pydantic `ValidationError`，导致**全部四个**应用入口都无法启动（共享的 `Settings` 无法实例化）。生成的 `.env` 中已包含这两项。核对环境变量时，请以 `config/*.py` 中的 pydantic 类为准，而不是 `.env.example`。
 
-### Redeploy after a backend code change
+### 后端代码变更后的重新部署
 
-Code IS baked into the image (`COPY src/ .`), so **code** changes need a rebuild (env changes do not). 本地 dev（2026-07-28 统一模型）：栈=`deploy/compose/dev.yml`（含本地 Postgres/kafka/kafka-ui/pgadmin——**Kafka is required for auth**: the auth DI eagerly starts a producer against `kafka:9092`, so login 500s without it），配置=工作区根 `deploy-env/dev/backend.env`（2026-07-28 env 整体迁出仓库），入口：
+代码确实会烤进镜像（`COPY src/ .`），因此**代码**变更需要重新构建（env 变更则不需要）。本地 dev（2026-07-28 统一模型）：栈=`deploy/compose/dev.yml`（含本地 Postgres/kafka/kafka-ui/pgadmin——**认证依赖 Kafka**：auth 的 DI 会立即针对 `kafka:9092` 启动一个 producer，因此没有它登录会报 500），配置=工作区根 `deploy-env/dev/backend.env`（2026-07-28 env 整体迁出仓库），入口：
 ```
 .\deploy\windows\本地dev.ps1 [up|down|build|rebuild|migrate|ps|logs|restart|front]
 ```
 仓库根 `redeploy.ps1` 是它的薄封装（rebuild）。**test / uat / prod 走 CI/CD**（GitHub Actions → ECR 双 tag `<env>-vN` 版本号+`<env>` 浮动，lifecycle 保 5 → 部署暂为手动 `docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh`），编排=`deploy/compose/{infra,backend,frontend}.yml`（独立项目 `css-<env>-*` 共享网络 `css-<env>-net`），运行时配置唯一事实源=SSM Parameter Store `/css/<env>/backend.env`（deploy.sh 自动渲染；本地底稿在工作区 `deploy-env/<env>/`）。AWS 栈无 db/pgadmin 容器（Postgres 在 RDS；新库名规范 `css-<env>-main`/`css-<env>-ocr`）。前端镜像构建期烤入 `VITE_*`（来自 `/css/<env>/frontend.env`，用 `Dockerfile.novalidate`——tsc 尚有 16 个存量类型错误）。手册见工作区 `docs/环境运维执行脚本/`（README 总流程 + 08/09 组件手册）；deploy 结构见 `deploy/README.md`。
 
-### Windows host notes（同上：core_app compose + 根 .env 属上游遗留模型，本地 dev 一律走 deploy/windows/本地dev.ps1）
+### Windows 宿主机注意事项（同上：core_app compose + 根 .env 属上游遗留模型，本地 dev 一律走 deploy/windows/本地dev.ps1）
 
-No `make` / `pg_restore` / `sudo` on the host (Docker Desktop only). Use `docker compose` native commands — the `Makefile` is Linux-only (its `makemigrations` / `poetry_*` targets call `sudo chown` and will not run here). Run compose from `CSS_backend-main/` and pass `--env-file .env` so `${VAR}` interpolation resolves (the core stack lives in `core_app/docker-compose.yml`; the root `docker-compose.yml` additionally `include`s the OCR + ai_assistant services, which need extra API keys).
+宿主机上没有 `make` / `pg_restore` / `sudo`（只有 Docker Desktop）。请使用 `docker compose` 原生命令——`Makefile` 只适用于 Linux（它的 `makemigrations` / `poetry_*` 目标会调用 `sudo chown`，在这里跑不起来）。在 `CSS_backend-main/` 目录下运行 compose，并传入 `--env-file .env`，这样 `${VAR}` 插值才能解析（核心栈位于 `core_app/docker-compose.yml`；根目录的 `docker-compose.yml` 还额外 `include` 了 OCR + ai_assistant 服务，它们需要额外的 API key）。
 
 ---
 
-## Backend (`CSS_backend-main/`)
+## 后端（`CSS_backend-main/`）
 
-FastAPI app run as a multi-service Docker Compose stack. Everything is orchestrated through the root `Makefile`, which composes `docker-compose.yml` + `docker-compose.${ENV}.yml` (ENV is `dev` or `prod`, read from `.env`).
+FastAPI 应用以多服务 Docker Compose 栈的形式运行。一切都通过根目录的 `Makefile` 编排，它会组合 `docker-compose.yml` + `docker-compose.${ENV}.yml`（ENV 为 `dev` 或 `prod`，从 `.env` 读取）。
 
-### Common commands (run from `CSS_backend-main/`)
+### 常用命令（在 `CSS_backend-main/` 下运行）
 
 ```bash
 make            # build + down + migrate + up (full bring-up)
@@ -103,48 +103,48 @@ make lint       # pre-commit run --all-files (black, isort, flake8, mypy)
 make pre-commit-install
 ```
 
-Run a single test via `make dev_test k=test_name` (passes `-k` to pytest). Source is bind-mounted for `dev`/`dev_test` so changes are picked up without rebuilding.
+通过 `make dev_test k=test_name` 运行单个测试（会把 `-k` 传给 pytest）。`dev`/`dev_test` 下源码是 bind-mount 的，因此改动无需重新构建即可生效。
 
-### Services in the stack
+### 栈中的服务
 
-- `app` — main API (gunicorn + uvicorn workers), behind `nginx`
-- `messenger-app` — separate ASGI app (`messenger_app.py`) for chats/websockets
-- `notifications-app` — separate ASGI app (`notifications_app.py`), RabbitMQ-backed
-- `worker` — `arq` task worker, Redis-backed
-- `db` (Postgres), `redis`, `rabbitmq`, `kafka` (+ `kafka-ui`), `pgadmin`
-- `sms_sender`, `email_sender` — standalone Kafka consumers (own Dockerfiles)
+- `app` — 主 API（gunicorn + uvicorn workers），位于 `nginx` 之后
+- `messenger-app` — 独立的 ASGI 应用（`messenger_app.py`），用于聊天/websockets
+- `notifications-app` — 独立的 ASGI 应用（`notifications_app.py`），基于 RabbitMQ
+- `worker` — `arq` 任务 worker，基于 Redis
+- `db`（Postgres）、`redis`、`rabbitmq`、`kafka`（+ `kafka-ui`）、`pgadmin`
+- `sms_sender`、`email_sender` — 独立的 Kafka 消费者（各自有 Dockerfile）
 
-### Backend architecture (the important part)
+### 后端架构（重点部分）
 
-The app lives in `core_app/src/app` and uses a **layered, domain-modular** structure. Three top-level zones (documented in `CSS_backend-main/README.md`):
+应用位于 `core_app/src/app`，采用**分层、按领域模块化**的结构。三个顶层区域（在 `CSS_backend-main/README.md` 中有说明）：
 
-- `app/internal/` — application code. Within it:
-  - `internal/core/<domain>/` — the **domain layer**, reusable across apps. Each domain (orders, products, companies, invoices, chats, users, payments, …) follows the same internal split: `domains.py`, `dto.py`, `models.py` (SQLAlchemy), `repositories.py`, `services.py`, `errors.py`, `transport/di.py` (dependency injection wiring).
-  - `internal/main_app/<feature>/` — the **HTTP/transport layer** for the main API. Each feature has `transport/handlers.py` (the router), `requests.py`, `responses.py`, `docs.py`. `main_app/app.py` aggregates every feature router into the `/api` router.
-  - `internal/messenger/`, `internal/notifications/`, `internal/worker/` — the other ASGI apps and the task worker.
-- `app/pkg/` — code intended to be reusable by third parties (auth, http, websockets, errors, validators, eden_ai, etc.).
-- `config/` — one settings module per concern (`app_settings.py`, `postgres_settings.py`, `kafka_settings.py`, …).
+- `app/internal/` — 应用代码。其中包含：
+  - `internal/core/<domain>/` — **领域层**，可在多个应用间复用。每个领域（orders、products、companies、invoices、chats、users、payments 等）都遵循相同的内部拆分：`domains.py`、`dto.py`、`models.py`（SQLAlchemy）、`repositories.py`、`services.py`、`errors.py`、`transport/di.py`（依赖注入接线）。
+  - `internal/main_app/<feature>/` — 主 API 的 **HTTP/传输层**。每个 feature 有 `transport/handlers.py`（路由）、`requests.py`、`responses.py`、`docs.py`。`main_app/app.py` 把每个 feature 的路由聚合进 `/api` 路由。
+  - `internal/messenger/`、`internal/notifications/`、`internal/worker/` — 其余的 ASGI 应用和任务 worker。
+- `app/pkg/` — 面向第三方复用的代码（auth、http、websockets、errors、validators、eden_ai 等）。
+- `config/` — 每个关注点一个设置模块（`app_settings.py`、`postgres_settings.py`、`kafka_settings.py` 等）。
 
-**Pattern to follow when adding an endpoint:** put business logic + persistence in `internal/core/<domain>/` (service + repository), expose it via a router in `internal/main_app/<feature>/transport/handlers.py`, and register that router in `main_app/app.py`. All `/api` routes are gated by `check_api_key` (see `main_app/middlewares/api_key`).
+**新增端点时应遵循的模式：** 把业务逻辑 + 持久化放进 `internal/core/<domain>/`（service + repository），通过 `internal/main_app/<feature>/transport/handlers.py` 中的路由暴露出来，并在 `main_app/app.py` 中注册该路由。所有 `/api` 路由都受 `check_api_key` 把关（见 `main_app/middlewares/api_key`）。
 
-Migrations live in `core_app/src/app/migrations/versions/` (Alembic, ~195 revisions). Tooling config is in `pyproject.toml` (black line-length 120, isort, flake8) and `mypy.ini`.
+迁移文件位于 `core_app/src/app/migrations/versions/`（Alembic，约 195 个 revision）。工具链配置在 `pyproject.toml`（black 行宽 120、isort、flake8）和 `mypy.ini` 中。
 
-### Catalog OCR microservice (`catalog_ocr_service/`)
+### Catalog OCR 微服务（`catalog_ocr_service/`）
 
-A **separate** standalone Python service (its own `pyproject.toml`, `uv.lock`, `alembic`, Dockerfile) for manufacturer catalog OCR via Gemini. Has its own `README.md` and `AGENTS.md` — read those before touching it. App layout: `app/{api,core,db,schemas,services,worker}`. Not part of the main Poetry project.
+一个**独立**的 Python 服务（有自己的 `pyproject.toml`、`uv.lock`、`alembic`、Dockerfile），通过 Gemini 做厂商产品目录 OCR。它有自己的 `README.md` 和 `AGENTS.md`——改动它之前先读这两份文档。应用结构：`app/{api,core,db,schemas,services,worker}`。它不属于主 Poetry 项目。
 
-### Other services
+### 其它服务
 
-- `ai_assistant/` — small Node/Express service (`server.js`) using OpenAI + chartjs.
-- `sms_sender/`, `email_sender/` — Python Kafka consumers.
+- `ai_assistant/` — 小型 Node/Express 服务（`server.js`），使用 OpenAI + chartjs。
+- `sms_sender/`、`email_sender/` — Python 编写的 Kafka 消费者。
 
 ---
 
-## Frontend (`CSS_frontend-main/`)
+## 前端（`CSS_frontend-main/`）
 
-React 19 SPA built with Vite. State via Zustand + TanStack Query; routing via **TanStack Router** (not react-router); forms via react-hook-form; tables via TanStack Table; i18n via i18next; styling via SCSS modules with generated types.
+用 Vite 构建的 React 19 SPA。状态管理用 Zustand + TanStack Query；路由用 **TanStack Router**（不是 react-router）；表单用 react-hook-form；表格用 TanStack Table；国际化用 i18next；样式用带生成类型的 SCSS modules。
 
-### Common commands (run from `CSS_frontend-main/`)
+### 常用命令（在 `CSS_frontend-main/` 下运行）
 
 ```bash
 npm run dev          # vite (port 3003) + scss-module type generation in watch mode
@@ -160,23 +160,23 @@ npm run storybook    # storybook on :6006
 npm run plop:cc      # scaffold a new component from _plop-templates
 ```
 
-`npm run dev` runs Vite **concurrently** with `typed-scss-modules` in watch mode — `*.module.scss` files generate matching `.d.ts` types. If type errors reference missing SCSS module types, run `npm run generate-scss-types`.
+`npm run dev` 会把 Vite 与 watch 模式下的 `typed-scss-modules` **并发**运行——`*.module.scss` 文件会生成对应的 `.d.ts` 类型。如果类型报错指向缺失的 SCSS module 类型，运行 `npm run generate-scss-types`。
 
-### Frontend architecture
+### 前端架构
 
-- Path aliases (configured in both `vite.config.ts` and `tsconfig.json` `baseUrl: ./src`): import as `ui/...`, `api/...`, `hooks/...`, `stores/...`, `models/...`, `config/...`, `constants/...`, `utils/...`, `assets/...`, `app/...` — **not** relative `../../`.
-- `src/ui/` follows a **Feature-Sliced-Design-like** layering: `pages/` → `widgets/` → `features/` → `entities/` → `shared/`. Shared/reusable components belong in `entities/` or `shared/`; page-specific UI lives under `pages/<Page>/ui/`.
-- `src/api/` — one file per backend domain (`orders.ts`, `products.ts`, `clients.ts`, …); thin axios wrappers. Axios + auth-refresh config lives in `src/config/axios/`.
-- `src/stores/` — Zustand stores (`userStore`, `modalStore`, `orderFlowStore`, …).
-- App composition in `src/app/`: `App.tsx` (providers + RouterProvider), `providers/` (incl. `AccessControlProvider` using `react-abac` for permission-based access control), `constants/router`.
+- 路径别名（在 `vite.config.ts` 和 `tsconfig.json` 的 `baseUrl: ./src` 中都有配置）：按 `ui/...`、`api/...`、`hooks/...`、`stores/...`、`models/...`、`config/...`、`constants/...`、`utils/...`、`assets/...`、`app/...` 导入——**不要**用相对路径 `../../`。
+- `src/ui/` 采用**类 Feature-Sliced-Design** 的分层：`pages/` → `widgets/` → `features/` → `entities/` → `shared/`。共享/可复用组件属于 `entities/` 或 `shared/`；页面专属的 UI 放在 `pages/<Page>/ui/` 下。
+- `src/api/` — 每个后端领域一个文件（`orders.ts`、`products.ts`、`clients.ts` 等）；都是很薄的 axios 封装。Axios + auth-refresh 配置在 `src/config/axios/`。
+- `src/stores/` — Zustand stores（`userStore`、`modalStore`、`orderFlowStore` 等）。
+- 应用组装在 `src/app/`：`App.tsx`（providers + RouterProvider）、`providers/`（含使用 `react-abac` 做基于权限的访问控制的 `AccessControlProvider`）、`constants/router`。
 
-### Frontend conventions & known debt
+### 前端约定与已知技术债
 
-`CSS_frontend-main/REFACTORING.md` documents an active refactoring plan: duplicated wizard components (AddClients / UploadProducts / Catalog), duplicated report tables, duplicated types that should move to `src/models/common/entities.ts`, and oversized hook files to split. **Consult it before working in those areas** — prefer consolidating into `src/ui/entities/` over copying. Cross-page imports (e.g. Catalog importing from UploadProducts) are flagged as smells to fix, not patterns to imitate.
+`CSS_frontend-main/REFACTORING.md` 记录了一份正在进行的重构计划：重复的向导组件（AddClients / UploadProducts / Catalog）、重复的报表表格、应当迁到 `src/models/common/entities.ts` 的重复类型，以及需要拆分的超大 hook 文件。**在这些区域动手之前先查阅它**——优先合并进 `src/ui/entities/`，而不是复制粘贴。跨页面导入（例如 Catalog 从 UploadProducts 导入）被标记为需要修复的坏味道，而不是可以照搬的模式。
 
 ---
 
-## Cross-cutting notes
+## 跨项目通用注意事项
 
-- **Git / branches:** branches and commit messages are keyed to YouTrack task IDs (e.g. `CSS-2: ...`); the backend enforces this via a pre-commit `commit-msg` hook. CI is GitLab (`.gitlab-ci.yml` in each project), not GitHub Actions.
-- **Environments:** each project needs its own `.env` (copy from `.env.example`). The backend's `Makefile` and Compose files read `ENV`, `PLATFORM`, image names, ports, and all service credentials from it.
+- **Git / 分支：** 分支和提交信息都以 YouTrack 任务 ID 为准（例如 `CSS-2: ...`）；后端通过 pre-commit 的 `commit-msg` 钩子强制执行这一点。CI 用的是 GitLab（每个项目里的 `.gitlab-ci.yml`），不是 GitHub Actions。
+- **环境：** 每个项目都需要自己的 `.env`（从 `.env.example` 复制）。后端的 `Makefile` 和 Compose 文件会从中读取 `ENV`、`PLATFORM`、镜像名、端口以及所有服务凭证。
