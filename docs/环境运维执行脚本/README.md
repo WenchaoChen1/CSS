@@ -80,5 +80,5 @@ SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命�
 - **镜像 tag**：CI 推 `<env>-vN`（回滚依据）+ 浮动 `<env>`；手动推 `<env>-manual-<sha7>`；每仓库 lifecycle 保留 5 个。
 - **网络三铁律**：① SSH 只经堡垒机（仅白名单 IP）；② 系统 Web 只经本环境 ALB（kafka-ui 只走开发入口 ALB
   `css-non-prod-entry`，白名单）；③ RDS 只能内网访问。
-- **非生产数据必须脱敏**：从 preprod/生产导入真实数据后跑 `05-数据库运维/anonymize-db.sh <test|uat>`
+- **非生产数据必须脱敏**：从 preprod/生产导入真实数据后跑 `05-数据库运维/anonymize-db.sh <test|uat|support-demo>`
   （email 前缀 `1`、phone 后缀 `1`、口令统一测试值）；`prod` 参数会被脚本直接拒绝。

@@ -15,9 +15,9 @@
 #   ④ 删前自动打整实例快照 pre-drop-<env>-<时间戳>（删错还能恢复；手动快照不会自动过期，用完记得删）
 #
 # 用法:
-#   ./drop-env-databases.sh <test|uat>                 # 预演
-#   ./drop-env-databases.sh <test|uat> --yes           # 实删
-#   ./drop-env-databases.sh uat --yes --no-snapshot    # 跳过快照（不建议）
+#   ./drop-env-databases.sh <test|uat|support-ref|support-demo>                 # 预演
+#   ./drop-env-databases.sh <test|uat|support-ref|support-demo> --yes           # 实删
+#   ./drop-env-databases.sh uat --yes --no-snapshot                             # 跳过快照（不建议）
 #
 # 删完的完整重建链（顺序不能乱）：
 #   create-databases.sh → restore-dump-via-gw.sh → reown-db-objects.sh → anonymize-db.sh → rewrite-file-urls.sh
@@ -26,9 +26,9 @@ cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"; shift || true
 case "$ENV_NAME" in
-  test|uat|support-ref) ;;
+  test|uat|support-ref|support-demo) ;;
   prod) echo "[拒绝] prod 库不允许经脚本删除——生产数据的销毁必须人工上机并留变更记录"; exit 1 ;;
-  *) echo "用法: $0 <test|uat|support-ref> [--yes] [--no-snapshot]"; exit 1 ;;
+  *) echo "用法: $0 <test|uat|support-ref|support-demo> [--yes] [--no-snapshot]"; exit 1 ;;
 esac
 
 GO=0; SNAP=1

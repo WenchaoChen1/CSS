@@ -12,7 +12,7 @@
 # ⚠️ 每次跑 restore-dump-via-gw.sh / sync-db.sh（都以 postgres 身份 --no-owner 恢复）之后，
 # owner 会被打回 postgres，必须重跑本脚本。
 #
-# 用法: ./reown-db-objects.sh <rds主机> <master密码> <test|uat|support-ref|prod>
+# 用法: ./reown-db-objects.sh <rds主机> <master密码> <test|uat|support-ref|support-demo|prod>
 # 在能连通 RDS 的机器执行：优先用【原生 psql】（堡垒机 dnf 装过 postgresql16），
 # 没有原生客户端时回退 docker postgres:16。所以它在堡垒机 / 应用机 / 装了 Docker 的本机都能跑。
 # （2026-08-05 修：原来硬编码 docker run，在只有原生 psql 的堡垒机上直接报 docker not found。）
@@ -20,8 +20,8 @@ set -euo pipefail
 
 HOST="${1:?用法: reown-db-objects.sh <rds主机> <master密码> <env>}"
 PASS="${2:?缺 master 密码}"
-ENV_NAME="${3:?缺环境: test|uat|support-ref|prod}"
-case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境只能是 test|uat|support-ref|prod"; exit 1 ;; esac
+ENV_NAME="${3:?缺环境: test|uat|support-ref|support-demo|prod}"
+case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "环境只能是 test|uat|support-ref|support-demo|prod"; exit 1 ;; esac
 
 # PG 角色名不允许连字符（support-ref → css_app_support_ref），统一转下划线
 ROLE="css_app_${ENV_NAME//-/_}"

@@ -7,7 +7,7 @@
 ### `put-params.sh` — 把工作区 `deploy-env/<env>/{backend,frontend}.env` 整份灌入 SSM Parameter Store（backend 为 SecureString Advanced 层，frontend 为 Standard 层），内置防误覆盖
 
 ```bash
-./put-params.sh <test|uat|prod>                       # 有差异时逐参数确认（输入 yes 才覆盖）
+./put-params.sh <test|uat|support-ref|support-demo|prod>                       # 有差异时逐参数确认（输入 yes 才覆盖）
 ./put-params.sh test -y                               # 跳过确认（备份与差异提示照常）
 ```
 

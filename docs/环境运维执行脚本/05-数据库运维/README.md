@@ -14,7 +14,7 @@
 ### `db-tunnel.sh` — 一键打开【本机 → RDS】SSH 隧道，供 Navicat/DBeaver/psql 直连（不经过应用代码）
 
 ```bash
-./db-tunnel.sh <test|uat|prod> [本地端口]   # 端口缺省 5433；前台运行，Ctrl+C 关闭
+./db-tunnel.sh <test|uat|support-ref|support-demo|prod> [本地端口]   # 端口缺省 5433；前台运行，Ctrl+C 关闭
 ./db-tunnel.sh test                        # 然后客户端连 localhost:5433
 ./db-tunnel.sh uat 5434                    # 同时开两条隧道时用不同端口
 ./db-tunnel.sh test --check                # 只探测链路是否通，不驻留
@@ -28,7 +28,7 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 ### `create-databases.sh` — 在 RDS 实例上按规范创建各环境业务库（ocr 库自动加 pgvector 扩展）
 
 ```bash
-./create-databases.sh <rds主机> '<master密码>' <env...>       # env 可多个：test|uat|prod
+./create-databases.sh <rds主机> '<master密码>' <env...>       # env 可多个：test|uat|support-ref|support-demo|prod
 ./create-databases.sh <rds主机> '<master密码>' test uat       # 非生产实例建 test+uat 四个库
 ./create-databases.sh <rds主机> '<master密码>' prod           # 生产实例建 prod 两个库
 ```
@@ -57,7 +57,7 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 ```
 
 ```bash
-./restore-dump-via-gw.sh <test|uat|prod> <main库dump> <ocr库dump>
+./restore-dump-via-gw.sh <test|uat|support-demo|prod> <main库dump> <ocr库dump>
 # 例（已执行）：
 ./restore-dump-via-gw.sh test ../../../备份/数据库/preprod/preprod_main_xxx.dump \
                               ../../../备份/数据库/preprod/preprod_ocr_xxx.dump
@@ -69,7 +69,7 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 ### `rewrite-file-urls.sh` — 把库中文件 URL 从老账号 S3 桶域名改写成本环境新桶（幂等）
 
 ```bash
-./rewrite-file-urls.sh <test|uat|prod> [--dry-run] [--revert] [--old-host 域名]
+./rewrite-file-urls.sh <test|uat|support-ref|support-demo|prod> [--dry-run] [--revert] [--old-host 域名]
 ```
 
 - **为什么需要**：库里 `file_url` 存的是**永久直链**，从老环境导入的数据全部指向老账号桶
@@ -159,7 +159,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 `prod` 只允许 `--emails-phones-only` 受控模式（2026-08-07 用户拍板：email 前缀 1 + phone 后缀 1，**不动口令哈希**——保留 preprod 原口令与原 PASSWORD_SALT，用户原密码可登录；需手输 `prod` 二次确认）；prod 上的整库口令统一（默认模式）永远拒绝。
 
 ```bash
-./anonymize-db.sh <test|uat> [口令] [--emails-phones-only]   # 口令缺省 Test1234!
+./anonymize-db.sh <test|uat|support-demo> [口令] [--emails-phones-only]   # 口令缺省 Test1234!
 ./anonymize-db.sh prod --emails-phones-only                  # prod 专用口径
 # 已执行（2026-07-29）：./anonymize-db.sh test
 # 已执行（2026-08-07）：./anonymize-db.sh prod --emails-phones-only（29 列级 UPDATE/688 行，标记 mode=prefix-suffix-pii-only）
@@ -193,7 +193,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `mask-residual-pii.sh` — 补脱敏：把 anonymize 漏掉/掩盖不住的真实个人数据换成确定性合成值，并写脱敏标记表
 
 ```bash
-./mask-residual-pii.sh <test|uat>          # 默认 residual 模式：只处理【歧义/未脱敏】的行
+./mask-residual-pii.sh <test|uat|support-demo>          # 默认 residual 模式：只处理【歧义/未脱敏】的行
 ./mask-residual-pii.sh test --all          # 彻底模式：全部 email/phone 换合成值（⚠️ 测试账号登录名会变）
 ```
 
@@ -219,7 +219,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `add-readonly-db-account.sh` — 给某环境两库追加一个【只读】角色（纯增量，不轮换任何既有密码）
 
 ```bash
-./add-readonly-db-account.sh <rds主机> <master密码> <test|uat|support-ref|prod> [角色名=css_dev] [--rotate]
+./add-readonly-db-account.sh <rds主机> <master密码> <test|uat|support-ref|support-demo|prod> [角色名=css_dev] [--rotate]
 # prod 已执行（2026-08-10，在 css-prod-bastion 上）：建 css_dev 只读，实测 147+4 表可 SELECT、可 INSERT=0
 ```
 
@@ -272,7 +272,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `reown-db-objects.sh` — 把库内 public schema 存量对象的 owner 从 master(postgres) 移交给 css_app_&lt;env&gt;
 
 ```bash
-./reown-db-objects.sh <rds主机> <master密码> <test|uat|prod>
+./reown-db-objects.sh <rds主机> <master密码> <test|uat|support-ref|support-demo|prod>
 ./reown-db-objects.sh <rds主机> <master密码> test    # 移交 css-test-main / css-test-ocr 两库的对象 owner
 ```
 

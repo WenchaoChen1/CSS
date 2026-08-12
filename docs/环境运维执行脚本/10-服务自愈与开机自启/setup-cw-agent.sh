@@ -14,12 +14,12 @@
 #   成本：自定义指标 $0.30/个/月 → 约 $0.6/月/机。
 #
 # 幂等：已装则只更新配置并重启；可反复执行。
-# 用法: ./setup-cw-agent.sh <test|uat|support-ref|prod>
+# 用法: ./setup-cw-agent.sh <test|uat|support-ref|support-demo|prod>
 set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"
-case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "用法: $0 <test|uat|support-ref|prod>"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "用法: $0 <test|uat|support-ref|support-demo|prod>"; exit 1 ;; esac
 
 echo "===== 安装/配置 CloudWatch Agent（$ENV_NAME）====="
 

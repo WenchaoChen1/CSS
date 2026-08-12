@@ -14,13 +14,13 @@
 #   · 公共镜像（redis/kafka/rabbitmq 等，无 <env>-vN 形态的 tag）只在悬空时清，不按版本删
 #
 # 用法:
-#   ./prune-docker-images.sh <test|uat|prod> [保留版本数]        # 预演，默认保留 3
-#   ./prune-docker-images.sh <test|uat|prod> [保留版本数] --yes  # 实际删除
+#   ./prune-docker-images.sh <test|uat|support-ref|support-demo|prod> [保留版本数]        # 预演，默认保留 3
+#   ./prune-docker-images.sh <test|uat|support-ref|support-demo|prod> [保留版本数] --yes  # 实际删除
 set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"
-case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "用法: $0 <test|uat|support-ref|prod> [保留版本数] [--yes]"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "用法: $0 <test|uat|support-ref|support-demo|prod> [保留版本数] [--yes]"; exit 1 ;; esac
 KEEP="${2:-3}"; [ "$KEEP" = "--yes" ] && KEEP=3
 GO=0
 for a in "$@"; do [ "$a" = "--yes" ] && GO=1; done

@@ -12,7 +12,7 @@
 #
 # 用法:
 #   SRC_PGPASSWORD='<RDS 密码>' TARGET_PGPASSWORD='<目标库密码>' \
-#     ./sync-rds-to-intranet.sh <test|uat|support-ref|prod> <源库名> <目标host:port> <目标新库名> [目标用户]
+#     ./sync-rds-to-intranet.sh <test|uat|support-ref|support-demo|prod> <源库名> <目标host:port> <目标新库名> [目标用户]
 # 例:
 #   SRC_PGPASSWORD=... TARGET_PGPASSWORD=... \
 #     ./sync-rds-to-intranet.sh test css-test-main 192.168.1.17:5434 css-test-main-20260807
@@ -28,7 +28,7 @@
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"  # git-bash: 防参数被误转成 Windows 路径
 
-ENV_NAME="${1:?用法: sync-rds-to-intranet.sh <test|uat|support-ref|prod> <源库名> <目标host:port> <目标新库名> [目标用户]}"
+ENV_NAME="${1:?用法: sync-rds-to-intranet.sh <test|uat|support-ref|support-demo|prod> <源库名> <目标host:port> <目标新库名> [目标用户]}"
 SRC_DB="${2:?缺源库名（如 css-test-main）}"
 TARGET_ADDR="${3:?缺目标地址（如 192.168.1.17:5434）}"
 TARGET_DB="${4:?缺目标新库名}"
@@ -37,7 +37,7 @@ SRC_DB_USER="${SRC_DB_USER:-css_ops}"
 RPORT="${RPORT:-15432}"
 REGION=us-east-1
 
-case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境必须是 test|uat|support-ref|prod"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|prod"; exit 1 ;; esac
 : "${SRC_PGPASSWORD:?缺 SRC_PGPASSWORD（源 RDS 账号 $SRC_DB_USER 的密码）}"
 : "${TARGET_PGPASSWORD:?缺 TARGET_PGPASSWORD（目标库 $TARGET_USER 的密码）}"
 
@@ -49,8 +49,8 @@ case "$TARGET_PORT" in ''|*[!0-9]*) echo "[FATAL] 目标端口不是数字: $TAR
 # ---- 堡垒机 + RDS（按环境组；与 db-tunnel.sh 保持一致）----
 SSH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../deploy-env/ssh" && pwd)"
 case "$ENV_NAME" in
-  test|uat|support-ref) BASTION_IP=3.225.148.166; KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
-  prod)                 BASTION_IP=34.225.237.45; KEY="$SSH_DIR/css-prod-bastion";    RDS_ID=css-prod ;;
+  test|uat|support-ref|support-demo) BASTION_IP=3.225.148.166; KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
+  prod)                              BASTION_IP=34.225.237.45; KEY="$SSH_DIR/css-prod-bastion";    RDS_ID=css-prod ;;
 esac
 KEY="${DEV_KEY:-$KEY}"
 [ -f "$KEY" ] || { echo "[FATAL] 找不到私钥 $KEY"; exit 1; }

@@ -3,7 +3,7 @@
 # 之后想推可直接 push-ecr.sh 或手动 docker push）。
 # 与 CI/push-ecr.sh 同一套构建定义（Backend 仓库 deploy/compose/*.yml），不会出现"本地打的和线上不一样"。
 #
-# 用法: ./build-images.sh <test|uat|support-ref|prod> [tag] [backend|frontend|all]
+# 用法: ./build-images.sh <test|uat|support-ref|support-demo|prod> [tag] [backend|frontend|all]
 #   tag  缺省 <env>-local-<后端 git sha7>
 #   例:  ./build-images.sh test                    # 构建 6 个后端镜像
 #        ./build-images.sh test '' all             # 后端 + 前端（需同级存在 ../CSS_frontend-main）
@@ -13,8 +13,8 @@
 #       CSS_backend-main\deploy\windows\本地dev.ps1 build。
 set -euo pipefail
 
-ENV_NAME="${1:?用法: build-images.sh <test|uat|support-ref|prod> [tag] [backend|frontend|all]}"
-case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "环境必须是 test|uat|support-ref|prod"; exit 1 ;; esac
+ENV_NAME="${1:?用法: build-images.sh <test|uat|support-ref|support-demo|prod> [tag] [backend|frontend|all]}"
+case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|prod"; exit 1 ;; esac
 SCOPE="${3:-backend}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

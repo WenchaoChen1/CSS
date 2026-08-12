@@ -16,7 +16,7 @@
 #   · 可回退：--revert 反向替换（新→老）
 #
 # 用法:
-#   ./rewrite-file-urls.sh <test|uat|prod> [--dry-run] [--revert] [--old-base 前缀]
+#   ./rewrite-file-urls.sh <test|uat|support-ref|support-demo|prod> [--dry-run] [--revert] [--old-base 前缀]
 #     --dry-run    只统计每张表会改多少行，不写入（建议先跑）
 #     --revert     反向：把新桶域名改回老桶域名（回滚用）
 #     --old-base   老 URL 前缀（含无用的 key 路径段），默认
@@ -30,7 +30,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"; shift || true
-case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "用法: $0 <test|uat|support-ref|prod> [--dry-run] [--revert] [--old-base 前缀]"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "用法: $0 <test|uat|support-ref|support-demo|prod> [--dry-run] [--revert] [--old-base 前缀]"; exit 1 ;; esac
 
 DRY=0; REVERT=0; OLD_BASE="https://chain-serve-test.s3.amazonaws.com/eu-central-1/files/"
 while [ $# -gt 0 ]; do

@@ -12,7 +12,7 @@
 #      且合成值不含任何真实身份；email 仍保持 1 开头，兼容既有校验口径。
 #   2) 建脱敏标记表 `_css_pii_masked`——从此"是否已脱敏"由标记决定，不再靠猜值形态。
 #
-# 用法: ./mask-residual-pii.sh <test|uat> [--all]
+# 用法: ./mask-residual-pii.sh <test|uat|support-demo> [--all]
 #   缺省（不带 --all）：只处理【歧义/未脱敏】的行——email 匹配 ^1[0-9] 或不以 1 开头；phone 不以 1 结尾。
 #   --all：把该环境**所有** email/phone 全部换成合成值（真正的"认不出是谁"，但测试账号登录名会全变，
 #          需同步通知使用者；脚本会打印新旧对照供分发）。
@@ -20,12 +20,12 @@
 # 前置: 与 anonymize-db.sh 相同——经 SSM 在该环境应用机上跑，用机器上 /opt/css-cicd/env/<env>/backend.env 的库连接。
 set -euo pipefail
 
-ENV_NAME="${1:?用法: mask-residual-pii.sh <test|uat> [--all]}"
+ENV_NAME="${1:?用法: mask-residual-pii.sh <test|uat|support-demo> [--all]}"
 MODE="${2:-residual}"
 case "$ENV_NAME" in
-  test|uat) ;;
+  test|uat|support-demo) ;;
   prod) echo "[FATAL] 生产库禁止脱敏"; exit 1 ;;
-  *) echo "环境必须是 test|uat"; exit 1 ;;
+  *) echo "环境必须是 test|uat|support-demo"; exit 1 ;;
 esac
 [ "$MODE" = "residual" ] || [ "$MODE" = "--all" ] || { echo "第二个参数只能是 --all（或省略）"; exit 1; }
 REGION=us-east-1

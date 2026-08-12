@@ -9,16 +9,16 @@
 #    Terraform/state（secret 会明文落 state，见 css-terraform CLAUDE.md §九），所以发 key 永远走这里。
 #    （2026-07-31 由 create-app-s3-user.sh 改名而来，名字对齐"只发 key"的现职能。）
 #
-# 用法: ./issue-app-s3-key.sh <dev|test|uat|support-ref|prod> [--new-key]
+# 用法: ./issue-app-s3-key.sh <dev|test|uat|support-ref|support-demo|prod> [--new-key]
 #   不带 --new-key：查看用户与现有 key 状态
 #   带 --new-key  ：生成一对 access key 并【只打印这一次】（AWS 不会再给第二次）
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
-ENV_NAME="${1:?用法: issue-app-s3-key.sh <dev|test|uat|support-ref|prod> [--new-key]}"
+ENV_NAME="${1:?用法: issue-app-s3-key.sh <dev|test|uat|support-ref|support-demo|prod> [--new-key]}"
 NEWKEY="${2:-}"
 REGION="us-east-1"
-case "$ENV_NAME" in dev|test|uat|support-ref|prod) ;; *) echo "环境必须是 dev|test|uat|support-ref|prod"; exit 1 ;; esac
+case "$ENV_NAME" in dev|test|uat|support-ref|support-demo|prod) ;; *) echo "环境必须是 dev|test|uat|support-ref|support-demo|prod"; exit 1 ;; esac
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text | tr -d '\r')
 USER="css-app-$ENV_NAME"
 BUCKET="css-$ENV_NAME-$ACCOUNT_ID"

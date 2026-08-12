@@ -22,13 +22,13 @@
 # ⚠️ 在 VPC 内机器（堡垒机/应用机）上执行——RDS 在私有子网，本机不可达。
 #    prod 用法示例（在 css-prod-bastion 上，master 密码现取 Secrets Manager 的 rds! secret）：
 #      ./add-readonly-db-account.sh <prod-rds主机> '<master密码>' prod
-# 用法: ./add-readonly-db-account.sh <rds主机> <master密码> <test|uat|support-ref|prod> [角色名=css_dev] [--rotate]
+# 用法: ./add-readonly-db-account.sh <rds主机> <master密码> <test|uat|support-ref|support-demo|prod> [角色名=css_dev] [--rotate]
 #   --rotate：角色已存在时也重设密码（缺省不动既有密码，只补授权）
 set -euo pipefail
 
 HOST="${1:?用法: add-readonly-db-account.sh <rds主机> <master密码> <env> [角色名=css_dev] [--rotate]}"
 PASS="${2:?缺 master 密码}"
-ENV_NAME="${3:?缺环境名: test|uat|support-ref|prod}"
+ENV_NAME="${3:?缺环境名: test|uat|support-ref|support-demo|prod}"
 shift 3
 ROLE="css_dev"; ROTATE=0
 for arg in "$@"; do
@@ -37,7 +37,7 @@ for arg in "$@"; do
     *) ROLE="$arg" ;;
   esac
 done
-case "$ENV_NAME" in test|uat|support-ref|prod) ;; *) echo "[FATAL] 环境必须是 test|uat|support-ref|prod（收到: $ENV_NAME）"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "[FATAL] 环境必须是 test|uat|support-ref|support-demo|prod（收到: $ENV_NAME）"; exit 1 ;; esac
 # PG 角色名不允许连字符
 case "$ROLE" in *-*) echo "[FATAL] 角色名不能含连字符: $ROLE"; exit 1 ;; esac
 
