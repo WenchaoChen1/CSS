@@ -12,7 +12,7 @@ SRC_ENV="${1:?用法: sync-s3-env-bucket.sh <源env> <目标env> [--dry-run]}"
 DST_ENV="${2:?缺目标环境}"
 DRY="${3:-}"
 for e in "$SRC_ENV" "$DST_ENV"; do
-  case "$e" in test|uat|support-ref|support-demo|prod) ;; *) echo "[FAIL] 未知环境 $e（test|uat|support-ref|support-demo|prod）"; exit 1 ;; esac
+  case "$e" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "[FAIL] 未知环境 $e（test|uat|support-ref|support-demo|support-sync|prod）"; exit 1 ;; esac
 done
 [ "$SRC_ENV" != "$DST_ENV" ] || { echo "[FAIL] 源与目标相同"; exit 1; }
 [ "$DST_ENV" = "prod" ] && { printf '⚠️  目标是【生产桶】，输入 prod 确认: '; read -r c; [ "$c" = "prod" ] || { echo "已取消"; exit 1; }; }

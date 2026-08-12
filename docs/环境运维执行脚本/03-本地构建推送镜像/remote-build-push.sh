@@ -5,7 +5,7 @@
 #       （实例角色只有 ECR pull——2026-08-07 实测 push denied；token 以调用者身份鉴权，有效 12h，用完即删）
 #       → SSM Run Command 在目标环境应用机上解包、docker login、跑仓库 deploy/aws/build-push.sh <env> <tag> <scope>
 #       （与 CI/push-ecr.sh 同一套构建定义，双 tag：<tag> + <env> 浮动）。
-# 用法: ./remote-build-push.sh <test|uat|support-ref|support-demo|prod> [tag] [backend|frontend|all]
+# 用法: ./remote-build-push.sh <test|uat|support-ref|support-demo|support-sync|prod> [tag] [backend|frontend|all]
 #   tag   缺省 <env>-manual-<后端 git sha7>；scope 缺省 all（7 镜像）
 # 前置: aws cli 凭证有 ECR push / SSM / S3 / 目标环境参数读取权限；目标机 SSM Online、
 #       docker compose ≥2.17（frontend 构建用 additional_contexts/dockerfile_inline，2026-08-11 实测 v5.4.0）。
@@ -22,8 +22,8 @@ export MSYS_NO_PATHCONV=1
 # "'gbk' codec can't encode character"（2026-08-11 踩坑），强制 UTF-8
 export PYTHONUTF8=1
 
-ENV_NAME="${1:?用法: remote-build-push.sh <test|uat|support-ref|support-demo|prod> [tag] [backend|frontend|all]}"
-case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|prod"; exit 1 ;; esac
+ENV_NAME="${1:?用法: remote-build-push.sh <test|uat|support-ref|support-demo|support-sync|prod> [tag] [backend|frontend|all]}"
+case "$ENV_NAME" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|support-sync|prod"; exit 1 ;; esac
 SCOPE="${3:-all}"
 REGION="us-east-1"
 

@@ -4,12 +4,12 @@
 #   （装 psql 客户端 → 从 Secrets Manager 取 RDS 托管密码 → 建库/pgvector → pg_restore → 清理）。
 # 前置：堡垒机由 css-terraform <组>/network stack 创建并挂 css-gw-<组> profile（SSM + 读中转桶 + 读 rds! 密码）。
 # 目标库名按 2026-07-28 规范：css-<env>-main / css-<env>-ocr（ocr 自动加 pgvector）。
-# 用法: ./restore-dump-via-gw.sh <test|uat|support-demo|prod> <main库dump> <ocr库dump>
+# 用法: ./restore-dump-via-gw.sh <test|uat|support-demo|support-sync|prod> <main库dump> <ocr库dump>
 #   例: ./restore-dump-via-gw.sh test ../../../备份/数据库/preprod/preprod_main_xxx.dump ../../../备份/数据库/preprod/preprod_ocr_xxx.dump
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"  # git-bash: 防参数被误转 Windows 路径
 
-ENV_NAME="${1:?用法: restore-dump-via-gw.sh <test|uat|support-demo|prod> <main.dump> <ocr.dump>}"
+ENV_NAME="${1:?用法: restore-dump-via-gw.sh <test|uat|support-demo|support-sync|prod> <main.dump> <ocr.dump>}"
 MAIN_DUMP="${2:?缺 main 库 dump 文件}"
 OCR_DUMP="${3:?缺 ocr 库 dump 文件}"
 REGION="us-east-1"
@@ -17,9 +17,9 @@ REGION="us-east-1"
 [ -f "$OCR_DUMP" ]  || { echo "文件不存在: $OCR_DUMP"; exit 1; }
 
 case "$ENV_NAME" in
-  test|uat|support-demo) GW_GROUP=css-non-prod; RDS_ID=css-non-prod ;;
-  prod)                  GW_GROUP=css-prod;     RDS_ID=css-prod ;;
-  *) echo "环境必须是 test|uat|support-demo|prod"; exit 1 ;;
+  test|uat|support-demo|support-sync) GW_GROUP=css-non-prod; RDS_ID=css-non-prod ;;
+  prod)                               GW_GROUP=css-prod;     RDS_ID=css-prod ;;
+  *) echo "环境必须是 test|uat|support-demo|support-sync|prod"; exit 1 ;;
 esac
 if [ "$ENV_NAME" = "prod" ]; then
   read -r -p "[WARN] 即将【覆盖恢复生产库】css-prod-main/css-prod-ocr，输入 prod 确认: " ok

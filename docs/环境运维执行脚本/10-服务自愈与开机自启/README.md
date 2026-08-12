@@ -15,7 +15,7 @@
 ### `setup-autodeploy.sh` — 经 SSM 给目标环境 EC2 装上"重启自动拉起三栈的 systemd 单元 + 每 5 分钟冒烟自愈 cron"
 
 ```bash
-./setup-autodeploy.sh <test|uat|support-ref|support-demo|prod>    # 唯一参数：环境名，只接受这几个值
+./setup-autodeploy.sh <test|uat|support-ref|support-demo|support-sync|prod>    # 唯一参数：环境名，只接受这几个值
 ./setup-autodeploy.sh test               # 给 test 环境机器配置开机自启 + 自愈（不上机，走 09 的 run.sh 下发）
 ```
 
@@ -35,7 +35,7 @@ bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 's
 ### `setup-cw-agent.sh` — 装 CloudWatch Agent，让磁盘/内存进 CloudWatch（告警的前置条件）
 
 ```bash
-./setup-cw-agent.sh <test|uat|support-ref|support-demo|prod>      # 幂等：已装则只更新配置并重启，可反复执行
+./setup-cw-agent.sh <test|uat|support-ref|support-demo|support-sync|prod>      # 幂等：已装则只更新配置并重启，可反复执行
 ```
 
 **为什么必须装**（2026-08-05 事故教训）：EC2 的原生 CloudWatch 指标由 hypervisor 采集——CPU、网络、
@@ -54,8 +54,8 @@ bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 's
 ### `prune-docker-images.sh` — 清应用机上堆积的旧版本镜像（默认预演，`--yes` 才删）
 
 ```bash
-./prune-docker-images.sh <test|uat|support-ref|support-demo|prod> [保留版本数]         # 预演，默认保留最近 3 个版本
-./prune-docker-images.sh <test|uat|support-ref|support-demo|prod> [保留版本数] --yes    # 实际删除
+./prune-docker-images.sh <test|uat|support-ref|support-demo|support-sync|prod> [保留版本数]         # 预演，默认保留最近 3 个版本
+./prune-docker-images.sh <test|uat|support-ref|support-demo|support-sync|prod> [保留版本数] --yes    # 实际删除
 ```
 
 **根因**（同一事故）：`deploy.sh` 收尾原本只跑 `docker image prune -f`，**那只删悬空镜像（`<none>` 无 tag 的）**，

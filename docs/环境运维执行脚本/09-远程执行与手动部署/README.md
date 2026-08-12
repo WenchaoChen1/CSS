@@ -7,7 +7,7 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ### `setup-ssm.sh` — 把一台 EC2 配置成 SSM Run Command 可达的部署目标（挂实例角色 + 打 Environment 标签 + 验证 Online）
 
 ```bash
-./setup-ssm.sh <test|uat|support-ref|support-demo|prod> <instance-id>    # 环境名 + 目标实例 id
+./setup-ssm.sh <test|uat|support-ref|support-demo|support-sync|prod> <instance-id>    # 环境名 + 目标实例 id
 ./setup-ssm.sh test i-0cb9b69b9eb19a9aa         # 给 test 机补配/排查 SSM 可达性
 ```
 
@@ -17,7 +17,7 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ### `run.sh` — 经 SSM Run Command 在目标环境 EC2 上执行任意命令（免 SSH/22/pem），等待完成并回显输出
 
 ```bash
-./run.sh <test|uat|support-ref|support-demo|prod> '<shell 命令>'                          # 目标机按标签 Environment=css-<env> 且 SSM Online 定位
+./run.sh <test|uat|support-ref|support-demo|support-sync|prod> '<shell 命令>'                          # 目标机按标签 Environment=css-<env> 且 SSM Online 定位
 ./run.sh test 'docker ps --format "{{.Names}} {{.Status}}"'      # 查看 test 环境三栈容器状态
 ```
 
@@ -26,7 +26,7 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ### `deploy-env.sh` — 手动部署一个环境（CI 之外的兜底/回滚入口；日常部署已由 CI 自动执行）：打包 Backend 仓库 deploy/{compose,config,bin} → 经 SSM 上传到目标机 /opt/css-cicd/ → 执行 deploy.sh
 
 ```bash
-./deploy-env.sh <test|uat|support-ref|support-demo|prod> [stack] [image_tag]   # stack: all(默认)|core(=infra+backend)|infra|backend|frontend
+./deploy-env.sh <test|uat|support-ref|support-demo|support-sync|prod> [stack] [image_tag]   # stack: all(默认)|core(=infra+backend)|infra|backend|frontend
 ./deploy-env.sh test                                  # 全量部署 test（缺省用浮动 <env> tag，即最近一次 CI 推送）
 ./deploy-env.sh test backend test-v12                 # 只部署后端并回滚/固定到不可变版本 tag
 ./deploy-env.sh test migrate                          # 数据库迁移（特殊 stack 值，执行 alembic upgrade head）
@@ -84,7 +84,7 @@ aws ssm describe-instance-information --filters "Key=tag:Environment,Values=css-
 ### 用法
 
 ```
-/opt/css-cicd/bin/deploy.sh <test|uat|support-ref|support-demo|prod> [action] [stack] [image_tag]
+/opt/css-cicd/bin/deploy.sh <test|uat|support-ref|support-demo|support-sync|prod> [action] [stack] [image_tag]
 ```
 
 | 参数 | 取值 |

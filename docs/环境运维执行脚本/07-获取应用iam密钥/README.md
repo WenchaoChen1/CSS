@@ -14,8 +14,8 @@
 ### `issue-app-s3-key.sh` — 管理 `css-app-<env>` 应用 S3 用户的 access key（查看/发放）
 
 ```bash
-./issue-app-s3-key.sh <dev|test|uat|support-ref|support-demo|prod>            # 不带 --new-key：查看用户与现有 key 状态
-./issue-app-s3-key.sh <dev|test|uat|support-ref|support-demo|prod> --new-key  # 生成一对 access key 并【只打印这一次】（AWS 不会再给第二次）
+./issue-app-s3-key.sh <dev|test|uat|support-ref|support-demo|support-sync|prod>            # 不带 --new-key：查看用户与现有 key 状态
+./issue-app-s3-key.sh <dev|test|uat|support-ref|support-demo|support-sync|prod> --new-key  # 生成一对 access key 并【只打印这一次】（AWS 不会再给第二次）
 ./issue-app-s3-key.sh dev                            # 例：查看 css-app-dev 的现有 key 状态
 ./issue-app-s3-key.sh test --new-key                 # 例：给 css-app-test 发一对新 key
 ```

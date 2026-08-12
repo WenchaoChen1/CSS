@@ -2,13 +2,13 @@
 # 把一台 EC2 配置成 SSM Run Command 可达的部署目标（挂实例角色 + 打 Environment 标签 + 验证 Online）。
 # CI/CD 的部署命令就是经 SSM 送达（免 SSH/22/pem）；用 docs/环境运维执行脚本/06-服务器密钥与访问 建的新机已自动配好，
 # 本脚本用于：给已有机器补配（如现有 test 机）、或排查一台机器为什么 SSM 不可达。
-# 用法: ./setup-ssm.sh <test|uat|support-ref|support-demo|prod> <instance-id>
+# 用法: ./setup-ssm.sh <test|uat|support-ref|support-demo|support-sync|prod> <instance-id>
 set -euo pipefail
 
-ENV_NAME="${1:?用法: setup-ssm.sh <test|uat|support-ref|support-demo|prod> <instance-id>}"
+ENV_NAME="${1:?用法: setup-ssm.sh <test|uat|support-ref|support-demo|support-sync|prod> <instance-id>}"
 INSTANCE="${2:?缺 instance-id（如 i-08e110b5a5425980d）}"
 REGION="us-east-1"
-case "$ENV_NAME" in test|uat|support-ref|support-demo|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|prod"; exit 1 ;; esac
+case "$ENV_NAME" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|support-sync|prod"; exit 1 ;; esac
 case "$ENV_NAME" in prod) GROUP=css-prod ;; *) GROUP=css-non-prod ;; esac
 PROFILE="css-ec2-$ENV_NAME"
 

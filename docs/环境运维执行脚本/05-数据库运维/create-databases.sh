@@ -10,7 +10,7 @@ set -euo pipefail
 HOST="${1:?用法: create-databases.sh <rds主机> <master密码> <env...>}"
 PASS="${2:?缺 master 密码}"
 shift 2
-[ $# -ge 1 ] || { echo "至少一个环境: test|uat|support-ref|support-demo|prod"; exit 1; }
+[ $# -ge 1 ] || { echo "至少一个环境: test|uat|support-ref|support-demo|support-sync|prod"; exit 1; }
 
 # 优先原生 psql（堡垒机 dnf 装过 postgresql16），没有再回退 docker（与 reown-db-objects.sh 同款，2026-08-07）
 if command -v psql >/dev/null 2>&1; then
@@ -20,7 +20,7 @@ else
 fi
 
 for env in "$@"; do
-  case "$env" in test|uat|support-ref|support-demo|prod) ;; *) echo "跳过未知环境 $env"; continue;; esac
+  case "$env" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "跳过未知环境 $env"; continue;; esac
   MAIN="css-$env-main"; OCR="css-$env-ocr"
   for db in "$MAIN" "$OCR"; do
     if psql_run -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$db'" | grep -q 1; then
