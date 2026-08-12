@@ -30,9 +30,12 @@ REGION=us-east-1
 
 case "$TARGET" in
   nonprod) INSTANCE=i-08b0ef319d08eae38; BASTION_IP=3.225.148.166
-           PERMIT='permitopen="10.20.10.10:22",permitopen="10.20.11.10:22",permitopen="css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com:5432"' ;;
+           RDS_HOST=css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com
+           PERMIT="permitopen=\"10.20.10.10:22\",permitopen=\"10.20.11.10:22\",permitopen=\"${RDS_HOST}:5432\"" ;;
   prod)    INSTANCE=i-0a6d6754c61c239d0; BASTION_IP=34.225.237.45
-           PERMIT='permitopen="10.10.10.10:22"' ;;
+           RDS_HOST=css-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com
+           # 2026-08-12：prod 放行补上 prod RDS 5432（原先只放行应用机 22，连不了生产库）——用户要求开发者钥经 prod 堡垒机做生产库 SSH 隧道
+           PERMIT="permitopen=\"10.10.10.10:22\",permitopen=\"${RDS_HOST}:5432\"" ;;
   *) echo "第三个参数只能是 nonprod 或 prod"; exit 1 ;;
 esac
 
@@ -131,7 +134,7 @@ cat <<EOT
 到期: $EXPIRY UTC（自动失效；延期=重跑本脚本）
 
 # RDS 隧道（Navicat/psql 连 localhost:5433）
-ssh -i ${TARGET}-${DEV}.pem -N -L 5433:css-non-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com:5432 ec2-user@${BASTION_IP}
+ssh -i ${TARGET}-${DEV}.pem -N -L 5433:${RDS_HOST}:5432 ec2-user@${BASTION_IP}
 # 登应用机（需发钥时带了对应 apps 参数）
 ssh -i ${TARGET}-${DEV}.pem -J ec2-user@${BASTION_IP} ec2-user@10.20.10.10   # test
 ssh -i ${TARGET}-${DEV}.pem -J ec2-user@${BASTION_IP} ec2-user@10.20.11.10   # uat
