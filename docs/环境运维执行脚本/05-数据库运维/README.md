@@ -1,10 +1,10 @@
 # 05-数据库运维 —— 建库 / 数据同步与恢复 / 脱敏 / 库账号与改密 / 对象 owner（原 05-数据同步）
 
-本目录共 **20 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 备份 → 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
+本目录共 **21 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 备份 → 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
 
 通用注意：
 
-- ⚠️ 除 `backup-env-db.sh`、`restore-dump-via-gw.sh`、`restore-old-env-backup.sh` 和 `anonymize-db.sh`（在**本机**执行，经 SSH/S3/SSM 落到 AWS 内机器）外，其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
+- ⚠️ 除 `backup-env-db.sh`、`backup-db-in-rds.sh`、`restore-dump-via-gw.sh`、`restore-old-env-backup.sh` 和 `anonymize-db.sh`（在**本机**执行，经 SSH/S3/SSM 落到 AWS 内机器）外，其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
 - master 密码从 Secrets Manager 取（`rds!` 前缀 secret），命令行传参即可，勿写进文件；各库账号密码见 `运维访问速查.local.md`。
 - 库名规范（2026-07-28 拍板）：`css-<env>-main` / `css-<env>-ocr`，含连字符——SQL 内脚本已用双引号处理，DSN 里可直接使用。
 - ⚠️ **PG 版本对应**：导数据前核对源/目标 **大版本**（新实例 PG16.14），pg_dump/pg_restore 客户端版本**不得低于服务端大版本**；跨大版本恢复前先在测试库演练。
@@ -55,8 +55,21 @@ SRC_PGPASSWORD=... ONLY=main ./backup-env-db.sh uat # 只备 main 库
 ```
 
 - 链路：堡垒机上 `pg_dump -Fc` → ssh stdout 流式落盘本机——堡垒机不留文件、无 S3 中转，本机无需 pg 客户端；密码经 stdin export 行传远端，不进远端命令行参数。
-- 落盘后校验 PGDMP 文件头；同名文件已存在则中止不覆盖；`prod` 需交互输入 `prod` 确认（生产数据未脱敏，拷出后勿外传）。
-- 恢复对口脚本：`restore-dump-via-gw.sh`。✅ 2026-08-13 首次执行：test 两库备份成功（main 4.4MB/150 张表、ocr 9KB/4 张表，TOC 经 pg_restore -l 校验完整）。
+- 落盘后校验 PGDMP 文件头；同名文件已存在则中止不覆盖；`prod` 需交互输入 `prod` 确认（生产数据未脱敏，拷出后勿外传；无 tty 的自动化场景用 `ASSUME_YES=1` 旁路）。
+- 恢复对口脚本：`restore-dump-via-gw.sh`。✅ 2026-08-13 首次执行：test 两库备份成功（main 4.4MB/150 张表、ocr 9KB/4 张表，TOC 经 pg_restore -l 校验完整）；同日 `ASSUME_YES=1` 导出 prod 两库用于 test 重建。
+
+### `backup-db-in-rds.sh` — 在【同一 RDS 实例内】把某环境业务库复制成 backup_ 前缀留档库（不出实例、不落文件）
+
+```bash
+./backup-db-in-rds.sh <test|uat|support-ref|support-demo|support-sync|prod> [日期标签YYYYMMDD]
+./backup-db-in-rds.sh test            # css-test-{main,ocr} → backup_<今天>_test_{main,ocr}
+ONLY=main ./backup-db-in-rds.sh uat 20260901
+```
+
+- 与 `backup-env-db.sh`（落本机文件）互补：本脚本产物是**同实例上的库内快照**，重建/灌数前留档用，恢复=直接改连接串或 `rename-db.sh` 换名。
+- 链路：堡垒机上 `pg_dump -Fc | pg_restore` 流式复制；凭证自动从 Secrets Manager 取 master（建库需 CREATEDB 属性，css_ops 虽在 rds_superuser 组但属性不随成员继承，普通账号建不了库）。
+- 目标库已存在则中止（绝不覆盖既有留档）；校验源/目标 public 表数一致。留档库 owner=postgres，css_dev 要读需重跑 `make-css-dev-readonly.sh`；用完 `DROP DATABASE` 别让实例膨胀。
+- ✅ 2026-08-13 首次执行：`backup_20260813_test_main`（150 表/43MB）+ `backup_20260813_test_ocr`（4 表/8MB），test 重建前留档。
 
 ### `restore-dump-via-gw.sh` — 在本机把本地 pg_dump 备份经 S3+SSM 由网关机恢复进私网 RDS（无需上机）
 

@@ -13,6 +13,7 @@
 # 可选环境变量:
 #   SRC_DB_USER=css_ops    源库账号（默认 css_ops；密码见 deploy-env/密码.local.md，勿写进脚本/命令行历史外泄）
 #   ONLY=main|ocr          只备份其中一个库（默认 main+ocr 都备）
+#   ASSUME_YES=1           跳过 prod 交互确认（无 tty 的自动化场景用；等效于已输入 prod）
 #   DEV_KEY=<私钥路径>      用开发者自己的临时钥代替管理员钥
 #
 # 恢复对口脚本：restore-dump-via-gw.sh（本机 dump → S3 → 网关机 pg_restore 进 RDS）。
@@ -55,7 +56,7 @@ echo "  源: $RDS_ID ($EP) 账号 $SRC_DB_USER"
 echo "  库: ${DBS[*]}"
 echo "  落盘: $OUT_DIR/${ENV_NAME}_{main,ocr}_$TS.dump"
 
-if [ "$ENV_NAME" = "prod" ]; then
+if [ "$ENV_NAME" = "prod" ] && [ "${ASSUME_YES:-0}" != "1" ]; then
   read -r -p "[WARN] 正在【把生产数据拷出 AWS 到本机】，输入 prod 确认: " ok < /dev/tty
   [ "$ok" = "prod" ] || { echo "已取消"; exit 1; }
 fi
