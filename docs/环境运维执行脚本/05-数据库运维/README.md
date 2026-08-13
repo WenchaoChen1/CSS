@@ -1,10 +1,10 @@
 # 05-数据库运维 —— 建库 / 数据同步与恢复 / 脱敏 / 库账号与改密 / 对象 owner（原 05-数据同步）
 
-本目录共 **12 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
+本目录共 **20 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 备份 → 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
 
 通用注意：
 
-- ⚠️ 除 `restore-dump-via-gw.sh`、`restore-old-env-backup.sh` 和 `anonymize-db.sh`（在**本机**执行，经 S3/SSM 落到 AWS 内机器）外，其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
+- ⚠️ 除 `backup-env-db.sh`、`restore-dump-via-gw.sh`、`restore-old-env-backup.sh` 和 `anonymize-db.sh`（在**本机**执行，经 SSH/S3/SSM 落到 AWS 内机器）外，其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
 - master 密码从 Secrets Manager 取（`rds!` 前缀 secret），命令行传参即可，勿写进文件；各库账号密码见 `运维访问速查.local.md`。
 - 库名规范（2026-07-28 拍板）：`css-<env>-main` / `css-<env>-ocr`，含连字符——SQL 内脚本已用双引号处理，DSN 里可直接使用。
 - ⚠️ **PG 版本对应**：导数据前核对源/目标 **大版本**（新实例 PG16.14），pg_dump/pg_restore 客户端版本**不得低于服务端大版本**；跨大版本恢复前先在测试库演练。
@@ -45,6 +45,18 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 
 - ⚠️ 带 `--clean --if-exists`，目标库同名对象会先被清掉；**生产同步前先打快照**。需在能同时连通两端的机器上执行。
 - 同步后核对目标库 `alembic_version` 是否与代码迁移链一致——**不一致勿跑 alembic upgrade**。
+
+### `backup-env-db.sh` — 在本机把某环境的 RDS 业务库经堡垒机 pg_dump 备份成本机文件
+
+```bash
+SRC_PGPASSWORD='<css_ops 密码>' ./backup-env-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [输出目录]
+SRC_PGPASSWORD=... ./backup-env-db.sh test          # 落到 备份/数据库/test/test_{main,ocr}_<时间戳>.dump
+SRC_PGPASSWORD=... ONLY=main ./backup-env-db.sh uat # 只备 main 库
+```
+
+- 链路：堡垒机上 `pg_dump -Fc` → ssh stdout 流式落盘本机——堡垒机不留文件、无 S3 中转，本机无需 pg 客户端；密码经 stdin export 行传远端，不进远端命令行参数。
+- 落盘后校验 PGDMP 文件头；同名文件已存在则中止不覆盖；`prod` 需交互输入 `prod` 确认（生产数据未脱敏，拷出后勿外传）。
+- 恢复对口脚本：`restore-dump-via-gw.sh`。✅ 2026-08-13 首次执行：test 两库备份成功（main 4.4MB/150 张表、ocr 9KB/4 张表，TOC 经 pg_restore -l 校验完整）。
 
 ### `restore-dump-via-gw.sh` — 在本机把本地 pg_dump 备份经 S3+SSM 由网关机恢复进私网 RDS（无需上机）
 
