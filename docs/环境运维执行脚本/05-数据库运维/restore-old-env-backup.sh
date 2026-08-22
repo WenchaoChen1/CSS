@@ -169,6 +169,16 @@ echo "$DB_MAIN: 表 \$TBL 个, 大小 \$SZ"
 echo "$DB_OCR: 表 \$OTBL 个"
 P -d '$DB_MAIN' -tAc "SELECT 'alembic 版本: '||version_num FROM alembic_version" 2>/dev/null || echo 'alembic_version 表不存在'
 P -d '$DB_MAIN' -tAc "SELECT 'users 行数: '||count(*) FROM users" 2>/dev/null || true
+# A 挂钩（2026-08-22）：新留档库对团队只读账号 css_dev 立即可见（B 兜底=template1 预置，双保险）
+HASDEV=\$(P -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='css_dev'")
+if [ "\$HASDEV" = "1" ]; then
+  for db in '$DB_MAIN' '$DB_OCR'; do
+    P -d "\$db" -c 'GRANT USAGE ON SCHEMA public TO css_dev;' >/dev/null
+    P -d "\$db" -c 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO css_dev;' >/dev/null
+    P -d "\$db" -c 'GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO css_dev;' >/dev/null
+  done
+  echo '--- css_dev 只读已授（A 挂钩）---'
+fi
 rm -f /tmp/main.dump /tmp/ocr.dump
 [ "\${TBL:-0}" -gt 0 ] || { echo '[FATAL] main 备份库表数为 0——恢复失败'; exit 1; }
 [ \$RC_MAIN -le 1 ] && [ \$RC_OCR -le 1 ] || { echo '[FATAL] pg_restore 硬失败'; exit 1; }

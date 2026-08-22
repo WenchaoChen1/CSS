@@ -103,6 +103,15 @@ DST_TBL=$(psql -h "$EP" -p 5432 -U "$MUSER" -d "$DST_DB" -tAc "SELECT count(*) F
 SIZE=$(P -c "SELECT pg_size_pretty(pg_database_size('$DST_DB'))")
 echo "    校验: 源表数=$SRC_TBL 目标表数=$DST_TBL 目标库大小=$SIZE"
 [ -n "$SRC_TBL" ] && [ "$SRC_TBL" = "$DST_TBL" ] || { echo "[FATAL] 表数不一致，留档不完整"; exit 1; }
+# A 挂钩（2026-08-22）：留档库对团队只读账号 css_dev 立即可见。
+# 本脚本建库用 TEMPLATE template0，不继承 template1 的预置（B 兜底对它无效），此段是唯一保障。
+HASDEV=$(P -c "SELECT 1 FROM pg_roles WHERE rolname='css_dev'" | tr -d '[:space:]')
+if [ "${HASDEV:-}" = "1" ]; then
+  psql -h "$EP" -p 5432 -U "$MUSER" -d "$DST_DB" -v ON_ERROR_STOP=1 -c 'GRANT USAGE ON SCHEMA public TO css_dev;' >/dev/null
+  psql -h "$EP" -p 5432 -U "$MUSER" -d "$DST_DB" -v ON_ERROR_STOP=1 -c 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO css_dev;' >/dev/null
+  psql -h "$EP" -p 5432 -U "$MUSER" -d "$DST_DB" -v ON_ERROR_STOP=1 -c 'GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO css_dev;' >/dev/null
+  echo "    css_dev 只读已授（A 挂钩）"
+fi
 echo "    ✅ $DST_DB 完成"
 REMOTE
   } | ssh "${SSH_OPTS[@]}" ec2-user@"$BASTION_IP" bash -s || FAIL=1
@@ -110,4 +119,4 @@ done
 
 [ "$FAIL" = 0 ] || { echo "===== 有库留档失败，见上方日志 ====="; exit 1; }
 echo "===== 库内留档完成 ====="
-echo "提醒: 留档库含业务数据，用完 DROP；css_dev 需要读它时重跑 make-css-dev-readonly.sh。"
+echo "提醒: 留档库含业务数据，用完 DROP；css_dev 只读已随建库自动授权（2026-08-22 起，无需再重跑 make-css-dev-readonly.sh）。"

@@ -90,6 +90,16 @@ P -d 'css-$ENV_NAME-main' -tAc "SELECT 'alembic: '||version_num FROM alembic_ver
 [ "\${TBL:-0}" -gt 0 ] || { echo '[FATAL] main 库 public schema 表数为 0——恢复失败'; exit 1; }
 [ "\$RC_MAIN" -le 1 ] && [ "\$RC_OCR" -le 1 ] || { echo '[FATAL] pg_restore 硬失败（退出码 >1）'; exit 1; }
 P -d 'css-$ENV_NAME-ocr'  -tAc "SELECT 'ocr 表数: '||count(*) FROM pg_tables WHERE schemaname='public'"
+# A 挂钩（2026-08-22）：恢复出的库/表对团队只读账号 css_dev 立即可见（B 兜底=template1 预置，双保险）
+HASDEV=\$(P -d postgres -tAc "SELECT 1 FROM pg_roles WHERE rolname='css_dev'")
+if [ "\$HASDEV" = "1" ]; then
+  for db in css-$ENV_NAME-main css-$ENV_NAME-ocr; do
+    P -d "\$db" -c 'GRANT USAGE ON SCHEMA public TO css_dev;' >/dev/null
+    P -d "\$db" -c 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO css_dev;' >/dev/null
+    P -d "\$db" -c 'GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO css_dev;' >/dev/null
+  done
+  echo '--- css_dev 只读已授（A 挂钩）---'
+fi
 rm -f /tmp/main.dump /tmp/ocr.dump
 EOF
 )
