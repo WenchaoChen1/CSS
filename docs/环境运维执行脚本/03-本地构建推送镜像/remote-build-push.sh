@@ -83,10 +83,14 @@ cleanup() {
 trap cleanup EXIT
 
 echo "===== 打包源码 (env=$ENV_NAME tag=$TAG scope=$SCOPE) ====="
+# --exclude='.env'：本地 dev 运行时文件（deploy/windows/sync-dev-env.ps1 生成，带 UTF-8 BOM 且含本地凭证）
+# 绝不能进构建包——buildx bake 会自动加载工作目录 .env，BOM 直接炸 bake 解析（2026-08-22 prod 前端构建踩坑）；
+# 只精确匹配名为 .env 的文件，不影响 deploy-env/<env>/backend.env 与远端自渲染的 .env.<env>。
 tar czf "$TARBALL" -C "$ROOT" \
   --exclude='.git' --exclude='node_modules' --exclude='dist' \
   --exclude='__pycache__' --exclude='.pytest_cache' --exclude='.venv' \
   --exclude='storybook-static' --exclude='coverage' \
+  --exclude='.env' \
   "$(basename "$BACKEND")" CSS_frontend-main "deploy-env/$ENV_NAME"
 echo "包大小: $(du -h "$TARBALL" | cut -f1)"
 
