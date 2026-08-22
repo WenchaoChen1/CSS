@@ -7,11 +7,23 @@
 # 与 create-db-accounts.sh 的关系：那边负责【建账号+首次授权】（其 css_dev 段已同步改为只读口径）；
 #   本脚本负责【把存量权限收敛到只读】，且**新建/恢复一个库之后要重跑一次**（默认权限不跨库）。
 # 执行链路：本机 → SSM → 网关机 psql16（master 密码由网关机自取 Secrets Manager，不进命令文本）。
-# 用法: ./make-css-dev-readonly.sh          # 收敛 + 验证
+# 用法: ./make-css-dev-readonly.sh                 # 非生产实例：收敛 + 验证
+#       ./make-css-dev-readonly.sh --to css-prod   # 生产实例（css_dev 由 add-readonly-db-account.sh 建过，
+#                                                  #   2026-08-22 起本脚本负责其全库授权刷新——重灌库后必重跑）
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
-REGION="us-east-1"; RDS_ID="css-non-prod"; GW_GROUP="css-non-prod"
+REGION="us-east-1"
+TARGET="css-non-prod"
+[ "${1:-}" = "--to" ] && TARGET="${2:?--to 需要 css-non-prod|css-prod}"
+case "$TARGET" in css-non-prod|css-prod) ;; *) echo "--to 只能是 css-non-prod|css-prod"; exit 1 ;; esac
+RDS_ID="$TARGET"; GW_GROUP="$TARGET"
+# reown 后表 owner=css_app_*，默认权限必须挂 owner 名下（见头注释坑点）；名单按实例（角色不存在自动跳过）
+if [ "$TARGET" = "css-prod" ]; then
+  OWNER_ROLES="css_app_prod"
+else
+  OWNER_ROLES="css_app_test css_app_uat css_app_support_ref css_app_support_demo css_app_support_sync"
+fi
 awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }
 ENDPOINT=$(awsq rds describe-db-instances --db-instance-identifier "$RDS_ID" --query 'DBInstances[0].Endpoint.Address')
 SECRET_ARN=$(awsq rds describe-db-instances --db-instance-identifier "$RDS_ID" --query 'DBInstances[0].MasterUserSecret.SecretArn')
@@ -44,7 +56,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO css_dev;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON SEQUENCES TO css_dev;
 SQL
   # 表 owner 可能已移交给 css_app_*（reown-db-objects.sh）——它们未来建的表也只给 SELECT
-  for r in css_app_test css_app_uat; do
+  # 名单由外层按目标实例传入（OWNER_ROLES 环境变量），角色不存在时 || true 跳过
+  for r in $OWNER_ROLES; do
     P -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE $r IN SCHEMA public REVOKE ALL ON TABLES FROM css_dev;" >/dev/null 2>&1 || true
     P -d "$db" -c "ALTER DEFAULT PRIVILEGES FOR ROLE $r IN SCHEMA public GRANT SELECT ON TABLES TO css_dev;" >/dev/null 2>&1 || true
   done
@@ -65,10 +78,10 @@ echo '✅ css_dev 已是全实例只读'
 EOS
 } | base64 -w0 )
 
-PARAMS=$(EP="$ENDPOINT" SEC="$SECRET_ARN" B64="$REMOTE_B64" python - <<'PY'
+PARAMS=$(EP="$ENDPOINT" SEC="$SECRET_ARN" B64="$REMOTE_B64" ROLES="$OWNER_ROLES" python - <<'PY'
 import json, os
-cmd = ("echo %s | base64 -d > /tmp/devro.sh && ENDPOINT=%s SECRET_ARN=%s bash /tmp/devro.sh; RC=$?; rm -f /tmp/devro.sh; exit $RC"
-      ) % (os.environ['B64'], os.environ['EP'], os.environ['SEC'])
+cmd = ("echo %s | base64 -d > /tmp/devro.sh && ENDPOINT=%s SECRET_ARN=%s OWNER_ROLES='%s' bash /tmp/devro.sh; RC=$?; rm -f /tmp/devro.sh; exit $RC"
+      ) % (os.environ['B64'], os.environ['EP'], os.environ['SEC'], os.environ['ROLES'])
 print(json.dumps({"commands":[cmd],"executionTimeout":["900"]}))
 PY
 )
