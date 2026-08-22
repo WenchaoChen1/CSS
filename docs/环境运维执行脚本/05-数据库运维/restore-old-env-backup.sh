@@ -12,15 +12,30 @@
 #
 # 通路：本地 dump → S3 中转桶 css-dbsync-<账号> → SSM 在网关机上 pg_restore（RDS 在私有子网，本地直连不了）。
 #
-# 用法: ./restore-old-env-backup.sh <dev|stage|preprod|all> [日期后缀 YYYYMMDD]
-#       ./restore-old-env-backup.sh --list          # 只列出 RDS 上现有的库，不做任何改动
+# 用法: ./restore-old-env-backup.sh <dev|stage|preprod|all> [日期后缀 YYYYMMDD] [--to css-non-prod|css-prod]
+#       ./restore-old-env-backup.sh --list [--to css-prod]   # 只列出 RDS 上现有的库，不做任何改动
 #   日期后缀缺省取 dump 文件名里的日期；库已存在则跳过（要重建先手工 DROP，脚本不替你删数据）。
+#   --to（2026-08-22 加，产品切换需要）：备份库建到哪个 RDS 实例，缺省 css-non-prod；
+#   css-prod 时经 prod 堡垒机执行（css-gw-prod 角色有本实例 rds! secret 读取与 dbsync 桶只读）。
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
 REGION="us-east-1"
-RDS_ID="css-non-prod"        # test/uat 共用的非生产实例；备份库一并放这里
-GW_GROUP="css-non-prod"
+
+# ---- 目标实例：--to 参数抽取（其余参数原位保留）----
+TARGET="css-non-prod"
+ARGS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --to) shift; TARGET="${1:?--to 需要 css-non-prod|css-prod}" ;;
+    *) ARGS+=("$1") ;;
+  esac
+  shift || true
+done
+set -- ${ARGS[@]+"${ARGS[@]}"}
+case "$TARGET" in css-non-prod|css-prod) ;; *) echo "--to 只能是 css-non-prod|css-prod"; exit 1 ;; esac
+RDS_ID="$TARGET"             # 缺省 css-non-prod（test/uat 共用实例）；--to css-prod 建到生产实例
+GW_GROUP="$TARGET"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 DUMP_ROOT="$ROOT/备份/数据库"

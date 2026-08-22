@@ -18,6 +18,8 @@
 #   ./drop-env-databases.sh <test|uat|support-ref|support-demo|support-sync>                 # 预演
 #   ./drop-env-databases.sh <test|uat|support-ref|support-demo|support-sync> --yes           # 实删
 #   ./drop-env-databases.sh uat --yes --no-snapshot                             # 跳过快照（不建议）
+#   ./drop-env-databases.sh prod --yes --allow-prod                             # ⚠️ 生产（2026-08-22 产品切换解锁）：
+#       必须显式 --allow-prod + 手输 prod 二次确认；强制打快照（--no-snapshot 对 prod 拒绝）；经 prod 堡垒机执行
 #
 # 删完的完整重建链（顺序不能乱）：
 #   create-databases.sh → restore-dump-via-gw.sh → reown-db-objects.sh → anonymize-db.sh → rewrite-file-urls.sh
@@ -25,25 +27,38 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ENV_NAME="${1:-}"; shift || true
+IS_PROD=0
 case "$ENV_NAME" in
   test|uat|support-ref|support-demo|support-sync) ;;
-  prod) echo "[拒绝] prod 库不允许经脚本删除——生产数据的销毁必须人工上机并留变更记录"; exit 1 ;;
-  *) echo "用法: $0 <test|uat|support-ref|support-demo|support-sync> [--yes] [--no-snapshot]"; exit 1 ;;
+  prod) IS_PROD=1 ;;
+  *) echo "用法: $0 <test|uat|support-ref|support-demo|support-sync|prod> [--yes] [--no-snapshot] [--allow-prod]"; exit 1 ;;
 esac
 
-GO=0; SNAP=1
+GO=0; SNAP=1; ALLOW_PROD=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --yes) GO=1 ;;
     --no-snapshot) SNAP=0 ;;
+    --allow-prod) ALLOW_PROD=1 ;;
     *) echo "[FAIL] 未知参数: $1"; exit 1 ;;
   esac
   shift
 done
 
+# prod 闸（2026-08-22 产品切换解锁，用户拍板）：默认仍拒绝，必须显式 --allow-prod，且强制打快照
+if [ "$IS_PROD" = 1 ]; then
+  [ "$ALLOW_PROD" = 1 ] || { echo "[拒绝] prod 库删除需显式 --allow-prod（外加 --yes + 手输 prod 二次确认；强制快照）"; exit 1; }
+  [ "$SNAP" = 1 ] || { echo "[拒绝] prod 删除不允许 --no-snapshot"; exit 1; }
+fi
+
 REGION="${AWS_REGION:-us-east-1}"
-GW_ID="i-08b0ef319d08eae38"     # css-non-prod-bastion：有 psql16 客户端 + 能读 rds! secret
-RDS_ID="css-non-prod"
+if [ "$IS_PROD" = 1 ]; then
+  GW_ID="i-0a6d6754c61c239d0"   # css-prod-bastion：能读 css-prod 的 rds! secret（css-gw-prod-ops）
+  RDS_ID="css-prod"
+else
+  GW_ID="i-08b0ef319d08eae38"   # css-non-prod-bastion：有 psql16 客户端 + 能读 rds! secret
+  RDS_ID="css-non-prod"
+fi
 MAIN="css-${ENV_NAME}-main"; OCR="css-${ENV_NAME}-ocr"
 RUN="../09-远程执行与手动部署/run.sh"
 
@@ -76,7 +91,7 @@ read -r c
 
 if [ "$SNAP" = 1 ]; then
   SNAP_ID="pre-drop-${ENV_NAME}-$(date +%Y%m%d-%H%M%S)"
-  echo "--- 打删前快照: $SNAP_ID（整实例，含 test+uat 全部库）"
+  echo "--- 打删前快照: $SNAP_ID（$RDS_ID 整实例，含实例上全部库）"
   awsq rds create-db-snapshot --db-instance-identifier "$RDS_ID" --db-snapshot-identifier "$SNAP_ID" \
     --query 'DBSnapshot.DBSnapshotIdentifier'
   echo "    （不等它完成——快照内容是发起那一刻的一致状态。用完记得删：手动快照永不过期）"
