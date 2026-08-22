@@ -59,6 +59,6 @@ done
 
 echo ""
 echo "===== 完成。验证方式 ====="
-echo "1. 推空提交触发: git commit --allow-empty -m 'ci: trigger' && git push neworg test"
+echo "1. 推空提交触发: git commit --allow-empty -m 'ci: trigger' && git push origin test"
 echo "2. 或手动触发:   gh workflow run cicd.yml --repo $ORG/${REPOS[0]} --ref test -f environment=test"
 echo "3. 观看运行:     https://github.com/$ORG/<仓库>/actions"

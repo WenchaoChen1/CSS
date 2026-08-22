@@ -28,7 +28,7 @@
 
 想**采纳**页面上的手改而不是覆盖它：对照 `.remote-bak` 把 ① 列出的改动搬进本地底稿，再重跑（两边一致即跳过）。
 
-前置：本地底稿 `deploy-env/<env>/{backend,frontend}.env` 已填好（uat/prod 以同目录 `*.example` 为底稿；密钥勿跨环境复制），缺任一文件脚本即退出。
+前置：本地底稿 `deploy-env/<env>/{backend,frontend}.env` 已填好（**`deploy-env/` 下已无任何 `.example` 文件**——新环境请拷一个现有环境的同名文件当底稿，逐键改值；密钥勿跨环境复制），缺任一文件脚本即退出。
 注意：Windows git-bash 下脚本已自行处理中文路径/编码/MSYS 路径转换（含参数值带 `⚠` 等字符时 aws.exe 的 GBK 输出崩溃，`PYTHONUTF8=1` 根治）；灌入后后端变量重跑 deploy job 生效，前端 `VITE_*` 需重新构建镜像。
 
 改单个变量：直接在控制台改参数值后重跑对应 deploy job（后端）——下次跑本脚本会检测到差异、备份并提示你合并回底稿；或改本地底稿重跑本脚本（整份覆盖）。⚠️ 耦合键成对改：`API_KEY`==`VITE_X_API_KEY`、`CATALOG_OCR_API_KEY`==`OCR_API_KEY`；`PASSWORD_SALT` 迁移必须原样搬运。
@@ -41,6 +41,19 @@
 
 ## 状态 / 注意
 
-- test ✅ 已灌入（2026-07-28，含每环境独立 ECR 前缀 `test/css-backend` 等）；uat/prod 待环境建成后灌入；
-- backend.env 用 **Advanced 层**（约 4.4KB 超过 Standard 4KB 上限，$0.05/参数/月）；
+- ✅ **六个 AWS 环境共 12 个参数均已灌入并在用**（2026-08-22 实查）：`test` / `uat` / `prod` / `support-ref` / `support-demo` / `support-sync`，每环境 `backend.env` + `frontend.env`。`dev` 只在本机跑（`deploy/windows/本地dev.ps1` 直接读 `deploy-env/dev/`），**不入 SSM**；
+- backend.env 用 **Advanced 层**（早已超过 Standard 4KB 上限，$0.05/参数/月）。⚠️ **Advanced 层上限 8192 字符，实测已很紧**：
+
+  | 参数 | 长度（2026-08-22） | 余量 |
+  |---|---|---|
+  | `/css/test/backend.env` | **8118** | **仅 74** |
+  | `/css/uat/backend.env` | 8129 | 63 |
+  | `/css/support-demo/backend.env` | 7938 | 254 |
+  | `/css/prod/backend.env` | 7858 | 334 |
+  | `/css/support-ref/backend.env` | 7844 | 348 |
+  | `/css/support-sync/backend.env` | 7661 | 531 |
+
+  **加新键前必须先精简注释**（`put-params.sh` 不带 `-y` 可当预检）；能写死进 `infra.yml` 的值别绕 SSM。
+  量长度用 `aws ssm get-parameter --name /css/<env>/backend.env --with-decryption --query 'length(Parameter.Value)' --output text`，
+  **不能用 `wc -m`**——Git Bash 下它数的是**字节**，中文注释会把结果算大。
 - 读取权限按环境隔离：`css-ec2-<env>`/`css-deploy-<env>` 只能读 `/css/<env>/*`。

@@ -75,7 +75,9 @@
 
 ### 阶段二：代码面（G2+G3，合并触发 CI）
 
-5. 前后端各执行：`git checkout uat && git merge test`（fast-forward 或干净 merge）`&& git push neworg uat`
+5. 前后端各执行：`git checkout uat && git merge ops`（fast-forward 或干净 merge）`&& git push origin uat`
+   > ⚠️ 2026-08-22 分支重建后：`uat` = main + ops，**不再从 test 合并**（test 含 support-demo 老团队线，
+   > 合过去会把 uat 的 alembic 头从 `b3d9f1a2c4e5` 变成 `e8f2a4b6c1d3`）。以下为 2026-08 初首次上线时的记录。
 6. push 自动触发 GitHub Actions：构建 6+1 镜像推 ECR（`uat-v1` + 浮动 `uat`）→ SSM 上传 bundle 到 uat 机 `/opt/css-cicd/` → `deploy.sh uat migrate all` → `deploy core` → 前端 workflow 构建（烤入 `/css/uat/frontend.env` 的 VITE_*）→ `deploy frontend`
 7. 盯 Actions 日志；CI 部署环节失败的兜底：`docs/环境运维执行脚本/09-远程执行与手动部署/deploy-env.sh uat`
 

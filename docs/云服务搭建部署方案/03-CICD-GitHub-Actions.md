@@ -281,27 +281,30 @@ VPC css-prod（10.10.0.0/16）
 **基础设施**：非生产 VPC 的 test 服务器 `css-test-app`（✅ 2026-07-30 重建后为 `i-0cb9b69b9eb19a9aa`，10.20.10.10 不变，三栈已部署）+ RDS `css-non-prod` 的 `css-test-main`/`css-test-ocr` 库（✅ 已载入 preprod 数据并于 2026-07-29 脱敏）+ 入口 ALB `css-test`（✅ `css-test-524317374.us-east-1.elb.amazonaws.com`）+ S3 桶 `css-test-582797602427`（✅）。（过渡期方案已作废：旧默认 VPC 的 test EC2 `i-08e110b5a5425980d` 与旧 RDS 实例均已于 2026-07-28 删除。）
 
 **一次典型发布**：
-1. 你（或定时任务把老仓库合并过来后）`git push neworg test`；
+1. 你（或定时任务把老仓库合并过来后）`git push origin test`；
 2. 两仓库各自触发 workflow：lint → 单测 → build → push ECR（`test-vN` + `test` 双 tag）；
 3. deploy job 经 SSM 让 test 服务器跑增强版 `deploy.sh test deploy backend`（前端仓库则 `frontend` 栈）：渲染 env → pull → up --wait → 冒烟 → prune；
 4. migrate job 自动跑 `alembic upgrade head`；
 5. 全绿 ≈ 10~15 分钟后 test 环境就是这次 push 的代码。失败在哪一步，GitHub 的红叉就停在哪一步。
 
-### 5.2 uat —— 从 test 晋级（自动，带快照）
+### 5.2 uat —— 从 `ops` 合入（自动，带快照）
 
 **基础设施**：非生产 VPC 的 uat 服务器（与 test 同规格、独立一台——现有 2 vCPU 机器跑一套全栈已经紧张，gunicorn 曾 CPU 崩溃循环，不与 test 同机）；数据库共用 RDS `css-non-prod`（✅ 实例已建成），建 `css-uat-main`/`css-uat-ocr` 库（`docs/新aws账号/05-数据同步/create-databases.sh`）。
 
-**发布流**：test 验证 OK → `git checkout uat && git merge test && git push neworg uat` → 同一条流水线自动跑，差异只有两点：目标机 tag=`CssEnv=css-uat`、migrate 前**自动打 RDS 快照**。
+**发布流**：`git checkout uat && git merge ops && git push origin uat` → 同一条流水线自动跑，差异只有两点：目标机 tag=`Environment=css-uat`、migrate 前**自动打 RDS 快照**。
 
-### 5.3 prod —— main 分支 + 人工审批（半自动）
+> ⚠️ **2026-08-22 分支重建后不再有"从 test 晋级"**：`uat` = main + ops，`test` = main + ops + **support-demo**（老团队线）。
+> **绝不能 `git merge test` 到 uat**——会把 uat 的 alembic 头从 `b3d9f1a2c4e5` 变成 `e8f2a4b6c1d3`。
+
+### 5.3 prod —— main 分支 + 手动 Run workflow（半自动）
 
 **基础设施**：生产 VPC 全套（§5.0：应用机 + 堡垒机 + 独立 RDS css-prod + ALB/ACM + prod S3 桶），安全硬化细节沿用 [01-独立服务器方案](01-独立服务器方案.md) §5 对照表。**RDS 与非生产完全分开**。
 
 **发布流**：
-1. uat 验证 OK → `git checkout main && git merge uat && git push neworg main`；
+1. uat 验证 OK → `ops` → `main` 走 PR 合并 → `git push origin main`；
 2. workflow 自动跑完 lint/测试/build/push（镜像 `prod-vN` 已就绪在 ECR）；
-3. **流水线停在 deploy job**——GitHub Environment **`main`**（§2 命名规则：environment 名=分支名）配了 Required reviewers，你在 GitHub 页面上点 Approve 才继续；
-4. 审批通过 → migrate job（快照 + alembic_version 核对 + upgrade）→ deploy job（SSM → prod 应用机）→ 冒烟；
+3. **push `main` 到此为止——只构建镜像、不部署**。GitHub Free 私有仓库**不支持环境审批**，所以人工闸改成"手动触发"：Actions → CICD → **Run workflow**（environment=prod；`image_tag` 留空=重新构建并部署，填 `prod-vN`=回滚到该版本）；
+4. 手动触发后 → migrate job（快照 + alembic_version 核对 + upgrade）→ deploy job（SSM → prod 应用机）→ 冒烟；
 5. 出问题 → `workflow_dispatch` 选上一个 `prod-vN` tag 重新部署即回滚（分钟级）。
 
 > 三环境是**同一份 workflow 代码**，差异全部收敛在：分支名、`CssEnv` 标签、Parameter Store 路径、是否审批、迁移前置动作。不存在"三套各写各的"。

@@ -14,9 +14,14 @@
 | 目标 | 操作 |
 |------|------|
 | 同步老仓库代码 | `git fetch origin && git checkout upstream-sync && git merge origin/main`（先跑防重写检查 `git merge-base --is-ancestor HEAD origin/main`）→ 解冲突 → `git push` → 验证无误后 `git checkout test && git merge upstream-sync && git push` |
-| 发 test | `git push neworg test`——全自动 |
-| 发 uat | `git checkout uat && git merge test && git push neworg uat`——全自动（迁移前自动快照） |
-| 发 prod | `git checkout main && git merge uat && git push neworg main`（自动构建镜像，**不自动部署**）→ Actions → CICD → **Run workflow**（environment=prod）手动触发部署——这一步就是人工闸（GitHub Free 无环境审批的替代方案） |
+| 发 test | `git checkout test && git merge ops && git push origin test`——全自动 |
+| 发 uat | `git checkout uat && git merge ops && git push origin uat`——全自动（迁移前自动快照） |
+| 发 prod | `ops` → `main` 走 PR 合并 → `git push origin main`（自动构建镜像，**不自动部署**）→ Actions → CICD → **Run workflow**（environment=prod，image_tag 留空=重新构建并部署）手动触发部署——这一步就是人工闸（GitHub Free 私有仓库**没有**环境审批闸） |
+
+> ⚠️ **不存在"test → uat → main 逐级晋级"**（2026-08-22 分支重建后）：
+> `uat` = main + ops；`test` = main + ops + **support-demo**（老团队线）。
+> **绝不能从 test 合并到 uat** —— 那会把 uat 的 alembic 头从 `b3d9f1a2c4e5` 变成 `e8f2a4b6c1d3`。
+> 三个环境分支一律**从 `ops` 合入**，prod 由 `ops` → `main` 走 PR。
 
 ## 2. 回滚
 
@@ -49,7 +54,7 @@ Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填
 | deploy.sh 增强版 | `deploy/bin/deploy.sh`：Parameter Store 渲染 env / 镜像 tag 覆盖 / 冒烟 / prune / .last_good |
 | SSM 执行器 | `deploy/aws/ssm-run.sh`（按 **`Environment`** 标签定位实例——2026-07-30 由旧 `CssEnv` 键切换，轮询回显结果） |
 | CI 用 IAM | OIDC 提供方 + `css-deploy-{test,uat,prod}` 角色 = `css-terraform` 的 `css-github` stack（角色名/ARN 未变） |
-| 参数 | `/css/<env>/{backend,frontend}.env` 三环境六参数均已存在（test 值已灌可用；uat/prod 首次部署前用 `put-params.sh` 灌/校准值） |
+| 参数 | `/css/<env>/{backend,frontend}.env` **六个 AWS 环境共 12 个参数均已灌入并在用**（test/uat/prod/support-ref/support-demo/support-sync；2026-08-22 实查。dev 只在本机跑，不入 SSM）。改值走 `put-params.sh <env>` |
 
 ## 6. 一次性 GitHub 配置（两仓库都要，未配置前 workflow 会在 AWS 凭证步失败）
 
@@ -61,6 +66,6 @@ Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填
 
 - [ ] 后端 pytest job（需整套 compose + CI 占位 env，阶段二接入）
 - [ ] 前端 jest / tsc 目前 `continue-on-error`（观察模式），首轮全绿后转阻断
-- [ ] **uat 首次部署**：机器/ALB/库（数据=test）均已就绪，灌好 `/css/uat/*` 参数值后 push `uat` 分支即可
-- [ ] prod：应用机/RDS/ALB 等 Paid plan（`enable_prod_compute` 开闸，见 `css-terraform/运行命令.md`）后再灌 `/css/prod/*` 值并首发
+- [x] ~~**uat 首次部署**~~ 已完成（uat 环境在跑；库=2026-08-22 preprod 备份，alembic 头 `b3d9f1a2c4e5`）
+- [x] ~~prod 等 Paid plan 开闸~~ 已完成（2026-08-07 建成三栈，2026-08-22 完成产品正式切换，域名 `chain-serve.com`）
 - [ ] 构建缓存（buildx gha cache）与镜像构建提速

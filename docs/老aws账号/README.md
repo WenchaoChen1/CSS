@@ -6,8 +6,12 @@
 三个环境：`dev`(3.124.149.172)、`stage`(52.28.87.199)、`preprod`(3.74.51.100)，登录用户均为 `ubuntu`。
 **2026-08-03 起三台机器 SSH 全部开通**（此前只有 preprod 有）。
 
-> ⚠️ 老账号是**只读数据迁移源**：除"给自己装 SSH 公钥"外，禁止在其上做任何变更
-> （启停实例、改安全组、删桶对象、改数据一律禁止）；所有写操作都发生在新账号。
+> ⚠️ 老账号**默认只读**：改安全组、删桶对象、改数据、启停 EC2 实例一律禁止；所有常规写操作都发生在新账号。
+>
+> **例外（需用户明确授权，逐次授权）**：① 给自己装 SSH 公钥；② **停/启容器**——2026-08-22 起老账号分批退役，
+> 停容器只能走本目录专用脚本（`停老环境容器.sh` / `停dev数据库.sh` / `启dev数据库.sh` / `停preprod产品服务.sh`），
+> 手法固定为 `docker stop -t 60` + `docker update --restart=unless-stopped`：**不重建容器、数据卷与镜像原地保留、可逆**
+> （回滚 = `docker update --restart=always` + `docker start`）。禁止 `docker rm` / `compose down` / 删卷。
 
 ---
 
@@ -22,7 +26,28 @@
 | `拉取S3.ps1` | 拉 S3 桶文件，可选回推到新账号 | `备份/s3/<桶>/` |
 | `数据库隧道.sh` | **本机直连老环境数据库**（SSH 隧道到 EC2 上的容器库，**不经任何堡垒机**） | 本地端口 → 容器 5432 |
 | `查部署时间.sh` | **只读**查三台机器"最后一次部署是什么时候"（容器/镜像时间戳交叉判读） | 终端输出，不落盘 |
+| `导入本地数据库.sh` | 把 `备份/数据库/<env>/` 的 dump 导入**本机 Docker** Postgres，成 `backup_<YYYYMMDDHH>_old_<env>_{main,ocr}` 库 | 本机库（默认容器 `postgres-latest-5432`） |
 | `源环境.env` | 三台机器的 HOST/USER/KEY + AWS profile/桶清单（**gitignore**） | — |
+
+**S3 迁移脚本**（详见下面各自章节）：
+
+| 脚本 | 做什么 |
+|------|--------|
+| `migrate-s3-to-new.sh` | 老桶 → 新账号环境桶，跨账号流式增量同步（**环境白名单只有 `test\|uat\|prod\|dev`**，不含三个 support 环境） |
+| `clone-env-bucket.sh` | 新账号**桶间**克隆（服务端复制）——⚠️ 只允许首次，目标桶非空即拒绝 |
+| `purge-new-bucket.sh` | 清空新账号某环境应用桶（⚠️ 一次性，已用完，仅留档兜底） |
+
+**停服脚本（2026-08-22 起老账号分批退役）**——手法统一：`docker stop -t 60` + `docker update --restart=unless-stopped`，不重建容器、数据卷原地保留、**可逆**（回滚 = `docker update --restart=always` + `docker start`）：
+
+| 脚本 | 做什么 |
+|------|--------|
+| `停老环境容器.sh` | **推荐入口**（「环境 × 类别」参数化）：`停老环境容器.sh <dev\|stage\|preprod> <kafka-mq\|db\|kafka-mq-db> [--stop]`，**默认 dry-run**，实停需 `ASSUME_YES=1` + `--stop` |
+| `停preprod产品服务.sh` | 产品切换第一步：停 preprod 的**前端 + kafka + rabbitmq**（app/db 不动）；默认 dry-run |
+| `停dev数据库.sh` / `启dev数据库.sh` | dev 机两个库容器的单用途停 / 启（`停老环境容器.sh` 的先行版本，效果等价） |
+
+> **当前停服状态（2026-08-22）**：preprod 的前端 / kafka / kafka-ui / rabbitmq / **两个数据库**已停；
+> dev 与 stage 的 kafka / kafka-ui / rabbitmq / **两个数据库**已停。
+> ⚠️ **三个环境的库现在都不可读**——要查数据或补拉备份，必须先回滚启库。
 
 ---
 
@@ -157,12 +182,24 @@ dump 直接经 SSH 管道回本地（**不在源服务器 /tmp 落盘**，不留
 |---|---|---|---|
 | 老账号 dev = stage | `cbfdc0b6e197` | 100000 | sha256 |
 | 老账号 preprod | `3c6db5ab1a0b` | 100000 | sha256 |
-| 我方 test | `c16208548ef3` | 100000 | sha256 |
+| 我方 test（2026-08 前的旧值，已弃用） | `c16208548ef3` | 100000 | sha256 |
+
+（md5 值按 `printf '%s\n' "$salt" | md5sum` 口径计算，即含结尾换行。）
 
 这正是历史上"导入 preprod 用户后登录全挂"的根因——用户的 `password_hash` 是拿**原团队的 salt** 算的，
-而我方 env 里是随机 salt。**现在三个环境的真实 salt 都在 `备份/docker镜像/<env>/css-backend__app.env` 里**：
-若将来需要让导入用户沿用原密码，把对应环境的 salt 配进 `deploy-env/<env>/backend.env` 即可；
-若继续用 `anonymize-db.sh` 统一口令（test 现在就是这样，`Test1234!`），则保持我方 salt 不变即可，无需理会。
+而我方 env 里是随机 salt。**现在三个环境的真实 salt 都在 `备份/docker镜像/<env>/css-backend__app.env` 里。**
+
+> ⚠️ **结论已反转（2026-08-22 实查 SSM 现值）**：早期"保持我方 salt 不变即可"的写法**已作废**。
+> 我方环境现在**一律沿用老团队原盐**，不再用自生成随机盐：
+>
+> | 我方环境 | 现用 salt | = 老账号哪一组 |
+> |---|---|---|
+> | `test` / `uat` | `sDad****`（md5 `cbfdc0b6e197`） | 老 **dev = stage** 的原盐 |
+> | `prod` | `s73u****`（md5 `3c6db5ab1a0b`） | 老 **preprod** 的原盐 |
+>
+> 意义：① prod 数据未脱敏 + 原盐 → 用户可直接用**原密码**登录；
+> ② test/uat 虽然跑过 `anonymize-db.sh` 统一成 `Test1234!`，但盐仍是原盐，
+> **换盐就得重跑一次脱敏**，否则全部账号登录失败。
 
 **④ stage 比 dev 多两个开关**：`CONFIRMATION_CODE_VERIFICATION_ENABLED`、`CONTRACT_FIRST_STUBS_ENABLED`
 （与 ② 一致——stage 跑的 dev 分支镜像更新）。除这两项外，三个环境的配置键名完全相同（116 项）。
@@ -224,6 +261,10 @@ aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-cli
 4. 用 `备份/docker镜像/` 里的旧配置对照，把有效值填进 SSM Parameter Store `/css/<env>/backend.env`
    （唯一事实源；本地底稿 = 工作区根 `deploy-env/<env>/backend.env`）。**真实密钥迁移后建议全部轮换**。
 5. 环境投产时才用 `restore-dump-via-gw.sh` 灌进 `css-<env>-main`，随后**必须**跑 `anonymize-db.sh` 脱敏。
+   **两个刻意的不脱敏例外**（不是遗漏）：
+   - **`prod`**：2026-08-22 产品正式切换后，prod 库是当日 preprod 最终备份、**真实数据未脱敏**（原口令 + 原盐可登录）。
+     `anonymize-db.sh prod` 只允许 `--emails-phones-only` 受控模式，整库口令统一在 prod 永远被拒绝。
+   - **`support-demo`**：按设计保留老账号 dev 数据**原样**（含老团队原盐与真实口令），供对照老功能面，**不脱敏**。
 
 > ⚠️ `备份/` 下全部产物（数据库 dump、容器配置、S3 文件）与 `源环境.env` 都含**真实凭证与真实个人数据**，
 > 已在根 `.gitignore` 排除，切勿提交或外传。
@@ -236,13 +277,17 @@ aws s3 sync s3://chain-serve-test "备份/s3/chain-serve-test" --profile css-cli
    - 三台源服务器：`css-dev`(i-072a709f0205514e3) / `css-stage`(i-02d75a88344591383) / `css-preprod`(i-08f640a82749cffdf)
    - 拉取前确认目标机 Running、公网 IP 与 `源环境.env` 一致。
 2. **S3 桶列表**：<https://console.aws.amazon.com/s3/buckets> —— 桶名与对象数/大小，和 `-SizeOnly` 统计对照。
-3. **本机落地产物** `C:\github-code\chain-serve\备份\`：`数据库\<环境>\`、`docker镜像\<环境>\`、`s3\<桶>\`。
+3. **本机落地产物** `C:\github-code\CSS\备份\`：`数据库\<环境>\`、`docker镜像\<环境>\`、`s3\<桶>\`。
 
 ## `migrate-s3-to-new.sh` — 老桶 → 新账号环境桶【跨账号流式增量同步】（2026-08-04 新增）
 
 ```bash
-./migrate-s3-to-new.sh <test|uat|prod> [--dry-run] [--jobs N] [--src-bucket 桶] [--prefix 前缀]
+./migrate-s3-to-new.sh <test|uat|prod|dev> [--dry-run] [--jobs N] [--src-bucket 桶] [--prefix 前缀] [--only-referenced] [--strip-prefix P]
 ```
+
+> ⚠️ **环境白名单只有 `test|uat|prod|dev`，不含 `support-ref` / `support-demo` / `support-sync`**（脚本第 46 行硬编码，
+> 传 support 环境会直接退出）。三个 support 环境的桶数据现走
+> `../环境运维执行脚本/05-数据库运维/sync-s3-env-bucket.sh`（新账号桶间同步）。
 
 与 `拉取S3.ps1` 的分工：那个是"全量下载到本地 `备份/s3/` 再可选回推"（要 7.5GB 磁盘、非增量）；
 本脚本**流式直传不落盘 + 增量 + 幂等**，专为"临时迁移 → 约 20 天后彻底迁移再跑一次"设计。

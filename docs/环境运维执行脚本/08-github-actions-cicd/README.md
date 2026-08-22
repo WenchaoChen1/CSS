@@ -86,9 +86,13 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 
 | 目标 | 命令 |
 |------|------|
-| 发 test | `git push neworg test` |
-| 发 uat | `git checkout uat && git merge test && git push neworg uat` |
-| 发 prod | `git checkout main && git merge uat && git push neworg main`（只构建）→ Actions 手动 Run workflow 触发部署（人工闸） |
+| 发 test | `git checkout test && git merge ops && git push origin test` |
+| 发 uat | `git checkout uat && git merge ops && git push origin uat` |
+| 发 prod | `ops` → `main` 走 PR 合并 → `git push origin main`（只构建）→ Actions 手动 Run workflow（environment=prod）触发部署（人工闸；GitHub Free 私有仓库无环境审批） |
+
+> ⚠️ **没有"test → uat → main 逐级晋级"这回事**（2026-08-22 分支重建后）：`uat` = main + ops，
+> `test` = main + ops + **support-demo**（老团队线）。**绝不能从 test 合并到 uat**——会把 uat 的
+> alembic 头从 `b3d9f1a2c4e5` 变成 `e8f2a4b6c1d3`。各环境分支一律从 `ops` 合入。
 | 同步老仓库 | 先合到 `upstream-sync`（不触发部署），验证后再进 test——见 [../../cicd-操作手册.md](../../cicd-操作手册.md) |
 
 ## 四、workflow 文件本身（要改流水线时）
@@ -101,7 +105,7 @@ ECR 仓库 Images 页签看新 tag：`https://us-east-1.console.aws.amazon.com/e
 |------|-----------|
 | configure-aws-credentials 报 Not authorized | 分支不在角色信任策略里，或 **environment 名与信任策略对不上**（只信 `test`/`uat`/`main` 三个分支与**同名的**三个 Environment，见 `07-获取应用iam密钥`） |
 | Parameter not found | 该环境的 `/css/<env>/*.env` 还没灌入 Parameter Store（`11-parameter-store`） |
-| ECR push 报 not authorized/not exist | 目标环境的 `<env>/css-xxx` 仓库未建（`02-ecr`）或角色权限与前缀不符 |
+| ECR push 报 not authorized/not exist | 目标环境的 `<env>/css-xxx` 仓库未建（ECR 仓库现由 `css-terraform` 管理，原 `02-ecr` 目录已删）或角色权限与前缀不符 |
 | ssm-run 报没有 Online 实例 | 见 [../09-远程执行与手动部署/README.md](../09-远程执行与手动部署/README.md) |
 | deploy 冒烟失败 | 看 job 日志里 deploy.sh 输出定位是哪个栈没起来 |
-| prod 一直转圈 | 在等审批：run 页面 Review deployments |
+| push main 后 prod 没动 | **设计如此**：push `main` 只构建镜像，不部署。部署 prod = Actions → CICD → Run workflow（environment=prod）。GitHub Free 私有仓库没有环境审批闸，所以不会出现"等 Review deployments" |

@@ -1,10 +1,10 @@
 # 05-数据库运维 —— 建库 / 数据同步与恢复 / 脱敏 / 库账号与改密 / 对象 owner（原 05-数据同步）
 
-本目录共 **21 个脚本**，覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 备份 → 脱敏 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
+本目录共 **23 个脚本**（2026-08-22 实测 `ls *.sh | wc -l`），覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 备份 → 脱敏 → 删库重建 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
 
 通用注意：
 
-- ⚠️ 除 `backup-env-db.sh`、`backup-db-in-rds.sh`、`restore-dump-via-gw.sh`、`restore-old-env-backup.sh` 和 `anonymize-db.sh`（在**本机**执行，经 SSH/S3/SSM 落到 AWS 内机器）外，其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
+- ⚠️ 在**本机**执行（经 SSH/S3/SSM 落到 AWS 内机器）的是：`backup-env-db.sh`、`backup-db-in-rds.sh`、`restore-dump-via-gw.sh`、`restore-old-env-backup.sh`、`anonymize-db.sh`、`mask-residual-pii.sh`、`reown-via-gw.sh`、`drop-env-databases.sh`、`rename-db.sh`、`sync-rds-to-intranet.sh`、`sync-s3-env-bucket.sh`、`db-tunnel.sh`。其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
 - master 密码从 Secrets Manager 取（`rds!` 前缀 secret），命令行传参即可，勿写进文件；各库账号密码见 `运维访问速查.local.md`。
 - 库名规范（2026-07-28 拍板）：`css-<env>-main` / `css-<env>-ocr`，含连字符——SQL 内脚本已用双引号处理，DSN 里可直接使用。
 - ⚠️ **PG 版本对应**：导数据前核对源/目标 **大版本**（新实例 PG16.14），pg_dump/pg_restore 客户端版本**不得低于服务端大版本**；跨大版本恢复前先在测试库演练。
@@ -68,7 +68,11 @@ ONLY=main ./backup-db-in-rds.sh uat 20260901
 
 - 与 `backup-env-db.sh`（落本机文件）互补：本脚本产物是**同实例上的库内快照**，重建/灌数前留档用，恢复=直接改连接串或 `rename-db.sh` 换名。
 - 链路：堡垒机上 `pg_dump -Fc | pg_restore` 流式复制；凭证自动从 Secrets Manager 取 master（建库需 CREATEDB 属性，css_ops 虽在 rds_superuser 组但属性不随成员继承，普通账号建不了库）。
-- 目标库已存在则中止（绝不覆盖既有留档）；校验源/目标 public 表数一致。留档库 owner=postgres，css_dev 要读需重跑 `make-css-dev-readonly.sh`；用完 `DROP DATABASE` 别让实例膨胀。
+- 目标库已存在则中止（绝不覆盖既有留档）；校验源/目标 public 表数一致。留档库 owner=postgres，css_dev 要读需重跑 `make-css-dev-readonly.sh`。
+- 🚨 **用完必须 `DROP DATABASE`——这是硬要求，不是建议**：`css-non-prod` 是 **test / uat / support-ref / support-demo / support-sync 五个环境共用的一台实例**，
+  留档库堆在里面会吃掉共享磁盘；**实例磁盘塞满 = 这五个环境全部宕机**（PG 写不进去，应用整体不可用）。
+  已被更新副本取代的旧 `backup_*` 库要及时清掉，只留最近一份。
+  （2026-08-22 实查：分配 20GB、剩余 ≈17.2GB、已开启自动扩容上限 100GB——扩容能救急但会持续计费，且**缩不回去**。）
 - ✅ 2026-08-13 首次执行：`backup_20260813_test_main`（150 表/43MB）+ `backup_20260813_test_ocr`（4 表/8MB），test 重建前留档。
 
 ### `restore-dump-via-gw.sh` — 在本机把本地 pg_dump 备份经 S3+SSM 由网关机恢复进私网 RDS（无需上机）
@@ -82,7 +86,7 @@ ONLY=main ./backup-db-in-rds.sh uat 20260901
 ```
 
 ```bash
-./restore-dump-via-gw.sh <test|uat|support-demo|support-sync|prod> <main库dump> <ocr库dump>
+./restore-dump-via-gw.sh <test|uat|support-ref|support-demo|support-sync|prod> <main库dump> <ocr库dump>
 # 例（已执行）：
 ./restore-dump-via-gw.sh test ../../../备份/数据库/preprod/preprod_main_xxx.dump \
                               ../../../备份/数据库/preprod/preprod_ocr_xxx.dump
@@ -153,6 +157,10 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 
 > ⚠️ 这六个库**含老环境的真实 PII，未脱敏**。它们不接应用、仅供查数据/比对 schema；
 > 长期留存请考虑 `mask-residual-pii.sh`，或用完即 `DROP DATABASE backup_<日期>_old_<env>_main`。
+>
+> 🚨 **用完必须删，别让留档库在共享实例上堆积**：`css-non-prod` 由 test / uat / support-ref / support-demo /
+> support-sync **五个环境共用一块磁盘**，`backup_*` 库堆满 = 这五个环境**全部宕机**。
+> 每次新建留档前先 `restore-old-env-backup.sh --list` 看看有没有已被更新副本取代的旧库，有就先删。
 
 ### `rename-db.sh` — 重命名非生产 RDS 上的一个库（经 SSM 网关机执行）
 
@@ -184,17 +192,26 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 `prod` 只允许 `--emails-phones-only` 受控模式（2026-08-07 用户拍板：email 前缀 1 + phone 后缀 1，**不动口令哈希**——保留 preprod 原口令与原 PASSWORD_SALT，用户原密码可登录；需手输 `prod` 二次确认）；prod 上的整库口令统一（默认模式）永远拒绝。
 
 ```bash
-./anonymize-db.sh <test|uat|support-demo|support-sync> [口令] [--emails-phones-only]   # 口令缺省 Test1234!
-./anonymize-db.sh prod --emails-phones-only                  # prod 专用口径
+./anonymize-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [口令] [--emails-phones-only] [--skip-email-prefix P]
+./anonymize-db.sh test                                       # 口令缺省 Test1234!
+./anonymize-db.sh prod --emails-phones-only                  # prod 专用口径（整库口令统一在 prod 永远被拒）
+./anonymize-db.sh uat --skip-email-prefix swp                # 保留 swp* 开头的团队邮箱（不加前缀 1，仍可收信）
 # 已执行（2026-07-29）：./anonymize-db.sh test
 # 已执行（2026-08-07）：./anonymize-db.sh prod --emails-phones-only（29 列级 UPDATE/688 行，标记 mode=prefix-suffix-pii-only）
+# 已执行（2026-08-22）：test / uat 重灌后各跑一次，均带 --skip-email-prefix swp
 ```
+
+**`--skip-email-prefix P`**（2026-08-22 新增）：email 以 `P` 开头（不区分大小写）的行**不加前缀 `1`**——
+用于保留我方团队邮箱（`swp*`）在非生产环境仍能真实收信。前缀会拼进 SQL 字面量，脚本只放行 `[A-Za-z0-9_.@+-]` 防注入。
+
+> ⚠️ **它与 `mask-residual-pii.sh` 冲突**：后者把"不以 1 开头"的邮箱当残留替换掉，
+> 会**吃掉这些刻意保留的 `swp*` 邮箱**。详见下面 `mask-residual-pii.sh` 章节的警告。
 
 做了三件事（动态遍历 `information_schema` 找列，只认 `text`/`varchar`/`char`，排除列名含 `type` 的枚举字段）：
 
 | # | 对象 | 处理 | 效果 |
 |---|------|------|------|
-| 1 | 所有 **email** 类文本列 | 值**前面加 `1`** → `1foo@bar.com` | 发不出去，也认不出是谁；已加过前缀的跳过（幂等） |
+| 1 | 所有 **email** 类文本列 | 值**前面加 `1`** → `1foo@bar.com`。**例外**：带 `--skip-email-prefix swp` 时，`swp*` 开头的邮箱原样保留 | 发不出去；已加过前缀的跳过（幂等）。保留的 `swp*` 团队邮箱仍能真实收信——**test / uat 现在都是这个口径** |
 | 2 | 所有 **phone** 类文本列 | 值**后面加 `1`**（幂等：已以 1 结尾的跳过） | 打不通。⚠️ 已知边界：首轮对全新数据，**真实尾号为 1 的号码（≈1/10）会被跳过保留原值**（值形态无法区分"已脱敏"；email 同理但 1 开头的真实邮箱罕见）。**已由 mask-residual-pii.sh 补齐**（见下） |
 | 3 | 所有 **password_hash** 列 | 统一为口令 **`Test1234!`** 的哈希 | 所有账号一个口令，方便测试 |
 
@@ -217,8 +234,18 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 
 ### `mask-residual-pii.sh` — 补脱敏：把 anonymize 漏掉/掩盖不住的真实个人数据换成确定性合成值，并写脱敏标记表
 
+> 🚨🚨 **停：test / uat 两库现在【不可直接跑本脚本】**（2026-08-22 起）
+>
+> 两库脱敏时都带了 `anonymize-db.sh --skip-email-prefix swp`，**刻意保留了 `swp*` 开头的团队邮箱不加前缀 `1`**，
+> 好让这些邮箱在非生产环境仍能真实收信。而本脚本的 residual 模式把"**不以 1 开头**"的邮箱当成残留 →
+> **会把这些 `swp*` 邮箱全部替换成 `1m<md5>@example.invalid` 合成值，团队邮箱当场失效。**
+>
+> **`mask-residual-pii.sh` 本体没有任何 `swp` 排除逻辑**（2026-08-22 实查确认，脚本里搜不到 `swp` / `skip`）。
+> 要在 test / uat 上跑，**必须先给它加上与 `anonymize-db.sh --skip-email-prefix` 相同的排除条件**，
+> 否则不要执行。support-ref / support-demo / support-sync 不受此限（未用该参数）。
+
 ```bash
-./mask-residual-pii.sh <test|uat|support-demo|support-sync>          # 默认 residual 模式：只处理【歧义/未脱敏】的行
+./mask-residual-pii.sh <test|uat|support-ref|support-demo|support-sync>   # 默认 residual 模式：只处理【歧义/未脱敏】的行
 ./mask-residual-pii.sh test --all          # 彻底模式：全部 email/phone 换合成值（⚠️ 测试账号登录名会变）
 ```
 
@@ -306,6 +333,77 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 - ⚠️ 每次跑 `restore-dump-via-gw.sh` / `sync-db.sh`（都以 postgres 身份 `--no-owner` 恢复）之后，owner 会被打回 postgres，**必须重跑本脚本**。
 - 跑完下一步：把 `deploy-env/<env>/backend.env` 的 `POSTGRES_USER`/`POSTGRES_PASSWORD` 与两个 `OCR_*_URL` 改成该角色，再 `put-params.sh <env>` + `deploy-env.sh <env> migrate + up`。
 
+### `reown-via-gw.sh` — 上面那个 reown 的**推荐入口**：在堡垒机上跑，master 密码不出 AWS
+
+```bash
+./reown-via-gw.sh <test|uat|support-ref|support-demo|support-sync|prod>
+```
+
+`reown-db-objects.sh` 需要你把 `<rds主机> <master密码>` 敲在命令行上；本脚本把它 base64 传到堡垒机执行，
+**master 密码由堡垒机自己从 Secrets Manager 取（角色有 `GetSecretValue`），不进本机命令行、不进 SSM 命令文本与日志**。
+堡垒机定位与 SSM 执行模式照抄 `restore-dump-via-gw.sh`（标签 `Environment=css-shared` + `EnvironmentGroup=<组>`；
+非生产走 `css-non-prod`/`css-non-prod` 实例，prod 走 `css-prod`/`css-prod`）。
+
+> 每次 `restore-dump-via-gw.sh` / `sync-db.sh` 之后**必跑**——优先用本脚本，而不是直接跑 `reown-db-objects.sh`。
+
+### `drop-env-databases.sh` — 删除某环境的两个业务库（⚠️ 破坏性，"删库重建"流程用）
+
+```bash
+./drop-env-databases.sh <test|uat|support-ref|support-demo|support-sync|prod>          # 预演：只打印将删什么、各多大
+./drop-env-databases.sh uat --yes                                                     # 实删（另需手输环境名二次确认）
+./drop-env-databases.sh prod --yes --allow-prod                                       # ⚠️ 生产（见下）
+./drop-env-databases.sh uat --yes --no-snapshot                                        # 跳过快照（不建议）
+```
+
+**为什么需要它**：`restore-dump-via-gw.sh` 是 `--clean --if-exists` **覆盖式**恢复——只清"源库里也有的"同名对象，
+源库没有的表 / 枚举值 / 残留数据会留下。要真正干净的重建（如某环境库混入了不该有的数据、
+或 `alembic_version` 指向代码里已不存在的 revision），必须先 `DROP DATABASE`。
+
+四重保护：① 默认预演；② 实删要 `--yes` **且**手输环境名二次确认；③ 删前自动打**整实例快照**
+`pre-drop-<env>-<时间戳>`；④ 经 SSM 在**堡垒机**上执行，master 密码从 Secrets Manager 自取、不进命令行。
+
+> 🚨 **`--allow-prod` 是本目录最危险的开关**（2026-08-22 产品切换后解锁）：默认仍拒绝 prod，
+> 必须**显式 `--allow-prod`** + `--yes` + 手输 `prod`；对 prod **强制打快照**（`--no-snapshot` 被拒）。
+> prod 库现在是**未脱敏的真实生产数据**——删它等于停业务，执行前必须有用户明确授权与变更记录。
+>
+> ⚠️ 手动快照**不会自动过期**：`pre-drop-*` 用完记得删，否则一直计费。
+
+### `sync-rds-to-intranet.sh` — 把 RDS 库同步到【只有本机内网能到、AWS 侧到不了】的 Postgres
+
+```bash
+SRC_PGPASSWORD='<RDS 密码>' TARGET_PGPASSWORD='<目标库密码>' \
+  ./sync-rds-to-intranet.sh <test|uat|support-ref|support-demo|support-sync|prod> <源库名> <目标host:port> <目标新库名> [目标用户]
+# 例：把 css-test-main 拉到办公网机器建快照库
+SRC_PGPASSWORD=... TARGET_PGPASSWORD=... \
+  ./sync-rds-to-intranet.sh test css-test-main 192.168.1.17:5434 css-test-main-20260807
+```
+
+与 `sync-db.sh` 的分工：`sync-db.sh` 要求执行机能**同时直连两端**（两端都在 VPC 内）；
+本脚本用于**目标库在办公内网**——堡垒机永远到不了它，只能借本机当中转：
+
+```
+RDS ──VPC 内──> 堡垒机: pg_dump | pg_restore ──> 堡垒机 127.0.0.1:$RPORT
+                                                 │  ssh -R 反向隧道
+                                                 └──> 本机 ──内网──> <目标 host:port>
+```
+
+本机因此**不需要装 psql / pg_dump / docker**，只当一条 ssh 管道（pg 客户端用堡垒机上的 16.x）。
+
+### `sync-s3-env-bucket.sh` — 把一个环境应用桶的对象整体同步到另一个环境的应用桶（S3 服务端复制）
+
+```bash
+./sync-s3-env-bucket.sh <源env> <目标env> [--dry-run]
+./sync-s3-env-bucket.sh uat support-ref            # 2026-08-07 建 support-ref 时的实际用法
+```
+
+**典型用途**：新环境的库数据是某源环境的副本时，`file_url` 引用的对象也得有一份——
+配合 `rewrite-file-urls.sh <env> --old-base <源桶前缀>` 完成"数据 + 文件 + URL"三件套。
+
+- 服务端复制，**不经本机流量**；环境白名单 `test|uat|support-ref|support-demo|support-sync|prod`，目标是 prod 需手输 `prod` 确认。
+- 幂等：`aws s3 sync` 只复制缺失/更新的对象，重跑零副作用；**不带 `--delete`**，绝不删目标桶已有对象。
+- 与老账号那侧的分工：老桶 → 新账号走 `../../老aws账号/migrate-s3-to-new.sh`（白名单只有 `test|uat|prod|dev`，
+  **不含三个 support 环境**）；support 环境的桶数据一律用本脚本从新账号内部同步。
+
 ## 可视化页面
 
 1. **RDS 实例页**：<https://us-east-1.console.aws.amazon.com/rds/home?region=us-east-1#databases:>
@@ -317,6 +415,20 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 
 ## 状态/注意
 
-- 状态：✅ test 库（`css-test-main`/`css-test-ocr`）已于 2026-07-28 用 restore-dump-via-gw.sh 从 preprod 备份载入 `css-non-prod`，并于 **2026-07-29 用 anonymize-db.sh 完成脱敏**（统一口令 `Test1234!`）；✅ **prod 库（`css-prod-main`/`css-prod-ocr`）已于 2026-08-07 载入当日 preprod 备份**（restore-dump-via-gw.sh prod → create-db-accounts.sh prod → reown → anonymize-db.sh prod --emails-phones-only → rewrite-file-urls.sh prod，链路全通）。
+- **库现状（2026-08-22 重灌后，以此为准）**：
+
+  | 库 | 数据来源 | 表数 | alembic 头 | 脱敏 |
+  |---|---|---|---|---|
+  | `css-test-main` / `-ocr` | 2026-08-22 老账号 **dev** 备份 | 155 | `e8f2a4b6c1d3` | ✅ 已脱敏（口径见下） |
+  | `css-uat-main` / `-ocr` | 2026-08-22 老账号 **preprod** 备份（与 prod 同源） | 147 | `b3d9f1a2c4e5` | ✅ 已脱敏（口径见下） |
+  | `css-prod-main` / `-ocr` | 2026-08-22 **preprod 最终备份** | — | `b3d9f1a2c4e5` | ❌ **未脱敏，真实生产数据**（原口令 + 原盐可登录） |
+
+  test / uat 脱敏口径相同：邮箱前加 `1`（**`swp*` 开头的团队邮箱除外**）、手机号后加 `1`、口令统一 `Test1234!`；
+  **`PASSWORD_SALT` 沿用老团队原盐，未更换**。
+  ⚠️ test 与 uat 的 alembic 头不同（test 分支含 support-demo 老团队线）——**两库之间不可互相 `sync-db.sh`**。
+
+  > 以下为 2026-07/08 的历史记录：test 库首次于 2026-07-28 从 preprod 备份载入并于 2026-07-29 脱敏；
+  > prod 库首次于 2026-08-07 载入当日 preprod 备份（restore-dump-via-gw.sh prod → create-db-accounts.sh prod
+  > → reown → anonymize-db.sh prod --emails-phones-only → rewrite-file-urls.sh prod，链路全通）。
 - 同步完成后核对目标库 `alembic_version` 是否与代码迁移链一致——**不一致勿跑 alembic upgrade**。
 - 切库后同步改环境变量：`POSTGRES_DB=css-<env>-main`，`OCR_DATABASE_URL`/`OCR_ALEMBIC_DATABASE_URL` 指向 `css-<env>-ocr`。

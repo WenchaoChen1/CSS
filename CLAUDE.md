@@ -18,16 +18,35 @@
 
 ## 环境 → AWS 账号映射（重要，先读）
 
-本项目有**两个 AWS 账号**，六个环境按名称固定归属，**切勿混淆**：
+本项目有**两个 AWS 账号**，环境按名称固定归属，**切勿混淆**：
 
 | 环境 | AWS 账号 | 区域 | 角色 |
 |------|----------|------|------|
 | `staging` / `dev` / `preprod` | **老账号 `021213872872`** | eu-central-1 | 原团队遗留环境（全容器、无 RDS）→ **数据迁移的来源** |
-| `test` / `uat` / `prod` | **新账号 larry `582797602427`** | us-east-1 | 我方新建环境（EC2 + ECR + RDS + S3）→ **部署目标** |
+| `test` / `uat` / `prod` / `support-ref` / `support-demo` / `support-sync` / `dev` | **新账号 larry `582797602427`** | us-east-1 | 我方新建环境（EC2 + ECR + RDS + S3）→ **部署目标**。共 7 个：前三个是主链路；三个 `support-*` 是给支持/演示用的旁路环境；`dev` 只有 S3 桶+IAM 用户供本地开发直传 |
 
-- **老账号（迁移源）**：只有 `preprod`(3.74.51.100) 已开通 SSH；`dev`/`staging` 待开通。用 `docs/老aws账号/` 的脚本把 DB / docker env / S3 拉到本机 `备份/`。
-- **新账号（部署目标，2026-07-29 实查）**：旧默认 VPC 的 test 机已删除，全部资源在新 VPC。网关机 `css-non-prod-gw`(i-08b0ef319d08eae38, EIP 3.225.148.166, **只剩堡垒 SSH + NAT 出网**，nginx 反代已停用)；应用机 `css-test-app`(10.20.10.10, m7i-flex.large, **三栈已部署可用**) 与 `css-uat-app`(10.20.11.10, 同规格, **三栈已部署可用**)——两台根卷 2026-08-05 自 50 扩到 **100GB**（旧 50GB 被 docker 历史镜像撑到 98%，CI 部署失败）；**prod 全套已于 2026-08-07 开闸建成三栈可用**：应用机 `css-prod-app`(i-03857b9ec7bd372d9, 10.10.10.10, m7i-flex.xlarge, 钥 css-prod-app.pem) + 托管 NAT + ALB `css-prod-469103402.us-east-1.elb.amazonaws.com`(80→301+443 通配符证书；域名 prod-demo.chain-serve.com ⏳待 GoDaddy CNAME)。RDS `css-non-prod`(PG16.14, **db.t4g.small**——2026-08-03 账号升 Paid plan 当天自 micro 升配, 私有子网, test+uat 共用；库 `css-test-main`/`css-test-ocr` 已载入 preprod 数据并**已脱敏**——邮箱前缀 1、口令统一 `Test1234!`)；**独立 RDS `css-prod`**(PG16.13, db.t4g.medium, Multi-AZ, endpoint `css-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com`；库 `css-prod-main`/`css-prod-ocr` 2026-08-07 载入当日 preprod 备份并按 **prod 专用口径脱敏——邮箱前加 1、手机号后加 1、口令未动**（保留 preprod 原口令+原 salt），账号 `css_app_prod`/`css_ops` 见 deploy-env/密码.local.md §一B)。入口：**每环境一个 ALB**（`css-test`/`css-uat`/`css-prod`）。**资源命名一律 `css-non-prod-*` / `css-prod-*`（带连字符）**。CloudWatch 监控 test/uat 已配（**共 22 告警**：test 7 / uat 7（各含 2026-08-05 新增的 CloudWatch Agent 磁盘>80%/内存>85% 两条）/ **组级共享 8**（`css-non-prod-rds-*`×5 + `css-non-prod-bastion-*`×3，2026-08-04 自 test 代持移入组级 stack `css-non-prod/monitoring`，自带 SNS 主题 `css-non-prod-alarms`——收到 `css-non-prod-*` 告警 = 共享资源出事、test/uat 都受影响）+ test/uat 各一 Dashboard；SNS 订阅 charles 邮箱三主题已确认，**qq 邮箱对新主题 `css-non-prod-alarms` 待点确认**）；**账号已于 2026-08-03 升 Paid plan**（原 Free plan 拦截解除；credit 余 ~$46 继续抵扣，日耗 ~$8）；**RDS 已同日升 db.t4g.small**（uat 上线前置已满足——升配前 swap 单调爬升 ≈13MB/天 已在换页，升配后 FreeableMemory 88MB→1078MB、swap 清零，详见 `css-terraform/环境实况/aws服务-服务技术文档.md` §3.1）；**css-prod 计费资源已于 2026-08-07 开闸建成**（prod 监控 12 告警+Dashboard+SNS `css-prod-alarms` 双邮箱⏳待确认；镜像 backend `prod-v50`/frontend `prod-v35`——**ops 已一次性合入 main**（用户拍板），push main 自动构建 prod 镜像，部署走 `09/deploy-env.sh prod` 或 Actions 手动 Run workflow）；本地开发直传 S3 走桶 `css-dev-582797602427` + 用户 `css-app-dev`（key 在 deploy-env/dev）。运维凭证与命令全集见`docs/环境运维执行脚本/运维访问速查.local.md`（gitignore）。
-- 脚本按账号分放（2026-07-28）：`docs/环境运维执行脚本/`=新账号资源创建/推镜像（01-vpc~10），`docs/老aws账号/`=老账号数据拉取；**`部署包/` 已整体退役并入 `CSS_backend-main/deploy/`**（compose 编排、本地 dev、EC2 端 deploy.sh；env 配置 2026-07-28 再迁出到工作区根 `deploy-env/`）；CI/CD 已落新组织两仓库（`.github/workflows/cicd.yml`），手册在 `docs/环境运维执行脚本/`（总流程在其 README，组件手册在 08/09 文件夹）。
+- **老账号（迁移源，正在退役）**：三台均已开通 SSH——`preprod`(3.74.51.100)、`dev`(3.124.149.172)、`stage`(52.28.87.199)，用 `docs/老aws账号/` 的脚本把 DB / docker env / S3 拉到本机 `备份/`。
+  ⚠️ **2026-08-22 已停服**：preprod 的前端/kafka/kafka-ui/rabbitmq 与**两个数据库**；dev 与 stage 的 kafka/kafka-ui/rabbitmq/**两个数据库**。停法与回滚见 `docs/老aws账号/停老环境容器.sh`（容器 `restart=unless-stopped` 防复活，数据卷原地保留；回滚 = `docker update --restart=always` + `docker start`）。**这三个环境的库已不可读**，需要数据请先回滚启库。
+- **新账号（部署目标，2026-07-29 实查）**：旧默认 VPC 的 test 机已删除，全部资源在新 VPC。堡垒机 `css-non-prod-bastion`(2026-07-30 由 `css-non-prod-gw` 改名，实例/EIP 未变；**私钥文件名仍是 `css-non-prod-gw.pem`**)(i-08b0ef319d08eae38, EIP 3.225.148.166, **只剩堡垒 SSH + NAT 出网**，nginx 反代已停用)；应用机 `css-test-app`(10.20.10.10, m7i-flex.large, **三栈已部署可用**) 与 `css-uat-app`(10.20.11.10, 同规格, **三栈已部署可用**)——两台根卷 2026-08-05 自 50 扩到 **100GB**（旧 50GB 被 docker 历史镜像撑到 98%，CI 部署失败）；**prod 全套已于 2026-08-07 开闸建成三栈可用**：应用机 `css-prod-app`(i-03857b9ec7bd372d9, 10.10.10.10, m7i-flex.xlarge, 钥 css-prod-app.pem) + 托管 NAT + ALB `css-prod-469103402.us-east-1.elb.amazonaws.com`(80→301+443 通配符证书；**prod 域名 2026-08-22 起 = 裸域 `chain-serve.com`**，经 Global Accelerator 静态 IP 75.2.120.166/99.83.133.114 进 ALB；旧 prod-demo 记录已删)。RDS `css-non-prod`(PG16.14, **db.t4g.small**——2026-08-03 账号升 Paid plan 当天自 micro 升配, 私有子网, test+uat 共用；**2026-08-22 重建**：`css-test-main`/`css-test-ocr` = 老账号 **dev** 数据（alembic 单头 `e8f2a4b6c1d3`）、`css-uat-main`/`css-uat-ocr` = **preprod** 数据（与 prod 同源，alembic `b3d9f1a2c4e5`）；两库同一脱敏口径——**邮箱前加 1（`swp*` 开头除外）、手机号后加 1、口令统一 `Test1234!`**，salt 沿用老团队原盐)；**独立 RDS `css-prod`**(PG16.13, db.t4g.medium, Multi-AZ, endpoint `css-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com`；库 `css-prod-main`/`css-prod-ocr` **2026-08-22 产品正式切换时用当日 preprod 最终备份整体重灌，现为【未脱敏的真实数据】**（真实邮箱/手机/口令 + preprod 原盐，用户原口令可登录），alembic `b3d9f1a2c4e5`——2026-08-07 那次"邮箱前加 1、手机号后加 1、口令未动"的 prod 专用脱敏已是历史，**不是现状**，账号 `css_app_prod`/`css_ops` 见 deploy-env/密码.local.md §一B)。入口：**每环境一个 ALB**（`css-test`/`css-uat`/`css-prod`）。**资源命名一律 `css-non-prod-*` / `css-prod-*`（带连字符）**。CloudWatch 监控 test/uat 已配（**共 22 告警**：test 7 / uat 7（各含 2026-08-05 新增的 CloudWatch Agent 磁盘>80%/内存>85% 两条）/ **组级共享 8**（`css-non-prod-rds-*`×5 + `css-non-prod-bastion-*`×3，2026-08-04 自 test 代持移入组级 stack `css-non-prod/monitoring`，自带 SNS 主题 `css-non-prod-alarms`——收到 `css-non-prod-*` 告警 = 共享资源出事、test/uat 都受影响）+ test/uat 各一 Dashboard；SNS 订阅 charles 邮箱三主题已确认，**qq 邮箱对新主题 `css-non-prod-alarms` 待点确认**）；**账号已于 2026-08-03 升 Paid plan**（原 Free plan 拦截解除；credit 余 ~$46 继续抵扣，日耗 ~$8）；**RDS 已同日升 db.t4g.small**（uat 上线前置已满足——升配前 swap 单调爬升 ≈13MB/天 已在换页，升配后 FreeableMemory 88MB→1078MB、swap 清零，详见 `css-terraform/环境实况/aws服务-服务技术文档.md` §3.1）；**css-prod 计费资源已于 2026-08-07 开闸建成**（prod 监控 12 告警+Dashboard+SNS `css-prod-alarms`（charles 单收件人，2026-08-17 用户拍板不补 qq）；**ops 已合入 main**，push main **只自动构建** prod 镜像（`migrate`/`deploy` job 对 prod 只在 `workflow_dispatch` 时才跑），所以 **prod 部署必须在 Actions 手动 Run workflow**（environment=prod、image_tag 留空 = 重新构建并部署）；本地兜底仍可用 `09/deploy-env.sh prod`）；本地开发直传 S3 走桶 `css-dev-582797602427` + 用户 `css-app-dev`（key 在 deploy-env/dev）。运维凭证与命令全集见`docs/环境运维执行脚本/运维访问速查.local.md`（gitignore）。
+- 脚本按账号分放（2026-07-28）：`docs/环境运维执行脚本/`=新账号日常运维（构建推镜像、数据库、CI/CD、远程执行、参数、账单；现存编号目录 03/05/06/07/08/09/10/11/12——**资源创建已整体移交 `css-terraform` 仓库**，原 01-vpc/02-ecr 等已删），`docs/老aws账号/`=老账号数据拉取；**`部署包/` 已整体退役并入 `CSS_backend-main/deploy/`**（compose 编排、本地 dev、EC2 端 deploy.sh；env 配置 2026-07-28 再迁出到工作区根 `deploy-env/`）；CI/CD 已落新组织两仓库（`.github/workflows/cicd.yml`），手册在 `docs/环境运维执行脚本/`（总流程在其 README，组件手册在 08/09 文件夹）。
+
+---
+
+### 2026-08-22 环境现状速查（分支 × 数据 × 域名，最容易踩错的地方）
+
+| 环境 | 分支组成 | 库数据来源 | alembic 头 | 域名 |
+|------|----------|-----------|-----------|------|
+| `test` | main + ops + **support-demo** | 老账号 **dev** 备份（2026-08-22） | `e8f2a4b6c1d3`（单头） | `test.chain-serve.com` |
+| `uat` | main + ops | **preprod** 备份（与 prod 同源） | `b3d9f1a2c4e5` | `uat.chain-serve.com` |
+| `prod` | `ops → main` | preprod 最终备份，**未脱敏** | `b3d9f1a2c4e5` | 裸域 `chain-serve.com` |
+
+**⚠️ 代码线与数据线必须配对，动之前先想清楚：**
+- 老团队线（`e8f2a4b6c1d3`）的那 14 个迁移**只存在于 `support-demo` 分支**；我方主线（`b3d9f1a2c4e5`）里没有。所以 test 的库只能配含 support-demo 的代码，uat/prod 的库只能配主线代码。
+- **绝不能从 test 合并到 uat**——会把 uat 的 alembic 头从 `b3d9f1a2c4e5` 换成 `e8f2a4b6c1d3`。晋级路径是 `ops → test` / `ops → uat` / `ops → main`，**没有** test→uat→main 这条链。
+- test/uat 脱敏口径：邮箱前加 1（**`swp*` 开头的除外**，留着收信）、手机号后加 1、口令统一 `Test1234!`，**salt 沿用老团队原盐（未换）**。`mask-residual-pii.sh` 没有 swp 排除逻辑，**这两个库不能直接跑它**。
+- 部署：push `test`/`uat` → CI 自动 build+migrate+deploy；push `main` → **只构建 prod 镜像不部署**，prod 要在 GitHub Actions 手动 Run workflow（environment=prod、image_tag 留空）。
+- 前端 `VITE_*` 是**构建期**烤进静态 JS 的：改了域名必须重建前端镜像，只改 SSM + 重启容器无效。
+
 
 ---
 
@@ -178,6 +197,6 @@ npm run plop:cc      # scaffold a new component from _plop-templates
 
 ## 跨项目通用注意事项
 
-- **Git / 分支：** 分支和提交信息都以 YouTrack 任务 ID 为准（例如 `CSS-2: ...`）；后端通过 pre-commit 的 `commit-msg` 钩子强制执行这一点。CI 用的是 GitLab（每个项目里的 `.gitlab-ci.yml`），不是 GitHub Actions。
+- **Git / 分支：** 分支和提交信息都以 YouTrack 任务 ID 为准（例如 `CSS-2: ...`）；后端通过 pre-commit 的 `commit-msg` 钩子强制执行这一点。⚠️ **我方 CI = GitHub Actions**（`.github/workflows/cicd.yml`）；每个项目里的 `.gitlab-ci.yml` 是老团队遗留、我方不用。
 - **分支卫生（切回原分支）：** 每次合并——或任何 AI 自动切换分支的操作——需要 checkout 到其他分支时，操作完成后**必须切回操作前所在的原分支**（切换前先记录起始分支）。绝不能让仓库停留在与用户开始时不同的分支上。
 - **环境：** 每个项目都需要自己的 `.env`（从 `.env.example` 复制）。后端的 `Makefile` 和 Compose 文件会从中读取 `ENV`、`PLATFORM`、镜像名、端口以及所有服务凭证。

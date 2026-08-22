@@ -87,8 +87,13 @@ if [ "${1:-}" = "--list" ]; then
 command -v psql >/dev/null || dnf install -y postgresql16 >/dev/null 2>&1
 $PGENV
 psql -h $ENDPOINT -U postgres -d postgres -tAF'|' -c \"select datname, pg_size_pretty(pg_database_size(datname)) from pg_database where not datistemplate order by 1\"
-echo '--- 磁盘余量 ---'
-psql -h $ENDPOINT -U postgres -d postgres -tAc \"select pg_size_pretty(sum(pg_database_size(datname))) from pg_database\"" "list dbs on $RDS_ID"
+echo '--- 全部库占用合计（注意：这是【已用】，不是剩余空间）---'
+psql -h $ENDPOINT -U postgres -d postgres -tAc \"select pg_size_pretty(sum(pg_database_size(datname))) from pg_database\"
+# 真正的剩余空间只能问 RDS，psql 看不到（PG 不知道底层卷有多大）：
+#   aws cloudwatch get-metric-statistics --namespace AWS/RDS --metric-name FreeStorageSpace \
+#     --dimensions Name=DBInstanceIdentifier,Value=<实例> --start-time ... --statistics Minimum
+#   aws rds describe-db-instances --db-instance-identifier <实例> --query 'DBInstances[0].[AllocatedStorage,MaxAllocatedStorage]'
+# 本行原先标成「磁盘余量」是错的（2026-08-22 修）——曾据此误判实例快满而跳过库内备份。" "list dbs on $RDS_ID"
   exit 0
 fi
 

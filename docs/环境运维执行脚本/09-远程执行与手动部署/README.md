@@ -118,7 +118,7 @@ cat .last_good_test                                # 上次成功部署的 tag
 | 形态 | 位置 | 角色 |
 |------|------|------|
 | 本地底稿 | 工作区根 `deploy-env/<env>/{backend,frontend}.env` | 编辑入口。**不入任何 git 仓库**（工作区 `.gitignore` 按 `*.env` 忽略，只放行 `*.example`） |
-| **唯一事实源** | SSM Parameter Store `/css/<env>/backend.env`、`/css/<env>/frontend.env` | 整份 env 文件作为**一个参数的值**存放，SecureString 加密（backend ≈4.4KB 超 Standard 4KB 上限，用 **Advanced 层**，$0.05/参数/月） |
+| **唯一事实源** | SSM Parameter Store `/css/<env>/backend.env`、`/css/<env>/frontend.env` | 整份 env 文件作为**一个参数的值**存放，SecureString 加密。backend.env 早已超 Standard 的 4KB 上限，用 **Advanced 层**（$0.05/参数/月，**上限 8192 字符**）。⚠️ **2026-08-22 实测 `/css/test/backend.env` = 8118 字符，只剩 74 字符余量**（uat 8129）——加新键前必须先精简注释。量长度用 `aws ssm get-parameter --name /css/<env>/backend.env --with-decryption --query 'length(Parameter.Value)'`，**不能用 `wc -m`**（Git Bash 下它数的是字节，中文注释会算多） |
 | 机器渲染件 | EC2 `/opt/css-cicd/env/<env>/backend.env`（chmod 600） | deploy.sh 每次部署自动从 Parameter Store 拉取重写，compose 用 `--env-file` 读它。**手改会被下次部署覆盖** |
 
 完整链路：
@@ -171,7 +171,7 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 
 ## 七、常用运维命令速查表
 
-以下命令都在工作区根目录（git-bash）直接执行，`test` 可换成 `uat|prod`：
+以下命令都在工作区根目录（git-bash）直接执行，`test` 可换成 `uat|prod|support-ref|support-demo|support-sync`（新账号现有 7 个环境，其中 `dev` 只在本机跑、无 EC2）：
 
 | 干什么 | 命令 |
 |--------|------|
@@ -227,4 +227,5 @@ aws secretsmanager get-secret-value --region us-east-1 \
 - `down` infra 栈会丢 kafka 未消费的 2FA 验证码（kafka 不落盘，设计如此）；
 - prod migrate 前 workflow 自动打 RDS 快照，但**人工核对 `alembic_version` 在代码迁移链上**不能省；
 - 回滚入口优先走 `deploy-env.sh <env> <stack> <旧tag>`（可用 tag 看 ECR 或 `.last_good_<env>`）；
-- 状态（2026-07-31）：`css-test-app`（i-0cb9b69b9eb19a9aa）三栈已部署、SSM Online；`css-uat-app`（i-0f90c5c061d640a27）已建机未部署（两台 2026-07-30 由 css-terraform 重建，实例 ID 变更）；prod 应用机等 Paid plan（`enable_prod_compute` 门控）。角色/标签由 Terraform 管理，无需再跑 setup-ssm。
+- 状态（2026-08-22）：新账号现有 **7 个环境**——`test` / `uat` / `prod` / `support-ref` / `support-demo` / `support-sync` 六个在 AWS 上跑（各自应用机三栈已部署、SSM Online），`dev` 只在本机跑。**prod 已于 2026-08-07 建成三栈，2026-08-22 完成产品正式切换**（域名 `chain-serve.com`）。角色/标签由 Terraform 管理，无需再跑 setup-ssm。具体实例 ID/地址见 `css-terraform/环境实况/` 与 `../运维访问速查.local.md`。
+  > 以下为 2026-07-31 时的记录：`css-test-app`（i-0cb9b69b9eb19a9aa）三栈已部署、SSM Online；`css-uat-app`（i-0f90c5c061d640a27）已建机未部署（两台 2026-07-30 由 css-terraform 重建，实例 ID 变更）；prod 应用机等 Paid plan（`enable_prod_compute` 门控）。

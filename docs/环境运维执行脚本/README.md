@@ -41,15 +41,15 @@ SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命�
 
 | # | 文件夹 | 脚本 | 作用 |
 |---|--------|------|------|
-| 03 | [`03-本地构建推送镜像/`](03-本地构建推送镜像/README.md) | `build-images.sh`（只构建）、`push-ecr.sh`（构建+推送） | Windows 本机镜像工具（CI 的兜底：应急/首次灌仓/调试） |
-| 05 | [`05-数据库运维/`](05-数据库运维/README.md) | `create-databases.sh`、`sync-db.sh`、`restore-dump-via-gw.sh`、`anonymize-db.sh`、`create-db-accounts.sh`、`change-db-password.sh`、`reown-db-objects.sh` | 库内一切（Terraform 管不到）：建库/同步/恢复/脱敏/账号/改密/对象 owner。⚠️ 每次 restore/sync 后必须重跑 reown |
+| 03 | [`03-本地构建推送镜像/`](03-本地构建推送镜像/README.md) | `build-images.sh`（只构建）、`push-ecr.sh`（本机构建+推送）、`remote-build-push.sh`（**在云上应用机构建+推送**，绕开本机带宽/buildx 版本问题） | 镜像工具（CI 的兜底：应急/首次灌仓/调试） |
+| 05 | [`05-数据库运维/`](05-数据库运维/README.md) | **23 个脚本**（见其 README），主要有 `create-databases.sh`、`sync-db.sh`、`restore-dump-via-gw.sh`、`backup-env-db.sh`、`backup-db-in-rds.sh`、`drop-env-databases.sh`、`anonymize-db.sh`、`mask-residual-pii.sh`、`create-db-accounts.sh`、`change-db-password.sh`、`reown-db-objects.sh` / `reown-via-gw.sh`、`rewrite-file-urls.sh`、`sync-s3-env-bucket.sh`、`sync-rds-to-intranet.sh`、`db-tunnel.sh` | 库内一切（Terraform 管不到）：建库/同步/恢复/备份/删库重建/脱敏/账号/改密/对象 owner/文件 URL 改写。⚠️ 每次 restore/sync 后必须重跑 reown（推荐 `reown-via-gw.sh`） |
 | 06 | [`06-服务器密钥与访问/`](06-服务器密钥与访问/README.md) | `create-instance-keys.sh`、`setup-ssh-key.sh`、`grant-dev-ssh.sh`、`revoke-dev-ssh.sh`、`toggle-termination-protection.sh` | 一机一钥管理、开发者临时 SSH 钥（带过期时间）、TF 重建实例前解终止保护 |
 | 07 | [`07-获取应用iam密钥/`](07-获取应用iam密钥/README.md) | `issue-app-s3-key.sh <env> [--new-key]` | 发/查 `css-app-<env>` 用户的 access key（key 按红线永不进 Terraform） |
 | 08 | [`08-github-actions-cicd/`](08-github-actions-cicd/README.md) | `setup-github-actions.sh` | GitHub Actions 配置与使用手册（Variables/Environments 一键配置） |
 | 09 | [`09-远程执行与手动部署/`](09-远程执行与手动部署/README.md) | `setup-ssm.sh`、`run.sh <env> '<命令>'`、`deploy-env.sh <env> [stack] [tag]` | SSM 命令通道：远程执行、手动部署/回滚（CI 之外的兜底入口） |
-| 10 | [`10-服务自愈与开机自启/`](10-服务自愈与开机自启/README.md) | `setup-autodeploy.sh <env>` | 已部署服务的开机自启 + 冒烟自愈（**非发版工具**）。**⏸ 暂不使用**：安装需负责人确认（脚本内置 CONFIRM 闸）；TF 重建机器后会丢，需重装 |
-| 11 | [`11-parameter-store/`](11-parameter-store/README.md) | `put-params.sh <env>` | 把工作区根 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（运行时配置唯一事实源；test ✅ 已灌，uat/prod 首次部署前灌/校准） |
-| 12 | [`12-成本账单/`](12-成本账单/README.md) | `activate-cost-tags.sh` | 成本分摊标签激活（✅ 07-31 两键已激活，幂等）；账单侧脚本归口 |
+| 10 | [`10-服务自愈与开机自启/`](10-服务自愈与开机自启/README.md) | `setup-autodeploy.sh <env>`、`setup-cw-agent.sh`（装 CloudWatch Agent 采磁盘/内存）、`prune-docker-images.sh`（清 docker 历史镜像） | 已部署服务的开机自启 + 冒烟自愈（**非发版工具**）+ 机器侧监控与磁盘回收。`setup-autodeploy.sh` **⏸ 暂不使用**：安装需负责人确认（脚本内置 CONFIRM 闸）；TF 重建机器后会丢，需重装 |
+| 11 | [`11-parameter-store/`](11-parameter-store/README.md) | `put-params.sh <env>` | 把工作区根 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（运行时配置唯一事实源）。**六个 AWS 环境共 12 个参数均已灌入并在用**（test/uat/prod/support-ref/support-demo/support-sync；2026-08-22 实查。dev 只在本机跑，不入 SSM） |
+| 12 | [`12-成本账单/`](12-成本账单/README.md) | `activate-cost-tags.sh`、`backfill-resource-tags.sh`（给存量资源补打标签） | 成本分摊标签激活（✅ 07-31 两键已激活，幂等）；账单侧脚本归口 |
 | — | 根目录 | [`职责划分.md`](职责划分.md) | 本目录脚本管什么/不管什么 + 部署分工 + 快速索引（Terraform 侧职责见 css-terraform CLAUDE.md §一） |
 
 **运维文档**（2026-07-31 自 docs/环境 迁入）：
@@ -80,5 +80,11 @@ SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命�
 - **镜像 tag**：CI 推 `<env>-vN`（回滚依据）+ 浮动 `<env>`；手动推 `<env>-manual-<sha7>`；每仓库 lifecycle 保留 5 个。
 - **网络三铁律**：① SSH 只经堡垒机（仅白名单 IP）；② 系统 Web 只经本环境 ALB（kafka-ui 只走开发入口 ALB
   `css-non-prod-entry`，白名单）；③ RDS 只能内网访问。
-- **非生产数据必须脱敏**：从 preprod/生产导入真实数据后跑 `05-数据库运维/anonymize-db.sh <test|uat|support-demo|support-sync>`
-  （email 前缀 `1`、phone 后缀 `1`、口令统一测试值）；`prod` 参数会被脚本直接拒绝。
+- **非生产数据必须脱敏**：从 preprod/生产导入真实数据后跑
+  `05-数据库运维/anonymize-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [--emails-phones-only] [--skip-email-prefix P]`
+  （email 前缀 `1`、phone 后缀 `1`、口令统一测试值）。
+  - `--skip-email-prefix swp`：保留 `swp*` 开头的团队邮箱不加前缀，让它们仍能真实收信——**test / uat 现在都是这个口径**。
+    ⚠️ 因此这两库**不可直接跑 `mask-residual-pii.sh`**（它会把这些邮箱当残留抹掉，本体无 `swp` 排除逻辑）。
+  - `prod` **不再被直接拒绝**：允许 `--emails-phones-only` 受控模式（只加邮箱前缀/手机号后缀、**不动口令哈希**，
+    需手输 `prod` 二次确认）；整库口令统一在 prod 永远被拒。
+  - **两个刻意不脱敏的例外**：`prod`（2026-08-22 产品切换后=真实生产数据）与 `support-demo`（老 dev 数据原样）。
