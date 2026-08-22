@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orders 业务规格</title>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --ink: #1c2534;
+    --muted: #5a6577;
+    --faint: #8a94a6;
+    --line: #dce2ea;
+    --line-strong: #c3ccd8;
+    --accent: #14649c;
+    --accent-ink: #0f4f7c;
+    --accent-soft: #e3eef7;
+    --code-bg: #eef1f5;
+    --code-ink: #35415a;
+    --st-new: #2563a8;      --st-new-bg: #e4edf8;
+    --st-packed: #0e7490;   --st-packed-bg: #e0f1f5;
+    --st-transit: #5b5bd6;  --st-transit-bg: #eaeafb;
+    --st-arrived: #a06a10;  --st-arrived-bg: #f7edda;
+    --st-delivered: #1a7f4e;--st-delivered-bg: #e2f2e9;
+    --st-canceled: #a03c36; --st-canceled-bg: #f7e6e4;
+    --sev-crit: #b3403a;
+    --sev-high: #c26a1d;
+    --sev-med: #a08015;
+    --sev-low: #5a6577;
+    --yes: #1a7f4e;
+    --no: #a03c36;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161d; --surface: #1a202b; --surface-2: #222a37;
+      --ink: #e5e9f0; --muted: #a0abbe; --faint: #7b8699;
+      --line: #2b3442; --line-strong: #3a465a;
+      --accent: #63aede; --accent-ink: #8cc4e8; --accent-soft: #1c2f41;
+      --code-bg: #232b39; --code-ink: #b8c4d8;
+      --st-new: #7fb2e8;      --st-new-bg: #1c2c40;
+      --st-packed: #6cc5da;   --st-packed-bg: #16303a;
+      --st-transit: #a3a3f0;  --st-transit-bg: #262650;
+      --st-arrived: #dfb264;  --st-arrived-bg: #3a2e16;
+      --st-delivered: #6fce9c;--st-delivered-bg: #16351f;
+      --st-canceled: #e08a84; --st-canceled-bg: #40201d;
+      --sev-crit: #e08a84; --sev-high: #dfa163; --sev-med: #d3bc50; --sev-low: #a0abbe;
+      --yes: #6fce9c; --no: #e08a84;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161d; --surface: #1a202b; --surface-2: #222a37;
+    --ink: #e5e9f0; --muted: #a0abbe; --faint: #7b8699;
+    --line: #2b3442; --line-strong: #3a465a;
+    --accent: #63aede; --accent-ink: #8cc4e8; --accent-soft: #1c2f41;
+    --code-bg: #232b39; --code-ink: #b8c4d8;
+    --st-new: #7fb2e8;      --st-new-bg: #1c2c40;
+    --st-packed: #6cc5da;   --st-packed-bg: #16303a;
+    --st-transit: #a3a3f0;  --st-transit-bg: #262650;
+    --st-arrived: #dfb264;  --st-arrived-bg: #3a2e16;
+    --st-delivered: #6fce9c;--st-delivered-bg: #16351f;
+    --st-canceled: #e08a84; --st-canceled-bg: #40201d;
+    --sev-crit: #e08a84; --sev-high: #dfa163; --sev-med: #d3bc50; --sev-low: #a0abbe;
+    --yes: #6fce9c; --no: #e08a84;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.85;
+    margin: 0;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 0 20px 96px;
+  }
+  @media (min-width: 1100px) {
+    .shell { grid-template-columns: 248px minmax(0, 1fr); gap: 48px; }
+  }
+
+  /* ---------- 目录 ---------- */
+  nav.toc { display: none; }
+  @media (min-width: 1100px) {
+    nav.toc {
+      display: block;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+      overflow-y: auto;
+      padding: 48px 0 32px;
+      font-size: 12.5px;
+    }
+  }
+  nav.toc .toc-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 18px 0 8px;
+  }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+  nav.toc a {
+    display: flex;
+    gap: 9px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 4px 10px 4px 12px;
+    border-left: 2px solid var(--line);
+    line-height: 1.5;
+  }
+  nav.toc a:hover, nav.toc a:focus-visible {
+    color: var(--accent-ink);
+    border-left-color: var(--accent);
+    background: var(--accent-soft);
+    outline: none;
+  }
+  nav.toc a .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    color: var(--faint);
+    min-width: 22px;
+    padding-top: 2px;
+  }
+
+  main { min-width: 0; }
+
+  /* ---------- 文档头 ---------- */
+  header.doc-head {
+    padding: 56px 0 36px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 8px;
+  }
+  .doc-kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900;
+    font-size: clamp(30px, 4.4vw, 44px);
+    line-height: 1.25;
+    margin: 0 0 14px;
+    letter-spacing: .01em;
+    text-wrap: balance;
+  }
+  .doc-sub { color: var(--muted); max-width: 46em; margin: 0 0 26px; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    margin: 0;
+  }
+  .meta-grid > div { background: var(--surface); padding: 10px 14px; }
+  .meta-grid dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 2px;
+  }
+  .meta-grid dd { margin: 0; color: var(--ink); }
+  .meta-grid dd code { font-size: 12px; }
+
+  /* ---------- 章节 ---------- */
+  section { padding-top: 20px; }
+  h2 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 25px;
+    line-height: 1.4;
+    margin: 44px 0 6px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line-strong);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    text-wrap: balance;
+  }
+  h2 .sec-n {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  h3 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin: 30px 0 4px;
+    text-wrap: balance;
+  }
+  h4 { font-size: 15px; font-weight: 700; margin: 26px 0 4px; }
+  p { margin: 10px 0; max-width: 52em; }
+  ul, ol { margin: 10px 0; padding-left: 1.6em; max-width: 50em; }
+  li { margin: 5px 0; }
+  li::marker { color: var(--faint); }
+  strong { font-weight: 700; }
+
+  code, .path {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .84em;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1px 5px;
+    border-radius: 3px;
+    word-break: break-all;
+  }
+  .src {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--faint);
+    word-break: break-all;
+  }
+
+  /* ---------- 功能章摘要条 ---------- */
+  .fstrip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    font-size: 13px;
+    margin: 16px 0 10px;
+  }
+  .fstrip > div { background: var(--surface); padding: 9px 13px; }
+  .fstrip .fs-k {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 2px;
+  }
+  .fstrip .fs-v { line-height: 1.6; }
+  .fstrip .fs-v code { font-size: 11px; }
+
+  /* ---------- 表格 ---------- */
+  .tbl-wrap { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; line-height: 1.65; }
+  th {
+    background: var(--surface-2);
+    text-align: left;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line-strong);
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    background: var(--surface);
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 11.5px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .ok { color: var(--yes); font-weight: 700; }
+  .deny { color: var(--no); font-weight: 700; }
+  .warn-txt { color: var(--sev-high); font-weight: 700; }
+
+  /* ---------- 徽标 ---------- */
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 8px 2px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .st-new { color: var(--st-new); background: var(--st-new-bg); }
+  .st-packed { color: var(--st-packed); background: var(--st-packed-bg); }
+  .st-transit { color: var(--st-transit); background: var(--st-transit-bg); }
+  .st-arrived { color: var(--st-arrived); background: var(--st-arrived-bg); }
+  .st-delivered { color: var(--st-delivered); background: var(--st-delivered-bg); }
+  .st-canceled { color: var(--st-canceled); background: var(--st-canceled-bg); }
+
+  .sev {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    padding: 1px 7px 2px;
+    border-radius: 3px;
+    color: var(--surface);
+    white-space: nowrap;
+  }
+  .sev-crit { background: var(--sev-crit); }
+  .sev-high { background: var(--sev-high); }
+  .sev-med { background: var(--sev-med); }
+  .sev-low { background: var(--sev-low); }
+
+  /* ---------- 角色标签 ---------- */
+  .who {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    padding: 1px 7px 2px;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: 1px;
+    margin-right: 6px;
+  }
+  .w-packer { color: var(--st-packed); background: var(--st-packed-bg); }
+  .w-driver { color: var(--st-transit); background: var(--st-transit-bg); }
+  .w-manager { color: var(--st-new); background: var(--st-new-bg); }
+  .w-rest { color: var(--st-arrived); background: var(--st-arrived-bg); }
+  .w-sys { color: var(--muted); background: var(--surface-2); }
+  .w-store { color: var(--st-delivered); background: var(--st-delivered-bg); }
+
+  /* ---------- 垂直流程图 ---------- */
+  .flow-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 18px 0 10px;
+  }
+  ol.steps {
+    list-style: none;
+    margin: 12px 0 22px;
+    padding: 4px 0 0 0;
+    max-width: 56em;
+  }
+  .step {
+    position: relative;
+    margin-left: 12px;
+    padding: 0 0 16px 30px;
+    border-left: 2px solid var(--line-strong);
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 2px; }
+  .step::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 3px solid var(--accent);
+  }
+  .step.alt::before { border-color: var(--sev-high); }
+  .step.endgood::before { border-color: var(--yes); }
+  .step.endbad::before { border-color: var(--no); }
+  .step .act { font-size: 14px; }
+  .step .fx {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.7;
+  }
+  .step .fx code { font-size: 11px; }
+
+  /* ---------- 横向状态流 ---------- */
+  .flow-wrap {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 22px 20px 18px;
+    margin: 18px 0;
+    overflow-x: auto;
+  }
+  .flow-main {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    min-width: 720px;
+  }
+  .flow-node { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; }
+  .flow-node .pill { font-size: 12px; padding: 3px 12px 4px; }
+  .flow-edge {
+    flex: 1 1 0;
+    min-width: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 6px;
+  }
+  .flow-edge .edge-line {
+    width: 100%;
+    height: 11px;
+    position: relative;
+    border-bottom: 2px solid var(--line-strong);
+  }
+  .flow-edge .edge-line::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    bottom: -5px;
+    border: 4px solid transparent;
+    border-left: 6px solid var(--line-strong);
+  }
+  .flow-edge .edge-label {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 6px;
+    max-width: 12em;
+  }
+  .flow-cancel {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line-strong);
+    font-size: 12.5px;
+    color: var(--muted);
+    min-width: 720px;
+  }
+  .flow-cancel .pill { font-size: 12px; padding: 3px 12px 4px; }
+
+  /* ---------- 提示块 ---------- */
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 14px 18px;
+    margin: 18px 0;
+    max-width: 56em;
+  }
+  .callout.warn { border-left-color: var(--sev-high); }
+  .callout.danger { border-left-color: var(--sev-crit); }
+  .callout .co-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .callout p { margin: 6px 0; font-size: 14px; }
+  .callout ul { font-size: 14px; }
+
+  /* ---------- 已知问题小块 ---------- */
+  .issues {
+    background: var(--surface);
+    border: 1px dashed var(--line-strong);
+    padding: 10px 16px;
+    margin: 16px 0 6px;
+    max-width: 56em;
+    font-size: 13.5px;
+  }
+  .issues .iss-t {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+  .issues ul { margin: 4px 0; font-size: 13.5px; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--faint);
+  }
+  a { color: var(--accent-ink); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media print {
+    nav.toc { display: none; }
+    .shell { grid-template-columns: 1fr; max-width: none; padding: 0; }
+    body { font-size: 12px; }
+  }
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="目录">
+  <div class="toc-label">总览</div>
+  <a href="#s0"><span class="n">0</span>模块总览</a>
+  <div class="toc-label">功能模块</div>
+  <a href="#f1"><span class="n">F1</span>订单列表与检索</a>
+  <a href="#f2"><span class="n">F2</span>下单（新建）</a>
+  <a href="#f3"><span class="n">F3</span>复制订单</a>
+  <a href="#f4"><span class="n">F4</span>订单详情·餐厅侧</a>
+  <a href="#f5"><span class="n">F5</span>订单详情·供应商侧</a>
+  <a href="#f6"><span class="n">F6</span>确认收货与签收</a>
+  <a href="#f7"><span class="n">F7</span>评论·文档·历史</a>
+  <div class="toc-label">参考</div>
+  <a href="#s9"><span class="n">9</span>缺陷与待确认项</a>
+  <a href="#s10"><span class="n">10</span>API 端点清单</a>
+</nav>
+
+<main>
+<header class="doc-head">
+  <div class="doc-kicker">CSS · Chain Serve · 需求规格说明 · 按功能模块</div>
+  <h1>Orders（订单）模块业务规格</h1>
+  <p class="doc-sub">以功能点为单位整理 <code>/orders</code>、<code>/orders/new</code>、<code>/orders/$id</code> 三条路由的业务：每个功能模块独立成章，统一包含「权限（前端可见 vs 后端强制）→ 需求描述 → 字段与数据 → 流程 → 已知问题」。全部结论逆向自实际代码。</p>
+  <dl class="meta-grid">
+    <div><dt>分析对象</dt><dd>support-demo.chain-serve.com/orders</dd></div>
+    <div><dt>代码基线</dt><dd>support-demo 分支（backend <code>b0ea653c</code> / frontend <code>ae70314d</code>）</dd></div>
+    <div><dt>版本</dt><dd>v1 · 2026-08-21</dd></div>
+    <div><dt>方法</dt><dd>13 个并行读码代理 + 完整性审查 + 4 项补查</dd></div>
+  </dl>
+</header>
+
+<section id="s0">
+<h2><span class="sec-n">0</span>模块总览</h2>
+
+<h3>0.1 业务定位</h3>
+<p><strong>Order（订单）是买卖双方之间的采购单据</strong>，贯穿「餐厅下单 → 供应商确认 → 打包 → 配送 → 餐厅签收 → 交付完成」全流程。同一套 <code>/orders</code> 路由对<strong>餐厅（买方）</strong>与<strong>供应商（卖方）</strong>两类账号呈现两套完全不同的界面与操作集：列表页在「取数端点 + 表格列」层分叉，详情页在「组件层」按前端权限 <code>READ_VENDOR_ORDER</code> 分叉为 VendorLayout / RestaurantLayout。订单与装箱单（packing slip）严格 1:1——供应商确认订单时同一事务创建装箱单，此后配送流转全部由装箱单侧驱动、回写订单状态。</p>
+
+<div class="keyfacts">
+  <div class="keyfact">
+    <div class="kf-q">数据关系</div>
+    <div class="kf-a">order 主表 30 个业务列 + 24 张关联表；与 packing slip / invoice 均 1:1（<code>order_id</code> 唯一）。<div class="src">orders/models.py:132-243</div></div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">状态口径差</div>
+    <div class="kf-a">后端 OrderStatus 定义 <strong>11 值、实际只写入 8 个</strong>；前端枚举只声明 7 个。<code>PENDING</code>/<code>READY_FOR_PACKING</code>/<code>ISSUES_AT_THE_DRIVER_PICKUP_STAGE</code> 为零写入死状态。</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">权限真相</div>
+    <div class="kf-a">三条路由<strong>全部无前端权限守卫</strong>（仅登录+onboarding）；真正闸门在后端 <code>company_role_permission</code> 表 + 公司级 CEO 无条件绕过。</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">金额三套口径</div>
+    <div class="kf-a"><code>order.price</code>（按 ordered、无税折）、<code>tax_amount</code>（按 ordered、含软删）、<code>totals.grand_total</code>（按 shipped、含折扣运费）——同一响应并存且互不相等。</div>
+  </div>
+</div>
+
+<h3>0.2 状态机总图（OrderStatus）</h3>
+<div class="flow-wrap">
+  <div class="flow-main">
+    <div class="flow-node"><span class="pill st-new">New</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">供应商确认（F5）</div></div>
+    <div class="flow-node"><span class="pill st-packed">Confirmed</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">打包放行<br>（装箱单模块）</div></div>
+    <div class="flow-node"><span class="pill st-arrived">Ready for pickup</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">司机取货</div></div>
+    <div class="flow-node"><span class="pill st-transit">On the way</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">到店</div></div>
+    <div class="flow-node"><span class="pill st-arrived">Arrived</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">司机确认交付（F6）</div></div>
+    <div class="flow-node"><span class="pill st-delivered">Delivered</span></div>
+  </div>
+  <div class="flow-cancel">
+    <span class="pill st-canceled">Canceled</span>
+    <span>← 任意非终态（除 Canceled/Delivered）由取消订单进入（F5/F4）。创建入口 = 餐厅/供应商下单（F2，初始 New）或报价单转单（直接 Confirmed）或 OCR 补录（直接 Delivered）。<strong>零写入死状态</strong>：Pending、Ready for packing、Issues at the driver pickup stage。餐厅侧「验收（accept）」要求 Pending 前置 → 因 Pending 从不写入而<strong>永久 409</strong>。</span>
+  </div>
+</div>
+<p>URL <code>?tab=</code> 只覆盖 5 个页签（New/Confirmed/Pending/Delivered/Canceled，Pending 页签实际请求 Pending+Arrived+On the way），<strong>处于 Ready for pickup / Issues at the packing stage 的订单在列表任何页签都查不到</strong>。<span class="src">orders/domains.py:33-44；useOrdersTable.ts:167-190</span></p>
+
+<h3>0.3 权限体系（开篇必读）</h3>
+<div class="callout danger">
+  <div class="co-title">⚠ 两套独立权限体系 + 一个超级角色</div>
+  <p><strong>前端</strong>：<code>constants/permissions.ts</code> 里 35 行按 role-UUID 硬编码的静态表。order 相关只有 3 个权限，且都不是「访问闸门」：<code>READ_ORDERS_PAGE</code>（仅控侧边栏入口）、<code>READ_VENDOR_ORDER</code>（仅控详情页用哪套 Layout）、<code>CREATE_VENDOR_ORDER</code>（仅控下单走哪套步骤序列）。<strong>枚举里根本没有 EDIT_ORDER / DELETE_ORDER。</strong></p>
+  <p><strong>后端</strong>：每公司在 onboarding/设置页自行配置并落库的 <code>company_role_permission</code> 表，权限键形如 <code>view__order</code> / <code>create__order</code> / <code>edit__order</code>。<strong>公司级角色名为 <code>CEO</code>（COMPANY_OWNER）且 is_active 的成员，对全部挂 check_permissions 的订单端点无条件放行</strong>——这是硬编码字符串比较，不是权限位。<span class="src">middlewares/permissions/middlewares.py:45-51；companies/domains.py:15</span></p>
+  <p><strong>两者零联动</strong>：后端下发的公司级权限本想 deepmerge 进前端 ABAC，但其键名空间是 <code>&lt;permissionId&gt;_&lt;entityId&gt;</code> 的 UUID 拼串，与 <code>READ_ORDERS_PAGE</code> 这类枚举名永不相碰，且唯一的消费者 <code>useMakeApiPermission</code> 全代码库零引用 → <strong>后端可配置权限对前端 UI 完全无效</strong>。<span class="src">useGetUserData.ts:48-56；AccessControlProvider.tsx:18</span></p>
+</div>
+<p>数据范围（后端 service 层注入，仓储层无兜底租户过滤）：餐厅账号看本餐厅；门店账号看本店；<strong>公司账号看整棵公司树下所有门店/餐厅的合并列表</strong>（递归 CTE）。订单读链路<strong>从不按人收窄</strong>（无按 creator/salesperson 过滤，下单人 <code>creator_id</code> 甚至被 DTO 注释掉、前端拿不到）。<span class="src">companies/repositories.py:121-158；orders/dto.py:194-195</span></p>
+
+<h3>0.4 功能地图</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>模块</th><th>功能</th><th>主要执行者</th><th>入口</th><th>对状态的影响</th></tr></thead>
+  <tbody>
+    <tr><td><a href="#f1">F1</a></td><td>订单列表与检索</td><td>全部可见角色</td><td><code>/orders</code>（5 页签）</td><td>只读</td></tr>
+    <tr><td><a href="#f2">F2</a></td><td>下单（新建）</td><td>餐厅成员 / 供应商门店成员</td><td><code>/orders/new</code> 多步向导</td><td>创建 → <span class="pill st-new">New</span></td></tr>
+    <tr><td><a href="#f3">F3</a></td><td>复制订单</td><td>非公司账号</td><td><code>/orders/$id/duplicate</code></td><td>创建 → <span class="pill st-new">New</span></td></tr>
+    <tr><td><a href="#f4">F4</a></td><td>订单详情·餐厅侧</td><td>买方角色（含兜底角色）</td><td><code>/orders/$id</code> RestaurantLayout</td><td>改单/取消（仅 New）</td></tr>
+    <tr><td><a href="#f5">F5</a></td><td>订单详情·供应商侧</td><td>卖方角色</td><td><code>/orders/$id</code> VendorLayout</td><td>确认/取消/改单/发票</td></tr>
+    <tr><td><a href="#f6">F6</a></td><td>确认收货与签收</td><td>餐厅成员（签收）+ 司机（交付）</td><td>详情页弹窗 + 装箱单模块</td><td>→ <span class="pill st-delivered">Delivered</span></td></tr>
+    <tr><td><a href="#f7">F7</a></td><td>评论·文档·历史</td><td>全部可见角色</td><td>详情页三个页签</td><td>只读</td></tr>
+  </tbody>
+</table></div>
+
+<h3>0.5 核心数据表全景（order 主表）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>字段</th><th>类型</th><th>业务语义</th><th>写入功能</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>BigInt PK</td><td>订单号（用户可见，路由用它）</td><td>DB</td></tr>
+    <tr><td><code>status</code></td><td>Enum</td><td>状态机字段（见 0.2）</td><td><a href="#f2">F2</a>/<a href="#f5">F5</a>/<a href="#f6">F6</a></td></tr>
+    <tr><td><code>price</code></td><td>DECIMAL(11,2)</td><td><strong>商品小计</strong>：Σ(单价×ordered_quantity)，不含税/折扣/运费/credit</td><td><a href="#f2">F2</a> 下单校验；<a href="#f5">F5</a> 改行重算</td></tr>
+    <tr><td><code>credit_amount</code></td><td>DECIMAL(11,2)</td><td>本单挂账抵扣额；is_credit 下单时=全额 price</td><td><a href="#f2">F2</a>；<a href="#f5">F5</a> order-info</td></tr>
+    <tr><td><code>payment_method</code></td><td>Enum(11 值)</td><td>付款方式</td><td><a href="#f2">F2</a>；<a href="#f5">F5</a></td></tr>
+    <tr><td><code>delivery_type</code></td><td>Enum</td><td>Pick up/Delivery/3rd party（对外字段名 <code>shipping_method</code>）</td><td><a href="#f5">F5</a> 确认/order-info</td></tr>
+    <tr><td><code>delivery_fee</code></td><td>DECIMAL(11,2)</td><td>运费（对外 <code>freight_fee</code>，计入总额）</td><td><a href="#f5">F5</a> order-info</td></tr>
+    <tr><td><code>requested_delivery_dt</code></td><td>datetime</td><td>期望送达时间</td><td><a href="#f2">F2</a>；<a href="#f5">F5</a></td></tr>
+    <tr><td><code>delivered</code></td><td>datetime</td><td>实际送达时间（仅状态→Delivered 时 SQL now() 落库）</td><td><a href="#f6">F6</a></td></tr>
+    <tr><td><code>ordered_at</code></td><td>datetime idx</td><td>下单时间（列表筛选/排序基准）</td><td>DB 默认；<a href="#f5">F5</a> order-info</td></tr>
+    <tr><td><code>discount_type / discount_value</code></td><td>Enum / DECIMAL</td><td>订单级折扣（附加折扣）</td><td><a href="#f5">F5</a></td></tr>
+    <tr><td><code>salesperson_user_id</code></td><td>UUID FK</td><td>销售员（确认时若空则自动填确认人）</td><td><a href="#f5">F5</a></td></tr>
+    <tr><td><code>terms / route / stop / purchase_order_number</code></td><td>String</td><td>付款条款 / 路线 / 停靠点 / 客户 PO 号</td><td><a href="#f5">F5</a> order-info</td></tr>
+    <tr><td><code>customer_number</code></td><td>String</td><td class="warn-txt">order-info 更新时被排除，改写到 client.custom_id；仅报价转单直落此列</td><td>报价转单</td></tr>
+    <tr><td><code>restaurant_id / store_id / creator_id</code></td><td>FK</td><td>买方餐厅 / 卖方门店 / 下单人（creator 不进响应）</td><td><a href="#f2">F2</a> INSERT，之后不可改</td></tr>
+    <tr><td><code>gst_rate / fob / shipping_method</code></td><td>—</td><td class="warn-txt">三个死列：无任何写入路径（gst_rate 下单 DTO 有但不落库）</td><td>无</td></tr>
+  </tbody>
+</table></div>
+<p><strong>关联表</strong>（24 张，均挂 <code>order_id</code>）：<code>order_product</code>（商品行，含 ordered/shipped/back_order/is_packed/price/tax/discount/comment）、<code>order_history</code>（事件流水）、<code>order_comment</code>（留言）、<code>order_notes</code>（备注快照）、<code>order_invoice</code>（发票 1:1）、<code>order_product_price_history</code>（确认时冻结目录价）、<code>order_product_case</code>（按箱称重）、<code>order_product_problem_report</code>（问题报告，reported_by_restaurant 布尔区分打包侧/餐厅侧）、<code>order_packing_slip</code>（装箱单 1:1）、<code>order_document</code>（附件，目前仅发票写入）、<code>order_claim</code>（索赔，只读不写）。<strong>格式约定</strong>：后端 snake_case，axios 拦截器自动 camel/snake 双向转换；时间戳落库 UTC，业务日期按 America/Chicago 展示。<span class="src">orders/models.py:60-616</span></p>
+</section>
+
+<section id="f1">
+<h2><span class="sec-n">F1</span>订单列表与检索</h2>
+<dl class="fstrip">
+  <div><dt class="fs-k">谁能用</dt><dd class="fs-v">侧边栏入口按 READ_ORDERS_PAGE（Packer/Driver=false）；页面本身无守卫</dd></div>
+  <div><dt class="fs-k">入口</dt><dd class="fs-v"><code>/orders?tab=&lt;状态&gt;&amp;page=N</code></dd></div>
+  <div><dt class="fs-k">数据源</dt><dd class="fs-v">按账号形态四选一（餐厅/供应商/公司/制造商）</dd></div>
+  <div><dt class="fs-k">写操作</dt><dd class="fs-v">无（纯只读；无批量、无行按钮、无状态列）</dd></div>
+</dl>
+
+<h3>需求描述</h3>
+<p>按状态分 5 个页签检索订单，支持关键字搜索、下单日期区间、分页、排序；行点击进详情。New 页签带角标（<code>countNew</code>=当前筛选下 New 单数，不随页签变）。<strong>本页明确没有</strong>：批量操作、行内按钮、状态列、导出/打印、新建入口以外的任何流转（确认/取消/收货全在详情页）。页面无轮询/websocket，靠重新挂载触发 effect 刷新（详情页写操作不失效列表缓存）。</p>
+
+<h3>权限（前端可见 vs 后端强制）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>身份</th><th>前端（侧边栏/页面）</th><th>后端数据范围</th></tr></thead>
+  <tbody>
+    <tr><td>公司账号（VENDOR/CLIENT/MANUFACTURER）</td><td class="ok">菜单可见（MANAGE_COMPANY 才能切到公司视图）</td><td>整棵公司树全部门店/餐厅订单</td></tr>
+    <tr><td>门店/餐厅成员</td><td class="ok">菜单可见（除 Packer/Driver）</td><td>本店/本餐厅订单</td></tr>
+    <tr><td>STORE_PACKER / STORE_DRIVER</td><td class="warn-txt">菜单隐藏，URL 直达可渲染空壳</td><td>后端按 view__order 判定</td></tr>
+    <tr><td>制造商角色</td><td class="deny">菜单被整段注释掉（权限表却是 true）</td><td>公司账号走 <code>/companies</code> 可用；subdivision 账号打 <code>/manufacturers/{id}/orders</code> → 后端无此路由 404</td></tr>
+    <tr><td>任意登录用户</td><td class="warn-txt">URL 直达页面正常渲染（无守卫）</td><td>接口 403/404 → 空表无提示</td></tr>
+  </tbody>
+</table></div>
+<p class="src">routes.tsx:646-675；Sidebar/utils.ts:27-36,154-160；middlewares/permissions/middlewares.py:264-296</p>
+
+<h3>字段与数据（列表表格）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>列</th><th>响应字段</th><th>业务来源</th><th>性质</th></tr></thead>
+  <tbody>
+    <tr><td>Id</td><td><code>id</code></td><td>order.id（bigint）</td><td>DB 直读</td></tr>
+    <tr><td>Vendor / Client（二选一）</td><td><code>vendor</code> / <code>restaurantName</code></td><td>store.name / restaurant.name（isVendor 时显示 Client）</td><td>关联拼装</td></tr>
+    <tr><td>Ordered</td><td><code>ordered</code></td><td>to_business_date(ordered_at)，America/Chicago</td><td>读时计算</td></tr>
+    <tr><td>Delivery</td><td><code>delivery</code></td><td><strong>请求交付日</strong> requested_delivery_dt（非实际交付日）</td><td>读时计算</td></tr>
+    <tr><td>Products</td><td><code>productsCount</code></td><td>COUNT(order_product) 子查询，<span class="warn-txt">未排除软删行</span></td><td>读时计算（column_property）</td></tr>
+    <tr><td>Credit</td><td><code>credit</code></td><td>order.credit_amount</td><td>DB 直读</td></tr>
+    <tr><td>Total</td><td><code>total</code></td><td>grand_total（按 shipped，含行/单折扣+税+运费−credit）</td><td>读时计算</td></tr>
+  </tbody>
+</table></div>
+<p><strong>查询参数 → SQL</strong>：<code>statuses</code>→<code>status IN</code>；<code>search</code>→ 订单号/门店名/餐厅名/餐厅地址 四路 ILIKE；<code>start_date/end_date</code>→ 按 <code>date(ordered_at)</code>；<code>limit/offset</code> 分页（<span class="warn-txt">limit 无上限</span>）；<code>sort</code> 默认 <code>Order.id ASC</code>（<strong>最旧订单在第一页</strong>）。<span class="src">orders/repositories.py:151-262, 398-401</span></p>
+<div class="issues"><div class="iss-t">已知问题</div><ul>
+  <li>响应返回 <code>status</code> 但前端 OrderDTO 未声明 → 无状态列，Pending 页签把三种状态压平无法区分（<a href="#s9">H8</a>）；Total 排序 SQL 表达式与展示值口径不一致（<a href="#s9">M6</a>）；制造商/dealer 账号误入不存在的端点 404（<a href="#s9">M5</a>）；列表路由缺权限守卫、跨租户越权读（<a href="#s9">C1</a>）。</li>
+</ul></div>
+</section>
+
+<section id="f2">
+<h2><span class="sec-n">F2</span>下单（新建 NewOrder）</h2>
+<dl class="fstrip">
+  <div><dt class="fs-k">谁能触发</dt><dd class="fs-v">前端按账号形态显示入口（不看角色）；后端要 create__order</dd></div>
+  <div><dt class="fs-k">入口</dt><dd class="fs-v"><code>/orders/new</code> 多步向导（无路由守卫）</dd></div>
+  <div><dt class="fs-k">端点</dt><dd class="fs-v"><code>POST /restaurants/{id}/orders</code> 或 <code>POST /vendors/{id}/orders</code></dd></div>
+  <div><dt class="fs-k">结果</dt><dd class="fs-v">创建 → <span class="pill st-new">New</span></dd></div>
+</dl>
+
+<h3>需求描述</h3>
+<p>多步向导下单。步骤序列由前端权限 <code>CREATE_VENDOR_ORDER</code> 决定走哪套：<strong>餐厅侧 4 步</strong>（选供应商→选品→订单明细→确认）；<strong>供应商侧 3 步</strong>（客户信息→选品→确认，跳过订单明细步）。购物车 100% 存于内存表单字段，<strong>刷新即丢</strong>（唯一例外是从商品页带货的一次性 sessionStorage 交接，且只保留 products/vendor）。下单前后端校验：客户关系必须双向确认、逐行价格与总价必须匹配 DB 当前价（忽略税折）、整数单位数量必须为整、送达时间须在 now~now+3 月。<strong>无库存校验、无商品归属校验</strong>。</p>
+
+<h3>权限</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>层</th><th>规则</th></tr></thead>
+  <tbody>
+    <tr><td>路由</td><td class="warn-txt">无守卫，任何登录用户可打开 <code>/orders/new</code></td></tr>
+    <tr><td>入口按钮</td><td>Orders 页 <code>!isCompany &amp;&amp; !isManufacturer &amp;&amp; hasBusinesses</code>（<strong>零角色判断</strong>，且仅桌面端）</td></tr>
+    <tr><td>后端强制</td><td class="ok"><code>create__order</code>（+ 公司 CEO 绕过）；服务层仅校验成员存在（不查 is_active、不查角色）</td></tr>
+    <tr><td>公司账号</td><td class="deny">看不到按钮；且供应商公司账号即便调确认接口也硬编码 403</td></tr>
+  </tbody>
+</table></div>
+<p class="src">routes.tsx:736-743；Orders.tsx:45；restaurants/handlers.py:770；vendor/handlers.py:1164</p>
+
+<h3>字段与数据</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>方向</th><th>字段</th><th>来源 / 存储逻辑</th></tr></thead>
+  <tbody>
+    <tr><td>选供应商（步0）</td><td>供应商卡片列表</td><td><code>GET /restaurants|companies/{id}/clients</code>，仅列双向确认（is_confirm_by_store &amp; by_restaurant）的供应商</td></tr>
+    <tr><td>选品（步2）</td><td>商品列表</td><td><code>POST /vendors/{vendorId}/products</code>，仅按 store_id 过滤——<span class="warn-txt">无 is_published/库存/软删过滤，且该接口无归属鉴权</span></td></tr>
+    <tr><td>请求（餐厅侧）</td><td><code>{ vendor_id, payment_method, is_credit, requested_delivery_dt, comment, price, products[{id,quantity,tax,subtotal,shipped_quantity}] }</code></td><td><code>POST /restaurants/{id}/orders</code>；products 只保留 quantity&gt;0 的行</td></tr>
+    <tr><td>请求（供应商侧）</td><td>+ <code>restaurant_id</code>(=clientId)、<code>client_restaurant_contact_id</code></td><td><code>POST /vendors/{id}/orders</code></td></tr>
+    <tr><td>保存</td><td>order（status=New 硬编码）+ order_product（price=下单瞬间目录价快照）+ 可选 order_comment</td><td>INSERT；<code>credit_amount = price if is_credit else 0</code>；<code>ordered_at</code>=DB now()</td></tr>
+    <tr><td>联动</td><td>order_history <code>CREATED</code> + 群聊消息 + <strong>仅餐厅侧下单</strong>给供应商发邮件</td><td>各自独立 commit（非原子）</td></tr>
+  </tbody>
+</table></div>
+
+<h3>流程</h3>
+<ol class="steps">
+  <li class="step"><span class="who w-rest">下单方</span><div class="act">选供应商/客户 → 选品入车 → 填交付日期时间/支付方式/备注</div><div class="fx">购物车存内存表单；空车（合计0）时下一步与返回按钮都不出现，卡住</div></li>
+  <li class="step"><span class="who w-rest">下单方</span><div class="act">确认页提交</div><div class="fx">二次必填校验实际只有 vendor/paymentMethod/deliveryDate/deliveryTime 四项生效</div></li>
+  <li class="step endgood"><span class="who w-sys">系统</span><div class="act">后端校验 + INSERT</div><div class="fx">客户关系双向确认 + 价格匹配 DB 当前价 → 建 order(New) + order_product + history(CREATED) + 群聊 + 供应商邮件 → 跳 <code>/orders/{id}</code>（无成功 toast）</div></li>
+</ol>
+<div class="issues"><div class="iss-t">已知问题</div><ul>
+  <li>餐厅侧永远无法选赊账（isCredit UI 只在供应商步，餐厅侧恒 credit=0）（<a href="#s9">M7</a>）；行 tax 两侧下单恒 0、折扣输入下单阶段被丢弃（<a href="#s9">M8</a>）；选品接口零归属鉴权（<a href="#s9">C2</a>）；显示金额含税、落库 price 不含税（<a href="#s9">L1</a>）；供应商侧下单失败无任何提示（<a href="#s9">L1</a>）。</li>
+</ul></div>
+</section>
+
+<section id="f3">
+<h2><span class="sec-n">F3</span>复制订单（DuplicateOrder）</h2>
+<dl class="fstrip">
+  <div><dt class="fs-k">谁能用</dt><dd class="fs-v">仅非公司账号（按钮 <code>!activeAccount.isCompany</code>，不看角色/状态）</dd></div>
+  <div><dt class="fs-k">入口</dt><dd class="fs-v">详情页 Duplicate 按钮 → <code>/orders/$id/duplicate</code></dd></div>
+  <div><dt class="fs-k">端点</dt><dd class="fs-v">拉原单走详情端点，提交走 F2 的下单端点</dd></div>
+  <div><dt class="fs-k">结果</dt><dd class="fs-v">预填的新下单流程 → <span class="pill st-new">New</span></dd></div>
+</dl>
+<h3>需求描述</h3>
+<p>以原单为模板预填下单向导（复用同一引擎，<code>isDuplicate=true</code> 缩短步骤序列）。<strong>价格用当前目录价而非原单历史价</strong>（与后端校验口径一致）。复制口径存在多处偏差：备注不复制；折扣/GST/backorder/行备注即便同步进表单也因 <code>getRequestProducts</code> 只发 5 个键而全丢；<strong>原单已软删的行会被复制回来</strong>（未过滤 deletedAt）；餐厅侧复制不带日期/支付方式需重填；同一订单在复制页被拉取 3 次（queryKey 不同无法命中缓存）。</p>
+<div class="issues"><div class="iss-t">已知问题</div><ul>
+  <li>已删行被复制回来、备注/折扣丢失、Duplicate 按钮不判订单状态（已取消/已送达单也能复制）（<a href="#s9">L1</a>）。</li>
+</ul></div>
+</section>
+
+<section id="f4">
+<h2><span class="sec-n">F4</span>订单详情 · 餐厅侧（RestaurantLayout）</h2>
+<dl class="fstrip">
+  <div><dt class="fs-k">谁能看</dt><dd class="fs-v"><strong>兜底 Layout</strong>：无 READ_VENDOR_ORDER 者（全部餐厅角色 + Packer/Driver + 未定义角色）</dd></div>
+  <div><dt class="fs-k">入口</dt><dd class="fs-v"><code>/orders/$id</code>（order/history/documents/delivery 四页签）</dd></div>
+  <div><dt class="fs-k">端点</dt><dd class="fs-v"><code>GET /restaurants|companies/{id}/(restaurants/)orders/{oid}</code></dd></div>
+  <div><dt class="fs-k">可写</dt><dd class="fs-v">改单/改交付时间/取消（仅 New）；确认收货（Arrived，见 F6）</dd></div>
+</dl>
+
+<h3>需求描述</h3>
+<p>买方视角的订单详情。<strong>RestaurantLayout 是 else 兜底分支</strong>——不是「判断你是餐厅」而是「没有 READ_VENDOR_ORDER 就落这里」，因此 Packer/Driver、未在权限表定义的角色打开订单会看到餐厅界面（含 Cancel 按钮），最终由后端 403/404 兜住。餐厅能做：改数量/删行/加行（仅 New，走「Confirm Changes」批量提交）、改请求交付时间（仅 New，本地暂存需随改单提交）、取消订单、确认收货签收（见 F6）。<strong>餐厅侧几乎所有动作都不写 order_history</strong>（改单、签收都不写；仅取消写）。</p>
+
+<h3>权限（前端可见 vs 后端强制）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>操作</th><th>前端条件</th><th>后端强制</th></tr></thead>
+  <tbody>
+    <tr><td>改单（Confirm Changes）</td><td>status===NEW + 有改动</td><td class="ok"><code>edit__order</code> + status===NEW（本模块唯一有效状态守卫）</td></tr>
+    <tr><td>取消订单</td><td>status ∉ {Delivered, Canceled}</td><td class="ok"><code>edit__order</code> + 同状态守卫（前后端一致）；<span class="warn-txt">母公司账号取消作用域比查看窄，子公司餐厅单点取消得 403 且无提示</span></td></tr>
+    <tr><td>确认收货</td><td>7 条件（见 F6），角色白名单 7 个</td><td class="warn-txt"><strong>仅 Security 无 check_permissions</strong>，只要 restaurant_member 存在（不查 is_active、不查角色）</td></tr>
+  </tbody>
+</table></div>
+<p class="src">Order.tsx:16-43；restaurants/orders/services.py:418-455；handlers.py:1669-1682</p>
+
+<h3>字段与数据（展示区块）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>区块</th><th>字段</th><th>业务来源</th></tr></thead>
+  <tbody>
+    <tr><td>OrderDates</td><td>Order date / Requested delivery</td><td>ordered_at（Chicago naive）/ requestedDeliveryDt（<strong>只显示日期</strong>，值取本地表单）</td></tr>
+    <tr><td>商品表</td><td>Product / Qty / Unit / 价格</td><td>products.items（<strong>过滤 deletedAt 后渲染</strong>；列表 productsCount 却含软删 → 数字与行数不符）</td></tr>
+    <tr><td>Details 8 格</td><td>Order ID / Vendor / Total / Credit / Freight Fee / Tax / GST / Discount</td><td>Total/Tax/GST/Discount <strong>全部前端本地重算</strong>（不用后端 total/taxAmount）</td></tr>
+    <tr><td>DeliveryTab</td><td>Delivery/Contact/Client/Delivery time/Delivered/Route/Stop</td><td>Delivered 非空即「已交付」隐式标记；<span class="warn-txt">Route/Stop 硬编码 "None"</span>（响应模型未声明，虽 DB 有值）</td></tr>
+  </tbody>
+</table></div>
+<p><strong>关键口径</strong>：餐厅侧详情响应有 <code>packing_slip_signed_at</code>（供应商侧无）、无 <code>payment_method</code>/<code>discount_total</code>/<code>gst_rate</code>/商品 <code>problem_report</code>——<strong>餐厅看不到自己上报的问题与签名图</strong>（数据已加载但响应模型未声明）。时间字段两种语义并存：order_date 转 Chicago 去时区，delivered/signed_at 原样带时区（浏览器二次换算）。<span class="src">restaurants/responses.py:233-256；restaurants/handlers.py:868-909</span></p>
+
+<h3>流程（改单）</h3>
+<ol class="steps">
+  <li class="step"><span class="who w-rest">餐厅</span><div class="act">New 状态改数量/删行/加行/改交付时间 → 填评论 → Confirm Changes</div><div class="fx">删行靠发 quantity=0（deletedAt 逻辑因 Decimal 对象比较恒 false 而失效）</div></li>
+  <li class="step"><span class="who w-sys">系统</span><div class="act"><code>PATCH /restaurants/{id}/orders/{oid}</code></div><div class="fx">数量0的行先单独发一次 remove（两段式非原子）；<span class="warn-txt">餐厅新增行 tax 恒 0；批量 update 顺带把行 tax 反写 store_product 主档</span></div></li>
+  <li class="step endgood"><span class="who w-sys">系统</span><div class="act">落库</div><div class="fx"><strong>不写 order_history</strong>（CONFIRMED_WITH_CHANGES 事件全代码库无写入）；mutation 无 onError → 400/422 静默失败</div></li>
+</ol>
+<div class="issues"><div class="iss-t">已知问题</div><ul>
+  <li>兜底 Layout 导致 Packer/Driver 看到买方界面（<a href="#s9">H9</a>）；改单反写 store_product 税率为 0（<a href="#s9">H3</a>）；餐厅侧动作不写历史、看不到签名图与自报问题（<a href="#s9">M9</a>）；「恢复已删行」功能因哨兵判断恒 400 失效（<a href="#s9">M10</a>）；母公司账号取消/签收恒失败无提示（<a href="#s9">M11</a>）。</li>
+</ul></div>
+</section>
+
+<section id="f5">
+<h2><span class="sec-n">F5</span>订单详情 · 供应商侧（VendorLayout）</h2>
+<dl class="fstrip">
+  <div><dt class="fs-k">谁能看</dt><dd class="fs-v">有 READ_VENDOR_ORDER 者（vendor 公司/门店大部分角色 + 全部制造商公司角色）</dd></div>
+  <div><dt class="fs-k">入口</dt><dd class="fs-v"><code>/orders/$id</code>，4 步向导（INFO/CONFIRM/NOTES/DELIVERY）+ 第1步内嵌 4 页签</dd></div>
+  <div><dt class="fs-k">端点</dt><dd class="fs-v"><code>GET /vendors|companies/{id}/(vendors/)orders/{oid}</code></dd></div>
+  <div><dt class="fs-k">可写</dt><dd class="fs-v">确认/取消/改商品行/加删行/改价折扣税/改 Order Info/生成发票</dd></div>
+</dl>
+
+<h3>需求描述</h3>
+<p>卖方视角，功能最密集。核心是<strong>确认订单</strong>（4 步向导：INFO→填运费→选便签→选交付方式→SendingInvoiceModal→提交，同一 nested 事务内建装箱单+冻结价格历史+改状态 CONFIRMED）与<strong>逐行改单</strong>（改价/实发量/折扣/税，仅 New 可编辑；加/删/恢复行强制 New；但改价 PATCH 无状态守卫）。还可改 Order Info（含指派销售员、改交付日期时间、客户号、条款——<strong>Edit 无任何状态限制</strong>）、生成/下载/发送发票。</p>
+
+<h3>权限（前端可见 vs 后端强制）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>操作</th><th>前端条件</th><th>后端强制</th></tr></thead>
+  <tbody>
+    <tr><td>确认订单</td><td>status===NEW</td><td class="ok"><code>edit__order</code> + 成员校验 + 只拦 Delivered（<span class="warn-txt">CANCELED 可被再确认复活</span>）；<span class="deny">供应商公司账号硬编码 403</span></td></tr>
+    <tr><td>取消订单</td><td>status ∉ {Delivered, Canceled}</td><td class="ok"><code>edit__order</code> + 状态守卫（<span class="warn-txt">reason/details 前端必填但后端完全丢弃</span>）</td></tr>
+    <tr><td>改商品行（价/量/税/折扣）</td><td>仅 New 渲染输入</td><td class="deny"><strong>无 check_permissions、无状态守卫</strong> → 终态订单可改价，Driver/Packer/停用成员也能改，且不校验订单归属该店（跨店越权写）</td></tr>
+    <tr><td>加/删/恢复行</td><td>仅 New</td><td class="ok">status===NEW + 商品归属校验（唯一做归属校验的）</td></tr>
+    <tr><td>改 Order Info</td><td class="warn-txt">Edit 无状态限制（Delivered/Canceled 也能改）</td><td class="deny">无 check_permissions、无状态守卫</td></tr>
+    <tr><td>生成发票</td><td>无状态限制</td><td class="ok"><code>create__invoice + view__order</code>（NEW/CANCELED 也能出发票）</td></tr>
+  </tbody>
+</table></div>
+<p class="src">companies/orders/services.py:416-423；orders/services.py:1954-1983, 2199-2259；vendor/handlers.py:2790-2802, 3282</p>
+
+<h3>字段与数据（改行 PATCH）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>方向</th><th>字段</th><th>来源 / 存储逻辑</th></tr></thead>
+  <tbody>
+    <tr><td>可编辑列（仅 New）</td><td>SHIP QTY / QTY Not Shipped / UNIT PRICE / DISCOUNT($⇄%) / TAX%</td><td>ORD QTY 详情页只读（仅复制页可改）</td></tr>
+    <tr><td>请求</td><td><code>PATCH /vendors/{store_id}/orders/{oid}/products/{opid}</code> body 取改动列</td><td>blur/Enter 提交；back_order 前端传但后端忽略，由 <code>max(0, ordered-shipped)</code> 反算</td></tr>
+    <tr><td>保存</td><td>order_product 对应列</td><td>每次 PATCH 后重算 <code>order.price = Σ(price×ordered_quantity)</code>（<span class="warn-txt">忽略折扣/税/发货数/软删</span>）</td></tr>
+    <tr><td>Order Info 保存</td><td>customer_number/discount/freight_fee/日期/销售员/条款…</td><td><code>PATCH …/info</code>；<span class="warn-txt">customer_number 写到 client.custom_id；exclude_none 导致字段无法清空为 NULL；credit=No 才清零 credit_amount</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>流程（确认订单）</h3>
+<ol class="steps">
+  <li class="step"><span class="who w-manager">供应商</span><div class="act">Order Tab 底部 Confirm order（仅 New）→ 有价改先弹 PriceConfirmationModal 选是否回写价目表</div><div class="fx">→ 4 步向导 INFO→CONFIRM(填运费,PATCH /info)→NOTES→DELIVERY(选交付方式)</div></li>
+  <li class="step alt"><span class="who w-manager">供应商</span><div class="act">DELIVERY 步选交付方式 → 提交</div><div class="fx"><span class="warn-txt">交付方式选了不生效</span>（confirm 请求体只带 comment/notes/update_products_prices，delivery_type 后端默认 Delivery）</div></li>
+  <li class="step endgood"><span class="who w-sys">系统</span><div class="act">nested 事务</div><div class="fx">confirm_order（写 delivery_type/首次销售员）+ order_comment + history CONFIRMED + <strong>建装箱单</strong>(幂等) + 装箱单 history CREATED + 拆箱 cases + 可选回写目录价 + 冻结价格历史 + status=CONFIRMED → 提交后推群聊 + 立即生成发票</div></li>
+</ol>
+<p><strong>与装箱单/发票衔接</strong>：确认→建装箱单；取消→取消装箱单（仅供应商侧）；装箱单流转（取货/到店/交付）回写订单状态，供应商详情页只读展示无按钮；发票 PDF 取装箱单签名图，以名为 <code>Invoice</code> 的 order_document 落库、显示在 Documents Tab；装箱单 PDF 走独立接口挂在装箱单实体上，订单详情页无此入口。</p>
+<div class="issues"><div class="iss-t">已知问题</div><ul>
+  <li>公司账号确认订单恒 403 而前端仍走该路由（<a href="#s9">H2</a>）；改价无状态守卫+跨店越权写（<a href="#s9">C1/H1</a>）；确认可把 CANCELED 复活（<a href="#s9">H4</a>）；交付方式/取消原因/行备注被静默丢弃（<a href="#s9">M9/H3</a>）；credit_amount 每次 order-info PATCH 约翻倍（<a href="#s9">H6</a>）；发票邮件/短信接口零鉴权（<a href="#s9">C3</a>）；公司发票读取归属校验被注释（<a href="#s9">C1</a>）。</li>
+</ul></div>
+</section>
+
+<section id="f6">
+<h2><span class="sec-n">F6</span>确认收货与签收</h2>
+<dl class="fstrip">
+  <div><dt class="fs-k">谁能操作</dt><dd class="fs-v">餐厅成员（签收）+ 司机（确认交付，装箱单模块）</dd></div>
+  <div><dt class="fs-k">入口</dt><dd class="fs-v">餐厅详情页 Arrived 时自动弹 DeliveryModal（签收）</dd></div>
+  <div><dt class="fs-k">端点</dt><dd class="fs-v"><code>POST /restaurants/{rid}/packing-slips/{orderId}/arrived-approve</code></dd></div>
+  <div><dt class="fs-k">结果</dt><dd class="fs-v">签收<strong>不改订单状态</strong>；司机确认交付才 → <span class="pill st-delivered">Delivered</span></dd></div>
+</dl>
+
+<h3>需求描述</h3>
+<p>餐厅签收是三步弹窗流程：<strong>ConfirmDelivery</strong>（勾选商品/全收全拒）→ <strong>ReportDelivery</strong>（逐个被拒商品填数量+问题类型+说明+照片）→ <strong>Signature</strong>（画布签名）。签名上传后调 arrived-approve。<strong>关键：签收只写装箱单字段（签收时间/签收人/签名图/问题报告），不改订单状态、不扣减数量、不入库</strong>。订单变 Delivered + 入库全部由司机侧的 <code>packing-slips/{slip}/delivered</code> 完成（装箱单模块）。因此被拒的货照样进餐厅库存、照样计入发票金额。</p>
+
+<h3>权限：Confirm delivery 按钮的 7 个前置条件</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>条件</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>status === ARRIVED</td><td>订单已到店</td></tr>
+    <tr><td>!packingSlipSignedAt</td><td>尚未签收（隐式态：装箱单 delivery_approved_by_restaurant_at 非空即已签）</td></tr>
+    <tr><td>装箱单存在且 !isApproved</td><td>来自 <code>/is-packing-slip-approved</code></td></tr>
+    <tr><td>角色白名单</td><td>7 个餐厅角色（排除 SHIFT_MANAGER/PARTNER/COMPANY_CFO）</td></tr>
+    <tr><td>当前用户在该餐厅 team 列表</td><td>需 view__team 权限，否则按钮不出现</td></tr>
+  </tbody>
+</table></div>
+<p class="warn-txt">后端 arrived-approve 仅 Security 无 check_permissions，只要 restaurant_member 存在即可（不查 is_active/角色）→ 前端 7 角色白名单纯 UI。母公司账号因 businessType=restaurant 查不到成员，且无公司口径 arrived-approve 路由 → <strong>完全无法签收</strong>。<span class="src">useRestaurantOrder.tsx:79-85；restaurants/orders/services.py:516-520</span></p>
+
+<h3>字段与数据</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>方向</th><th>字段</th><th>存储逻辑</th></tr></thead>
+  <tbody>
+    <tr><td>请求</td><td><code>{ problems[{orderProductId, quantity, reason, details, imagesIds}], signatureImageId }</code></td><td>签名先 <code>POST /files/images</code> 取 id；<span class="warn-txt">quantity 后端为 int → 小数拒收量被截断</span></td></tr>
+    <tr><td>保存</td><td>order_packing_slip: delivery_approved_by_restaurant_at/_member_id/signature_image_id；problems → order_product_problem_report(reported_by_restaurant=true)+图片</td><td>UPDATE 无状态前置；重复签收 409</td></tr>
+    <tr><td>丢弃</td><td class="warn-txt">deliveryInfo{deliveryFee, paidToDriver} 整体丢弃</td><td>「Paid to the driver」开关与 Delivery Fee 从未落库</td></tr>
+    <tr><td>联动</td><td>装箱单 history DELIVERY_CONFIRMED_BY_RESTAURANT + 通知司机</td><td><strong>不写 order_history、不改订单状态</strong></td></tr>
+  </tbody>
+</table></div>
+
+<h3>流程</h3>
+<ol class="steps">
+  <li class="step"><span class="who w-driver">司机</span><div class="act">到店点 Arrived（装箱单模块）</div><div class="fx">订单 → Arrived，餐厅侧自动弹签收窗</div></li>
+  <li class="step"><span class="who w-rest">餐厅</span><div class="act">ConfirmDelivery 勾选 → ReportDelivery 报损 → Signature 签名</div><div class="fx">三步共用一个 modal 槽位，签名窗打开会卸载前两步状态，关掉需从头再来</div></li>
+  <li class="step"><span class="who w-sys">系统</span><div class="act">arrived-approve 落库</div><div class="fx"><strong>只写装箱单，订单仍 Arrived</strong>；被拒数量只落 problem_report，不改 order_product</div></li>
+  <li class="step endgood"><span class="who w-driver">司机</span><div class="act">确认交付 delivered（装箱单模块）</div><div class="fx">→ 订单 Delivered + order.delivered=now() + <strong>全量</strong>订单商品入餐厅库存（被拒货照进）+ order_history DELIVERED</div></li>
+</ol>
+<div class="issues"><div class="iss-t">已知问题</div><ul>
+  <li>arrived-approve 零角色校验（<a href="#s9">H1</a>）；被拒数量不写回订单行、被拒货照样入库计费（<a href="#s9">H7</a>）；paidToDriver/deliveryFee 丢弃、小数拒收量被截断（<a href="#s9">M9</a>）；餐厅侧「验收 accept」因 PENDING 死状态永久 409（前端为死代码）（<a href="#s9">H5</a>）；签名窗与报损窗共用单槽位状态易丢（<a href="#s9">L1</a>）。</li>
+</ul></div>
+</section>
+
+<section id="f7">
+<h2><span class="sec-n">F7</span>评论 · 文档 · 历史（详情页共用页签）</h2>
+<dl class="fstrip">
+  <div><dt class="fs-k">谁能看</dt><dd class="fs-v">进入详情页的全部角色（两侧共用组件）</dd></div>
+  <div><dt class="fs-k">入口</dt><dd class="fs-v">详情页 History / Documents / Delivery 页签 + Comments 折叠块</dd></div>
+  <div><dt class="fs-k">端点</dt><dd class="fs-v"><code>GET …/orders/{oid}/history</code>、<code>…/documents</code></dd></div>
+  <div><dt class="fs-k">写操作</dt><dd class="fs-v">评论仅供应商确认时写一次；文档只读；历史系统自动写</dd></div>
+</dl>
+
+<h3>字段与数据</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>页签</th><th>展示字段</th><th>业务来源 / 存储</th></tr></thead>
+  <tbody>
+    <tr><td>History</td><td>Id / Event / Date / User(email) / User role</td><td><code>order_history</code>；16 个事件枚举实际写入 12 个（CONFIRMED_WITH_CHANGES/INVOICE_SENT/两个 issue 事件零写入）；<span class="warn-txt">默认排序 order_by 返回值被丢弃 → 未指定 sort 时顺序随机</span></td></tr>
+    <tr><td>Documents</td><td>FileCard（name + fileUrl）</td><td><code>order_document</code> 表，<strong>目前只有发票 PDF 写入</strong>；装箱单 PDF 在另一张表 → 餐厅在此看不到签过字的装箱单</td></tr>
+    <tr><td>Comments</td><td>作者名 + 角色 + 内容 + 时间</td><td><code>order_comment</code>；成员按「公司→餐厅→门店」取第一个非空，三者皆空则 500；<strong>唯一写入路径是供应商确认时的 comment（≤255）</strong>，之后无追加入口</td></tr>
+    <tr><td>Delivery</td><td>见 F4（两侧共用）</td><td>纯用主体字段，不发请求</td></tr>
+  </tbody>
+</table></div>
+<p><strong>关键盲区</strong>：改价/改量/删行/改配送信息/餐厅验收<strong>全部不写 order_history</strong> → 历史页看不到这些关键操作。行备注 <code>order_product.comment</code> 落库成功但详情响应从不组装 comment 字段 → 前端「有备注红点」永久不亮。<span class="src">orders/responses.py:90-108；backend-write §4</span></p>
+<div class="issues"><div class="iss-t">已知问题</div><ul>
+  <li>历史默认无排序（<a href="#s9">M6</a>）；行备注红点永久失效（<a href="#s9">M9</a>）；History end_date off-by-one 末日被排除（<a href="#s9">L1</a>）；order_comment 三成员皆空时 500（<a href="#s9">L1</a>）。</li>
+</ul></div>
+</section>
+
+<section id="s9">
+<h2><span class="sec-n">9</span>缺陷与待确认项汇总</h2>
+<p>按 critic 建议分四组组织：越权 → 终态回退 → 数据静默丢弃 → 金额口径。所有结论已经完整性审查裁决/实读代码核实。</p>
+
+<h3>9.1 越权 / 权限类</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>级别</th><th>编号</th><th>问题</th><th>关联</th><th>依据</th></tr></thead>
+  <tbody>
+    <tr><td><span class="sev sev-crit">CRITICAL</span></td><td>C1</td><td><strong>check_permissions 中间件 query-param 授权绕过</strong>：business_type/business_id 可从 query string 传入覆盖校验实体，company 分支失败仅记 fallback、restaurant/store 分支成功即 return True。用「自己的实体」满足校验、路径填「受害者实体」即可跨租户读取整棵公司树的订单列表/详情/历史/文档/发票。列表路由亦无前端守卫</td><td><a href="#f1">F1</a><a href="#f5">F5</a></td><td class="src">middlewares/permissions/middlewares.py:222-296</td></tr>
+    <tr><td><span class="sev sev-crit">CRITICAL</span></td><td>C2</td><td><strong>4 个无授权端点</strong>：<code>/restaurants/{id}/ai/orders</code>（无 check_permissions，model_dump 全量吐出含 client.finances）、两侧 <code>/orders/{id}/info</code>（服务层丢弃 user_id/restaurant_id，自增 id 可遍历读任意订单商务信息）、<code>POST /vendors/{id}/products</code> 选品接口（零归属鉴权）。根因：这些路径用 <code>{store_id}</code> 而中间件只认 <code>vendor_id</code></td><td><a href="#f1">F1</a><a href="#f2">F2</a></td><td class="src">restaurants/handlers.py:1739,1797；backend-read §7.2</td></tr>
+    <tr><td><span class="sev sev-crit">CRITICAL</span></td><td>C3</td><td><strong>发票邮件/短信接口零鉴权</strong>：<code>POST /order/{id}/invoice/email|sms/send</code> 只要登录，任意 order_id + 任意邮箱即可把发票 PDF 发出去（自增 id 可枚举导出所有订单发票）；短信默认发操作人自己手机</td><td><a href="#f5">F5</a></td><td class="src">reports/services.py:74-145；orders/handlers.py:114-214</td></tr>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H1</td><td>改价/改info/arrived-approve/跨店 info 读写<strong>无 check_permissions</strong>，服务层只校验成员存在（不查 is_active/角色/订单归属）→ Driver/Packer/停用成员/A 店成员可改 B 店订单价格</td><td><a href="#f5">F5</a><a href="#f6">F6</a></td><td class="src">stores/orders/services.py:729-746, 1732-1763</td></tr>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H2</td><td>供应商公司账号确认订单硬编码 403（stub），前端仍按 isCompany 走该路由 → 该角色确认功能完全不可用</td><td><a href="#f5">F5</a></td><td class="src">companies/orders/services.py:416-423</td></tr>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H9</td><td>详情页 RestaurantLayout 是兜底分支：Packer/Driver、未定义角色看到买方界面（含 Cancel），布局由角色标志决定而非「订单属哪侧」，与数据形状可能错配</td><td><a href="#f4">F4</a></td><td class="src">Order.tsx:16-43</td></tr>
+  </tbody>
+</table></div>
+
+<h3>9.2 终态回退 / 状态机</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>级别</th><th>编号</th><th>问题</th><th>关联</th><th>依据</th></tr></thead>
+  <tbody>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H4</td><td><strong>CANCELED 可被再 confirm 回 CONFIRMED</strong>：check_order_status_for_confirm 只拦 DELIVERED；所有状态 UPDATE 是裸 UPDATE 无守卫 → 终态可被改回；delivered 订单也能被改价</td><td><a href="#f5">F5</a></td><td class="src">orders/services.py:334-340；repositories.py:983-1020</td></tr>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H5</td><td><strong>Pending 死状态</strong>：全后端零写入，而餐厅 accept/partially-accept 要求 status===PENDING → 永久 409，配合前端这两个 mutation 是死代码 → 餐厅「验收」实际不改状态、不入库</td><td><a href="#f6">F6</a></td><td class="src">orders/services.py:342-349；ConfirmDelivery.tsx:60-62</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>M10</td><td>餐厅「恢复已删除行」因 DTO 哨兵 <code>_Undefined is not None</code> 恒真 → 恒返回 400 ORDER_PRODUCTS_IS_INCORRECT</td><td><a href="#f4">F4</a></td><td class="src">orders/services.py:1544-1547</td></tr>
+  </tbody>
+</table></div>
+
+<h3>9.3 数据被静默丢弃</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>级别</th><th>编号</th><th>问题</th><th>关联</th><th>依据</th></tr></thead>
+  <tbody>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H7</td><td>餐厅侧取消订单<strong>不联动取消装箱单</strong>（仅供应商侧联动）→ 已取消订单的装箱单仍在打包/司机队列，司机点 delivered 可把订单从 Canceled 拉回 Delivered 并入库；被拒数量不写回订单行、被拒货照样入库计费</td><td><a href="#f4">F4</a><a href="#f6">F6</a></td><td class="src">orders/services.py:1561-1580；stores/orders/services.py:1214-1222</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>M9</td><td>多处「请求有、落库无」：取消原因 reason/details（前端必填后端丢弃）、交付方式 delivery_type（confirm 不发）、行备注 comment（落库但响应不组装，红点永久不亮）、paidToDriver/deliveryFee（签收丢弃）、payment_received（装箱单永不落库）、Order Info exclude_none 导致字段无法清空</td><td><a href="#f4">F4</a><a href="#f5">F5</a><a href="#f6">F6</a></td><td class="src">critic §二矛盾2；backend-write §8.5</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>M11</td><td>母公司账号确认收货/取消恒失效（company_id 当 restaurant_id 传、无公司口径 arrived-approve 路由），且前端 mutation 无 onError → 表现为「按了没反应」</td><td><a href="#f4">F4</a><a href="#f6">F6</a></td><td class="src">useRestaurantOrder.tsx:41-59；companies/orders/services.py:339</td></tr>
+  </tbody>
+</table></div>
+
+<h3>9.4 金额口径 / 数据一致性</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>级别</th><th>编号</th><th>问题</th><th>关联</th><th>依据</th></tr></thead>
+  <tbody>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H3</td><td>餐厅改单把 order_product.tax（未传默认 0.00）<strong>反写进 store_product 商品主档</strong> → 每次餐厅 PATCH 都把这些商品目录税率清零</td><td><a href="#f4">F4</a></td><td class="src">orders/repositories.py:1080-1105</td></tr>
+    <tr><td><span class="sev sev-high">HIGH</span></td><td>H6</td><td>credit_amount 翻倍：<code>_update_order</code> 先 <code>=price</code> 再无条件 <code>=price+order.credit_amount</code> → 赊账单每 PATCH 一次约翻一倍</td><td><a href="#f5">F5</a></td><td class="src">orders/services.py:1378-1392</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>H8</td><td>前端 OrderStatus 只 7 值（后端 11）→ Ready for pickup/Issues at packing 的状态徽章渲染空白；列表丢 status 无状态列；Pending 页签三态压平</td><td><a href="#f1">F1</a></td><td class="src">entity.ts:40-48；orders/domains.py:33-44</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>M5</td><td>制造商 subdivision 账号打不存在的 <code>/manufacturers/{id}/orders</code> 恒 404；dealer 类型误入 restaurant 端点 404；三套 filter/sort schema 不一致（餐厅侧无 restaurant_name 过滤）</td><td><a href="#f1">F1</a></td><td class="src">api/orders.ts:64-75；三处 requests.py</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>M6</td><td>Total 排序 SQL 表达式（按 ordered、当前目录价、无折扣）与展示值 grand_total 口径完全不同 → 按 Total 排序分页边界行错乱；订单历史默认无 order_by</td><td><a href="#f1">F1</a><a href="#f7">F7</a></td><td class="src">orders/repositories.py:210-262, 1827-1830</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>M7</td><td>餐厅侧下单永远无法选赊账（isCredit UI 只在供应商步）→ 恒 credit=0</td><td><a href="#f2">F2</a></td><td class="src">ClientInfoStep.tsx:154；useMultistepOrderForm.tsx:97</td></tr>
+    <tr><td><span class="sev sev-med">MEDIUM</span></td><td>M8</td><td>两侧下单行 tax 恒 0（前端写死+餐厅侧请求模型无 tax 字段）；下单阶段折扣输入被丢弃；报价单转单不写任何 history/装箱单</td><td><a href="#f2">F2</a></td><td class="src">useAddProductsStep.ts:54；restaurants/requests.py:133-139</td></tr>
+    <tr><td><span class="sev sev-low">LOW</span></td><td>L1</td><td>杂项：显示金额含税vs落库price不含税、供应商下单失败无提示、复制带回已删行、Duplicate 不判状态、History end_date off-by-one、order_comment 三成员皆空 500、签名窗单槽位状态易丢、Bill To 卡 Credit 布尔取反显示、Ship To 卡显示自己而非餐厅、移动端 Cancel/Download 按钮死链、gst_rate/fob/shipping_method 三个死列、search.restaurant 死参数</td><td>各章</td><td class="src">各报告技术债清单</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<section id="s10">
+<h2><span class="sec-n">10</span>附录：API 端点清单</h2>
+<p>全部挂 <code>/api</code> 前缀（X-API-KEY + 每路由/路由级 JWT）。四条业务线各一套（restaurants/vendors/companies/manufacturer）。</p>
+
+<h3>读接口</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>端点</th><th>用途</th><th>功能</th><th>归属校验</th></tr></thead>
+  <tbody>
+    <tr><td><code>GET /restaurants|vendors|companies/{id}/orders</code></td><td>列表（本页主数据源）</td><td><a href="#f1">F1</a></td><td class="ok"><code>view__order</code>（<span class="warn-txt">中间件可 query 绕过 C1</span>）</td></tr>
+    <tr><td><code>GET …/orders/{oid}</code>（四套形状）</td><td>详情（products/comments/notes 等）</td><td><a href="#f4">F4</a><a href="#f5">F5</a></td><td class="ok"><code>view__order</code></td></tr>
+    <tr><td><code>GET …/orders/{oid}/info</code></td><td>商务信息</td><td><a href="#f5">F5</a></td><td class="deny">restaurants/vendors 侧无 check_permissions（C2）</td></tr>
+    <tr><td><code>GET …/orders/{oid}/history</code>、<code>…/documents</code></td><td>历史 / 文档</td><td><a href="#f7">F7</a></td><td class="ok"><code>view__order</code></td></tr>
+    <tr><td><code>GET …/orders/{oid}/invoice</code></td><td>发票</td><td><a href="#f5">F5</a></td><td class="warn-txt">restaurants 侧无守卫；companies 侧归属校验被注释</td></tr>
+    <tr><td><code>GET /restaurants/{rid}/orders/{oid}/is-packing-slip-approved</code></td><td>签收状态探测</td><td><a href="#f6">F6</a></td><td class="deny">无 check_permissions（C2）</td></tr>
+    <tr><td><code>GET /restaurants/{rid}/ai/orders</code></td><td>AI 订单列表</td><td>—</td><td class="deny">零授权 + 全量吐出（C2）</td></tr>
+    <tr><td><code>POST /vendors/{id}/products</code></td><td>选品数据源（POST 传 exclude）</td><td><a href="#f2">F2</a></td><td class="deny">零归属鉴权（C2）</td></tr>
+  </tbody>
+</table></div>
+
+<h3>写接口</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>端点</th><th>作用</th><th>功能</th><th>权限</th></tr></thead>
+  <tbody>
+    <tr><td><code>POST /restaurants|vendors/{id}/orders</code></td><td>下单（创建 New）</td><td><a href="#f2">F2</a></td><td class="ok"><code>create__order</code></td></tr>
+    <tr><td><code>PATCH /restaurants/{id}/orders/{oid}</code></td><td>餐厅改单（批量）</td><td><a href="#f4">F4</a></td><td class="ok"><code>edit__order</code> + status===NEW</td></tr>
+    <tr><td><code>POST /vendors/{id}/orders/{oid}/confirm</code></td><td>供应商确认（建装箱单）</td><td><a href="#f5">F5</a></td><td class="ok"><code>edit__order</code>（公司侧硬编码 403）</td></tr>
+    <tr><td><code>POST …/orders/{oid}/cancel</code>（三侧）</td><td>取消订单</td><td><a href="#f4">F4</a><a href="#f5">F5</a></td><td class="ok"><code>edit__order</code>（仅供应商侧联动取消装箱单）</td></tr>
+    <tr><td><code>PATCH /vendors/{store_id}/orders/{oid}/products/{opid}</code></td><td>改行价/量/税/折扣</td><td><a href="#f5">F5</a></td><td class="deny">无 check_permissions、无状态守卫（H1）</td></tr>
+    <tr><td><code>POST|DELETE|POST restore /vendors/{store_id}/orders/{oid}/products</code></td><td>加/删/恢复行</td><td><a href="#f5">F5</a></td><td class="ok">服务层 status===NEW + 商品归属校验</td></tr>
+    <tr><td><code>PATCH /vendors/{store_id}/orders/{oid}/info</code></td><td>改 Order Info</td><td><a href="#f5">F5</a></td><td class="deny">无 check_permissions、无状态守卫</td></tr>
+    <tr><td><code>POST …/orders/{oid}/invoice</code></td><td>生成发票</td><td><a href="#f5">F5</a></td><td class="ok"><code>create__invoice + view__order</code></td></tr>
+    <tr><td><code>POST /restaurants/{rid}/packing-slips/{orderId}/arrived-approve</code></td><td>餐厅签收（不改状态）</td><td><a href="#f6">F6</a></td><td class="deny">仅 Security，只校验成员存在（H1）</td></tr>
+    <tr><td><code>POST /order/{id}/invoice/email|sms/send</code></td><td>发送发票</td><td><a href="#f5">F5</a></td><td class="deny">零鉴权（C3）</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<footer>
+  本文档由 13 个并行读码代理对 support-demo 分支（backend b0ea653c / frontend ae70314d）逆向整理，含一轮完整性审查（裁决 4 处矛盾 + 坐实 1 处 CRITICAL 越权 + 核实 17 条结论）与 4 项缺口补查；矛盾结论均经二次实读代码裁决。v1 生成于 2026-08-21。
+</footer>
+</main>
+</div>
+
+</body>
+</html>
