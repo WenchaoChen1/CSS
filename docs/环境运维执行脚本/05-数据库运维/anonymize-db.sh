@@ -12,18 +12,30 @@
 #       且须手输 prod 二次确认。整库口令统一（默认模式）在 prod 永远拒绝。
 # 用法: ./anonymize-db.sh <test|uat|support-ref|support-demo|support-sync> [口令，默认 Test1234!] [--emails-phones-only]
 #       ./anonymize-db.sh prod --emails-phones-only
+#       ./anonymize-db.sh uat --emails-phones-only --skip-email-prefix swp
+#         （--skip-email-prefix P：email 以 P 开头（不区分大小写）的行不加前缀 1——用于保留自有团队邮箱可收信。
+#          注意：之后如再跑 mask-residual-pii.sh，它会把这些未加 1 的邮箱当残留替换掉，须跳过或给它加同样排除。）
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
-ENV_NAME="${1:?用法: anonymize-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [口令] [--emails-phones-only]}"
+ENV_NAME="${1:?用法: anonymize-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [口令] [--emails-phones-only] [--skip-email-prefix P]}"
 shift || true
 NEW_PASSWORD="Test1234!"
 PII_ONLY=0
-for arg in "$@"; do
-  case "$arg" in
+SKIP_EMAIL_PREFIX=""
+while [ $# -gt 0 ]; do
+  case "$1" in
     --emails-phones-only) PII_ONLY=1 ;;
-    *) NEW_PASSWORD="$arg" ;;
+    --skip-email-prefix)
+      shift
+      SKIP_EMAIL_PREFIX="${1:?--skip-email-prefix 需要一个前缀值}"
+      # 前缀会拼进 SQL 字面量，只放行安全字符，防注入
+      case "$SKIP_EMAIL_PREFIX" in
+        *[!A-Za-z0-9_.@+-]*) echo "--skip-email-prefix 只允许字母数字与 _ . @ + -"; exit 1 ;;
+      esac ;;
+    *) NEW_PASSWORD="$1" ;;
   esac
+  shift || true
 done
 REGION="us-east-1"
 case "$ENV_NAME" in
@@ -74,6 +86,18 @@ else
   MASK_MODE='prefix-suffix'
   MASK_NOTE='email 加前缀1/phone 加后缀1/口令统一——注意该口径只断可达性不断身份，彻底去身份请跑 mask-residual-pii.sh --all'
 fi
+[ -n "$SKIP_EMAIL_PREFIX" ] && MASK_NOTE="$MASK_NOTE；排除 ${SKIP_EMAIL_PREFIX}* 开头邮箱未加前缀"
+
+# email 的 UPDATE 生成语句按是否排除前缀分两个变体（排除版多一个 %I 参数与 NOT ILIKE 条件）
+if [ -n "$SKIP_EMAIL_PREFIX" ]; then
+  EMAIL_UPDATE_SELECT="SELECT format('UPDATE %I.%I SET %I = ''1'' || %I WHERE %I IS NOT NULL AND %I NOT LIKE ''1%%'' AND %I NOT ILIKE ''${SKIP_EMAIL_PREFIX}%%'';',
+              table_schema, table_name, column_name, column_name, column_name, column_name, column_name)"
+  EMAIL_RESIDUAL_EXTRA=" and email not ilike '${SKIP_EMAIL_PREFIX}%'"
+else
+  EMAIL_UPDATE_SELECT="SELECT format('UPDATE %I.%I SET %I = ''1'' || %I WHERE %I IS NOT NULL AND %I NOT LIKE ''1%%'';',
+              table_schema, table_name, column_name, column_name, column_name, column_name)"
+  EMAIL_RESIDUAL_EXTRA=""
+fi
 
 # ---- 远程脚本：动态遍历列 → 生成并执行 UPDATE ----
 REMOTE=$(cat <<REOF
@@ -93,8 +117,7 @@ echo "--- 脱敏前抽样（表 \$SAMPLE_TBL）---"
 
 # 生成 UPDATE 语句：email 前缀 1 / phone 后缀 1（只认文本列，排除枚举类 *type* 列）
 \$PSQL -tAc "
-SELECT format('UPDATE %I.%I SET %I = ''1'' || %I WHERE %I IS NOT NULL AND %I NOT LIKE ''1%%'';',
-              table_schema, table_name, column_name, column_name, column_name, column_name)
+$EMAIL_UPDATE_SELECT
 FROM information_schema.columns
 WHERE table_schema='public' AND data_type IN ('text','character varying','character')
   AND column_name ILIKE '%email%' AND column_name NOT ILIKE '%type%'
@@ -136,7 +159,7 @@ rm -f /tmp/anon.sql
 echo "--- 脱敏后校验 ---"
 [ -n "\$SAMPLE_TBL" ] && {
   \$PSQL -tAc "select 'email: '||email from \$SAMPLE_TBL where email is not null limit 3"
-  \$PSQL -tAc "select '未加前缀的邮箱残留: '||count(*) from \$SAMPLE_TBL where email is not null and email not like '1%'"
+  \$PSQL -tAc "select '未加前缀的邮箱残留: '||count(*) from \$SAMPLE_TBL where email is not null and email not like '1%'$EMAIL_RESIDUAL_EXTRA"
 }
 # 真校验：为每个 password_hash 列生成"实际去重计数"查询再回喂执行（此前把常量 1 填进 format，
 # 无论成败都打印 "1 种哈希 / 1 行"，等于没校验——2026-08-03 修）。
