@@ -207,6 +207,21 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 > ⚠️ **它与 `mask-residual-pii.sh` 冲突**：后者把"不以 1 开头"的邮箱当残留替换掉，
 > 会**吃掉这些刻意保留的 `swp*` 邮箱**。详见下面 `mask-residual-pii.sh` 章节的警告。
 
+> ⚠️ **前缀要盯拼写变体**：2026-08-22 只排除了 `swp`，团队里拼作 `spw*` 的邮箱被误加了 `1`。
+> 误伤后用 `strip-email-prefix1.sh`（见下）反向修复；下次脱敏直接 `--skip-email-prefix` 跑两轮或提前核对拼写。
+
+### `strip-email-prefix1.sh` — 修复被误加前缀 `1` 的团队邮箱（anonymize 误伤的反向操作）
+
+```bash
+./strip-email-prefix1.sh <test|uat|support-ref|support-demo|support-sync> <前缀1>[,前缀2...]
+./strip-email-prefix1.sh uat swp,spw     # 值形如 1swp*/1spw* 的邮箱去掉最前面的 1
+# 已执行（2026-08-24）：./strip-email-prefix1.sh uat swp,spw —— 命中 62 行（company 4 / store 1 / user 57，全部 1spw*），残留 0
+```
+
+与 anonymize-db.sh 同一列口径（information_schema 动态遍历 email 类文本列）、同一执行链路（SSM → 应用机 → docker psql）。
+先打印命中明细，再**单事务** `SET col = substring(col from 2)`，完成后写 `_css_pii_masked` 一条 `mode=strip-prefix1-fix` 标记并校验残留为 0。
+幂等：重跑命中 0 行直接退出。不支持 prod（prod 脱敏未做 swp 排除，不存在该误伤场景）。
+
 做了三件事（动态遍历 `information_schema` 找列，只认 `text`/`varchar`/`char`，排除列名含 `type` 的枚举字段）：
 
 | # | 对象 | 处理 | 效果 |
