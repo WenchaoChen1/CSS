@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chain Serve 云基础设施</title>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --ink: #1c2534;
+    --muted: #5a6577;
+    --faint: #8a94a6;
+    --line: #dce2ea;
+    --line-strong: #c3ccd8;
+    --accent: #14649c;
+    --accent-ink: #0f4f7c;
+    --accent-soft: #e3eef7;
+    --code-bg: #eef1f5;
+    --code-ink: #35415a;
+    --st-new: #2563a8;      --st-new-bg: #e4edf8;
+    --st-packed: #0e7490;   --st-packed-bg: #e0f1f5;
+    --st-transit: #5b5bd6;  --st-transit-bg: #eaeafb;
+    --st-arrived: #a06a10;  --st-arrived-bg: #f7edda;
+    --st-delivered: #1a7f4e;--st-delivered-bg: #e2f2e9;
+    --st-canceled: #a03c36; --st-canceled-bg: #f7e6e4;
+    --sev-crit: #b3403a;
+    --sev-high: #c26a1d;
+    --sev-med: #a08015;
+    --sev-low: #5a6577;
+    --yes: #1a7f4e;
+    --no: #a03c36;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161d; --surface: #1a202b; --surface-2: #222a37;
+      --ink: #e5e9f0; --muted: #a0abbe; --faint: #7b8699;
+      --line: #2b3442; --line-strong: #3a465a;
+      --accent: #63aede; --accent-ink: #8cc4e8; --accent-soft: #1c2f41;
+      --code-bg: #232b39; --code-ink: #b8c4d8;
+      --st-new: #7fb2e8;      --st-new-bg: #1c2c40;
+      --st-packed: #6cc5da;   --st-packed-bg: #16303a;
+      --st-transit: #a3a3f0;  --st-transit-bg: #262650;
+      --st-arrived: #dfb264;  --st-arrived-bg: #3a2e16;
+      --st-delivered: #6fce9c;--st-delivered-bg: #16351f;
+      --st-canceled: #e08a84; --st-canceled-bg: #40201d;
+      --sev-crit: #e08a84; --sev-high: #dfa163; --sev-med: #d3bc50; --sev-low: #a0abbe;
+      --yes: #6fce9c; --no: #e08a84;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161d; --surface: #1a202b; --surface-2: #222a37;
+    --ink: #e5e9f0; --muted: #a0abbe; --faint: #7b8699;
+    --line: #2b3442; --line-strong: #3a465a;
+    --accent: #63aede; --accent-ink: #8cc4e8; --accent-soft: #1c2f41;
+    --code-bg: #232b39; --code-ink: #b8c4d8;
+    --st-new: #7fb2e8;      --st-new-bg: #1c2c40;
+    --st-packed: #6cc5da;   --st-packed-bg: #16303a;
+    --st-transit: #a3a3f0;  --st-transit-bg: #262650;
+    --st-arrived: #dfb264;  --st-arrived-bg: #3a2e16;
+    --st-delivered: #6fce9c;--st-delivered-bg: #16351f;
+    --st-canceled: #e08a84; --st-canceled-bg: #40201d;
+    --sev-crit: #e08a84; --sev-high: #dfa163; --sev-med: #d3bc50; --sev-low: #a0abbe;
+    --yes: #6fce9c; --no: #e08a84;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.85;
+    margin: 0;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 0 20px 96px;
+  }
+  @media (min-width: 1100px) {
+    .shell { grid-template-columns: 248px minmax(0, 1fr); gap: 48px; }
+  }
+
+  nav.toc { display: none; }
+  @media (min-width: 1100px) {
+    nav.toc {
+      display: block;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+      overflow-y: auto;
+      padding: 48px 0 32px;
+      font-size: 12.5px;
+    }
+  }
+  nav.toc .toc-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 18px 0 8px;
+  }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+  nav.toc a {
+    display: flex;
+    gap: 9px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 4px 10px 4px 12px;
+    border-left: 2px solid var(--line);
+    line-height: 1.5;
+  }
+  nav.toc a:hover, nav.toc a:focus-visible {
+    color: var(--accent-ink);
+    border-left-color: var(--accent);
+    background: var(--accent-soft);
+    outline: none;
+  }
+  nav.toc a .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    color: var(--faint);
+    min-width: 22px;
+    padding-top: 2px;
+  }
+
+  main { min-width: 0; }
+
+  header.doc-head {
+    padding: 56px 0 36px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 8px;
+  }
+  .doc-kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900;
+    font-size: clamp(30px, 4.4vw, 44px);
+    line-height: 1.25;
+    margin: 0 0 14px;
+    letter-spacing: .01em;
+    text-wrap: balance;
+  }
+  .doc-sub { color: var(--muted); max-width: 46em; margin: 0 0 26px; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    margin: 0;
+  }
+  .meta-grid > div { background: var(--surface); padding: 10px 14px; }
+  .meta-grid dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 2px;
+  }
+  .meta-grid dd { margin: 0; color: var(--ink); }
+  .meta-grid dd code { font-size: 12px; }
+
+  section { padding-top: 20px; }
+  h2 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 25px;
+    line-height: 1.4;
+    margin: 44px 0 6px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line-strong);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    text-wrap: balance;
+  }
+  h2 .sec-n {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  h3 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin: 30px 0 4px;
+    text-wrap: balance;
+  }
+  h4 { font-size: 15px; font-weight: 700; margin: 26px 0 4px; }
+  p { margin: 10px 0; max-width: 52em; }
+  ul, ol { margin: 10px 0; padding-left: 1.6em; max-width: 50em; }
+  li { margin: 5px 0; }
+  li::marker { color: var(--faint); }
+  strong { font-weight: 700; }
+
+  code, .path {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .84em;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1px 5px;
+    border-radius: 3px;
+    word-break: break-all;
+  }
+  .src {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--faint);
+    word-break: break-all;
+  }
+
+  .fstrip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    font-size: 13px;
+    margin: 16px 0 10px;
+  }
+  .fstrip > div { background: var(--surface); padding: 9px 13px; }
+  .fstrip .fs-k {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 2px;
+  }
+  .fstrip .fs-v { line-height: 1.6; }
+  .fstrip .fs-v code { font-size: 11px; }
+
+  .tbl-wrap { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; line-height: 1.65; }
+  th {
+    background: var(--surface-2);
+    text-align: left;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line-strong);
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    background: var(--surface);
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 11.5px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .ok { color: var(--yes); font-weight: 700; }
+  .deny { color: var(--no); font-weight: 700; }
+  .warn-txt { color: var(--sev-high); font-weight: 700; }
+
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 8px 2px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .st-new { color: var(--st-new); background: var(--st-new-bg); }
+  .st-packed { color: var(--st-packed); background: var(--st-packed-bg); }
+  .st-transit { color: var(--st-transit); background: var(--st-transit-bg); }
+  .st-arrived { color: var(--st-arrived); background: var(--st-arrived-bg); }
+  .st-delivered { color: var(--st-delivered); background: var(--st-delivered-bg); }
+  .st-canceled { color: var(--st-canceled); background: var(--st-canceled-bg); }
+
+  .sev {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    padding: 1px 7px 2px;
+    border-radius: 3px;
+    color: var(--surface);
+    white-space: nowrap;
+  }
+  .sev-crit { background: var(--sev-crit); }
+  .sev-high { background: var(--sev-high); }
+  .sev-med { background: var(--sev-med); }
+  .sev-low { background: var(--sev-low); }
+
+  .who {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    padding: 1px 7px 2px;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: 1px;
+    margin-right: 6px;
+  }
+  .w-packer { color: var(--st-packed); background: var(--st-packed-bg); }
+  .w-driver { color: var(--st-transit); background: var(--st-transit-bg); }
+  .w-manager { color: var(--st-new); background: var(--st-new-bg); }
+  .w-rest { color: var(--st-arrived); background: var(--st-arrived-bg); }
+  .w-sys { color: var(--muted); background: var(--surface-2); }
+  .w-store { color: var(--st-delivered); background: var(--st-delivered-bg); }
+
+  .flow-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 18px 0 10px;
+  }
+  ol.steps {
+    list-style: none;
+    margin: 12px 0 22px;
+    padding: 4px 0 0 0;
+    max-width: 56em;
+  }
+  .step {
+    position: relative;
+    margin-left: 12px;
+    padding: 0 0 16px 30px;
+    border-left: 2px solid var(--line-strong);
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 2px; }
+  .step::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 3px solid var(--accent);
+  }
+  .step.alt::before { border-color: var(--sev-high); }
+  .step.endgood::before { border-color: var(--yes); }
+  .step.endbad::before { border-color: var(--no); }
+  .step .act { font-size: 14px; }
+  .step .fx {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.7;
+  }
+  .step .fx code { font-size: 11px; }
+
+  .flow-wrap {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 22px 20px 18px;
+    margin: 18px 0;
+    overflow-x: auto;
+  }
+  .flow-main {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    min-width: 720px;
+  }
+  .flow-node { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; }
+  .flow-node .pill { font-size: 12px; padding: 3px 12px 4px; }
+  .flow-edge {
+    flex: 1 1 0;
+    min-width: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 6px;
+  }
+  .flow-edge .edge-line {
+    width: 100%;
+    height: 11px;
+    position: relative;
+    border-bottom: 2px solid var(--line-strong);
+  }
+  .flow-edge .edge-line::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    bottom: -5px;
+    border: 4px solid transparent;
+    border-left: 6px solid var(--line-strong);
+  }
+  .flow-edge .edge-label {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 6px;
+    max-width: 12em;
+  }
+
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 14px 18px;
+    margin: 18px 0;
+    max-width: 56em;
+  }
+  .callout.warn { border-left-color: var(--sev-high); }
+  .callout.danger { border-left-color: var(--sev-crit); }
+  .callout .co-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .callout p { margin: 6px 0; font-size: 14px; }
+  .callout ul { font-size: 14px; }
+
+  .keyfacts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin: 18px 0 8px;
+  }
+  .keyfact {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    padding: 12px 16px 13px;
+  }
+  .keyfact .kf-q {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+  .keyfact .kf-a { font-size: 14px; line-height: 1.7; }
+  .keyfact .kf-big {
+    font-family: "Noto Serif SC", serif;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.3;
+    color: var(--accent-ink);
+  }
+
+  /* 架构图（纯 CSS） */
+  .arch {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 18px 0;
+  }
+  @media (min-width: 860px) { .arch { grid-template-columns: 1fr 1fr; } }
+  .vpc {
+    border: 2px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 14px 16px 16px;
+  }
+  .vpc.prod { border-color: var(--accent); }
+  .vpc-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .vpc-title .cidr { color: var(--faint); font-weight: 400; font-size: 11px; }
+  .subnet {
+    border: 1px dashed var(--line-strong);
+    border-radius: 4px;
+    padding: 8px 12px 10px;
+    margin: 8px 0;
+    background: var(--bg);
+  }
+  .subnet .sn-t {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+  .subnet ul { margin: 2px 0; padding-left: 1.2em; font-size: 13px; }
+  .subnet li { margin: 2px 0; }
+  .arch-shared {
+    grid-column: 1 / -1;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 10px 16px 12px;
+    font-size: 13px;
+  }
+  .arch-shared .sn-t {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+  .arch-shared ul {
+    margin: 2px 0; padding-left: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 2px 20px;
+  }
+
+  /* 应用分层架构图 */
+  .sd-frame {
+    position: relative;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 14px;
+    background: var(--surface-2);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 4%, transparent), transparent 40%);
+    padding: 22px 16px 16px;
+    margin: 26px 0 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+  }
+  .sd-cap {
+    position: absolute;
+    top: -11px;
+    left: 16px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 2px 12px 3px;
+  }
+  .sd { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; }
+  .sd-full { grid-column: 1 / -1; }
+  .sd-mid { display: flex; flex-direction: column; min-width: 0; }
+  @media (min-width: 900px) {
+    .sd { grid-template-columns: minmax(0, 1fr) 242px; column-gap: 18px; }
+    .sd-mid { grid-column: 1; grid-row: 3; }
+    .sd-side { grid-column: 2; grid-row: 3; align-self: stretch; margin-top: 0; }
+  }
+  .sd-layer, .sd-side {
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--lc, var(--accent));
+    border-radius: 10px;
+    background: var(--surface);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--lc, var(--accent)) 7%, transparent), transparent 62%);
+    padding: 12px 14px 14px;
+  }
+  .l-user { --lc: var(--st-new); }
+  .l-edge { --lc: var(--st-transit); }
+  .l-app  { --lc: var(--accent); }
+  .l-data { --lc: var(--st-delivered); }
+  .sd-side { --lc: var(--st-arrived); border-style: dashed; border-top-style: solid; display: flex; flex-direction: column; margin-top: 14px; }
+  .sd-tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--lc, var(--accent)); font-weight: 500;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 9px;
+  }
+  .sd-tag::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-strong), transparent); }
+  .sd-cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .sd-card {
+    border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+    padding: 9px 12px 10px; font-size: 13px; line-height: 1.65;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  .sd-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .10);
+    border-color: color-mix(in srgb, var(--lc, var(--accent)) 45%, var(--line));
+  }
+  .sd-card b { display: block; font-size: 13.5px; }
+  .sd-card .d { display: block; color: var(--muted); font-size: 12px; }
+  .sd-card .d code { font-size: 10.5px; }
+  .sd-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .sd-chips i {
+    font-style: normal; font-family: "IBM Plex Mono", monospace; font-size: 10.5px;
+    padding: 2px 8px 3px; border-radius: 999px; white-space: nowrap;
+    background: var(--surface-2); border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--lc, var(--accent)) 9%, var(--surface-2));
+    border-color: color-mix(in srgb, var(--lc, var(--accent)) 28%, var(--line));
+  }
+  .sd-link { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 5px 0; }
+  .sd-link i {
+    position: relative; width: 2px; height: 26px;
+    background: repeating-linear-gradient(180deg, var(--accent) 0 5px, transparent 5px 10px);
+    animation: sdflow 1.2s linear infinite;
+  }
+  .sd-link i::after {
+    content: ""; position: absolute; left: 50%; bottom: -2px; transform: translateX(-50%);
+    border: 5px solid transparent; border-top: 7px solid var(--accent); border-bottom: none;
+  }
+  @keyframes sdflow { to { background-position: 0 10px; } }
+  @media (prefers-reduced-motion: reduce) { .sd-link i { animation: none; } }
+  .sd-link em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+  .sd-ext {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    flex: 1 0 auto; padding: 7px 2px; border-bottom: 1px dashed var(--line); font-size: 12.5px;
+  }
+  .sd-ext:last-of-type { border-bottom: none; }
+  .sd-ext b { white-space: nowrap; }
+  .sd-ext .d { color: var(--muted); font-size: 11.5px; text-align: right; }
+  .sd-note { font-size: 11.5px; color: var(--faint); margin-top: 10px; line-height: 1.7; }
+  @media print {
+    .sd-card { box-shadow: none !important; transform: none !important; }
+    .sd-link i { animation: none; }
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--faint);
+  }
+  a { color: var(--accent-ink); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media print {
+    nav.toc { display: none; }
+    .shell { grid-template-columns: 1fr; max-width: none; padding: 0; }
+    body { font-size: 12px; }
+  }
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="目录">
+  <div class="toc-label">总览</div>
+  <a href="#s1"><span class="n">1</span>执行摘要</a>
+  <a href="#s2"><span class="n">2</span>总体架构</a>
+  <a href="#s3"><span class="n">3</span>环境清单</a>
+  <div class="toc-label">技术与运维</div>
+  <a href="#s4"><span class="n">4</span>应用运行形态</a>
+  <a href="#s5"><span class="n">5</span>数据与存储</a>
+  <a href="#s6"><span class="n">6</span>安全基线</a>
+  <a href="#s7"><span class="n">7</span>发布与运维</a>
+  <div class="toc-label">成本与规划</div>
+  <a href="#s8"><span class="n">8</span>成本结构</a>
+  <a href="#s9"><span class="n">9</span>风险与建议</a>
+</nav>
+
+<main>
+<header class="doc-head">
+  <div class="doc-kicker">Chain Serve · AWS 基础设施 · 交付说明</div>
+  <h1>Chain Serve 云基础设施</h1>
+  <p class="doc-sub">本文档面向 Chain Serve 业务方，完整说明当前 AWS 云环境的架构、环境体系、安全基线、发布运维方式与月度成本，并列出已识别的风险与整改建议。</p>
+  <dl class="meta-grid">
+    <div><dt>覆盖范围</dt><dd>AWS 账号 <code>582797602427</code>（us-east-1）全部资源</dd></div>
+    <div><dt>状态基准</dt><dd>2026-08-22 按 AWS 实况全量校准</dd></div>
+    <div><dt>版本</dt><dd>v1.3 · 2026-08-24（新增应用分层架构图）</dd></div>
+    <div><dt>方法</dt><dd>资源 API / Cost Explorer / CloudWatch 实测 + 全域名连通性验证</dd></div>
+  </dl>
+</header>
+
+<section id="s1">
+<h2><span class="sec-n">1</span>执行摘要</h2>
+
+<div class="keyfacts">
+  <div class="keyfact">
+    <div class="kf-q">生产环境</div>
+    <div class="kf-a"><span class="kf-big">已正式上线</span><br>产品域名 <code>chain-serve.com</code>，全球加速固定入口，全站 HTTPS，实测可用。</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">环境体系</div>
+    <div class="kf-a"><span class="kf-big">1 + 5</span><br>1 套生产 + 5 套非生产（测试 / 验收 / 支持演示），生产与非生产<strong>网络物理隔离</strong>。</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">月度成本（实测）</div>
+    <div class="kf-a"><span class="kf-big">≈ $912 / 月</span><br>其中生产 ≈$310；有明确的优化路径可降至 ≈$700 或更低（见第 8 章）。</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">可用性与监控</div>
+    <div class="kf-a"><span class="kf-big">55 条告警</span><br>覆盖全部环境的负载均衡 / 服务器 / 数据库，当前全部正常（OK），邮件通知已打通。</div>
+  </div>
+</div>
+
+<p>整套基础设施具备以下特征：</p>
+<ul>
+  <li><strong>全量代码化管理（IaC）</strong>：所有 AWS 资源统一纳管，任何变更可追溯、可复现；生产关键资源（数据库、负载均衡）开启删除保护。</li>
+  <li><strong>生产隔离</strong>：生产环境拥有独立的网络（VPC）、独立的数据库实例（跨可用区高可用）、独立的发布审批闸口，与所有非生产环境互不可见。</li>
+  <li><strong>数据保护</strong>：数据库自动备份保留 35 天并支持按时间点恢复；存储全部加密；非生产环境使用脱敏数据。</li>
+  <li><strong>自动化发布</strong>：测试与验收环境提交代码即自动构建、自动部署；生产发布需人工确认，镜像版本化、分钟级回滚。</li>
+</ul>
+</section>
+
+<section id="s2">
+<h2><span class="sec-n">2</span>总体架构</h2>
+
+<p>全部资源部署于 AWS us-east-1（北弗吉尼亚）区域，分为<strong>两套完全隔离的虚拟私有网络（VPC）</strong>：生产一套、非生产一套。所有应用服务器与数据库均位于<strong>私有子网、无公网地址</strong>，对外只暴露负载均衡器（ALB）。</p>
+
+<div class="arch">
+  <div class="vpc prod">
+    <div class="vpc-title">生产 VPC · css-prod <span class="cidr">10.10.0.0/16</span></div>
+    <div class="subnet">
+      <div class="sn-t">公有子网（对外入口）</div>
+      <ul>
+        <li>业务负载均衡 ALB（HTTPS 443 + HTTP 自动跳转）</li>
+        <li>Global Accelerator 全球加速：2 个固定 IP，承接裸域 <code>chain-serve.com</code></li>
+        <li>托管 NAT 网关（服务器出网）</li>
+        <li>堡垒机（唯一 SSH 入口，仅白名单 IP）</li>
+        <li>运维入口 ALB（Kafka 控制台 kafka-ui）</li>
+      </ul>
+    </div>
+    <div class="subnet">
+      <div class="sn-t">私有子网（无公网地址）</div>
+      <ul>
+        <li>应用服务器 ×1（4 核 16G，防终止保护）</li>
+        <li>RDS PostgreSQL 数据库（<strong>跨可用区高可用 Multi-AZ</strong>，备份 35 天，删除保护）</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vpc">
+    <div class="vpc-title">非生产 VPC · css-non-prod <span class="cidr">10.20.0.0/16</span></div>
+    <div class="subnet">
+      <div class="sn-t">公有子网（对外入口，跨 3 个可用区）</div>
+      <ul>
+        <li>业务负载均衡 ALB ×5（test / uat / 三套支持环境，各一）</li>
+        <li>堡垒机（唯一 SSH 入口，兼作出网 NAT）</li>
+        <li>开发工具入口 ALB（Kafka 控制台 kafka-ui）</li>
+      </ul>
+    </div>
+    <div class="subnet">
+      <div class="sn-t">私有子网（无公网地址）</div>
+      <ul>
+        <li>应用服务器 ×5（各 2 核 8G，每环境一台）</li>
+        <li>RDS PostgreSQL 共享实例（5 个环境各自独立数据库，备份 35 天，删除保护）</li>
+      </ul>
+    </div>
+  </div>
+  <div class="arch-shared">
+    <div class="sn-t">账号级共享服务</div>
+    <ul>
+      <li>ECR 容器镜像仓库 ×42（每环境独立，版本化保留）</li>
+      <li>S3 对象存储 ×8 桶（一环境一桶 + 基础设施状态桶）</li>
+      <li>SSM Parameter Store（各环境运行配置的唯一事实源）</li>
+      <li>CloudWatch 监控：55 条告警 + 6 个仪表盘 + 邮件通知</li>
+      <li>GitHub Actions CI/CD（OIDC 临时凭证，不保存长期密钥）</li>
+      <li>Secrets Manager（数据库主密码，7 天自动轮换）</li>
+    </ul>
+  </div>
+</div>
+
+<div class="flow-title">生产访问链路</div>
+<div class="flow-wrap">
+  <div class="flow-main">
+    <div class="flow-node"><span class="pill st-new">用户</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">chain-serve.com<br>（HTTPS）</div></div>
+    <div class="flow-node"><span class="pill st-transit">全球加速</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">2 个固定 IP<br>直通转发</div></div>
+    <div class="flow-node"><span class="pill st-packed">负载均衡 ALB</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">TLS 终结<br>健康检查</div></div>
+    <div class="flow-node"><span class="pill st-arrived">应用服务器</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">仅内网<br>5432</div></div>
+    <div class="flow-node"><span class="pill st-delivered">RDS 数据库</span></div>
+  </div>
+</div>
+
+<h3>应用分层架构</h3>
+<p>六个环境的内部结构完全一致，自上而下分四层：请求经加密入口进入应用服务器，数据只落在最底层的托管数据层；识别、短信、邮件等外部能力统一经服务器出网通道调用第三方服务（右侧）。</p>
+
+<div class="sd-frame">
+<div class="sd-cap">单个环境内部 · 六环境同构</div>
+<div class="sd">
+    <div class="sd-layer l-user sd-full">
+      <div class="sd-tag">用户</div>
+      <div class="sd-cards">
+        <div class="sd-card"><b>浏览器 / 移动端</b><span class="d">HTTPS 访问 <code>chain-serve.com</code> 及各环境域名</span></div>
+      </div>
+    </div>
+    <div class="sd-link sd-full"><i></i><em>443 全站加密 · HTTP 自动跳转</em></div>
+    <div class="sd-mid">
+    <div class="sd-layer l-edge">
+      <div class="sd-tag">接入层</div>
+      <div class="sd-cards">
+        <div class="sd-card"><b>全球加速（仅生产）</b><span class="d">2 个固定 IP，承接裸域名</span></div>
+        <div class="sd-card"><b>负载均衡 ALB</b><span class="d">TLS 终结 · 健康检查 · 每环境一个</span></div>
+      </div>
+    </div>
+    <div class="sd-link"><i></i><em>:80 内网转发（应用服务器无公网地址）</em></div>
+    <div class="sd-layer l-app">
+      <div class="sd-tag">应用服务器 · 三组容器栈</div>
+      <div class="sd-cards">
+        <div class="sd-card">
+          <b>前端栈</b>
+          <span class="d">Nginx + React 单页应用；同源反代 <code>/api</code>、<code>/ws</code> 到后端，避免跨域</span>
+        </div>
+        <div class="sd-card">
+          <b>后端栈</b>
+          <span class="d">Nginx → FastAPI 主 API，及按职责拆分的独立容器：</span>
+          <div class="sd-chips"><i>聊天 WebSocket</i><i>通知服务</i><i>异步任务</i><i>短信发送</i><i>邮件发送</i><i>AI 助手</i><i>目录识别 OCR</i></div>
+        </div>
+        <div class="sd-card">
+          <b>中间件栈</b>
+          <span class="d">事件与消息投递</span>
+          <div class="sd-chips"><i>Kafka 事件流</i><i>RabbitMQ 消息队列</i></div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /sd-mid -->
+    <div class="sd-link sd-full"><i></i><em>仅内网可达 · 数据库 5432 / 对象存储 API / 缓存 6379</em></div>
+    <div class="sd-layer l-data sd-full">
+      <div class="sd-tag">数据层</div>
+      <div class="sd-cards">
+        <div class="sd-card"><b>RDS PostgreSQL</b><span class="d">主业务库 + OCR 库 · 备份 35 天 · 生产跨可用区</span></div>
+        <div class="sd-card"><b>S3 对象存储</b><span class="d">发票 / 目录 / 图片 · 一环境一桶、完全隔离</span></div>
+        <div class="sd-card"><b>Redis 缓存</b><span class="d">会话 / 任务队列 · 随应用栈部署</span></div>
+      </div>
+    </div>
+  <aside class="sd-side">
+    <div class="sd-tag">第三方服务</div>
+    <div class="sd-ext"><b>Eden AI</b><span class="d">发票 / 单据识别</span></div>
+    <div class="sd-ext"><b>Google Gemini</b><span class="d">产品目录识别</span></div>
+    <div class="sd-ext"><b>OpenAI</b><span class="d">AI 助手</span></div>
+    <div class="sd-ext"><b>Twilio</b><span class="d">短信 / 验证码</span></div>
+    <div class="sd-ext"><b>Office365 邮件</b><span class="d">系统邮件发送</span></div>
+    <div class="sd-ext"><b>Google Maps</b><span class="d">地址与地图</span></div>
+    <div class="sd-ext"><b>Sentry</b><span class="d">前后端错误监控</span></div>
+    <div class="sd-note">全部经服务器出网通道（NAT）HTTPS 外呼；密钥集中存放于 Parameter Store，按环境隔离、不进代码。</div>
+  </aside>
+</div>
+</div>
+
+<h3>三条访问铁律</h3>
+<ul>
+  <li><strong>SSH 只经堡垒机</strong>：应用服务器不开公网 22 端口，管理访问必须经堡垒机跳板（仅白名单 IP 可达）。</li>
+  <li><strong>Web 只经本环境负载均衡</strong>：每个环境一个独立 ALB，环境之间互不借道。</li>
+  <li><strong>数据库只在内网</strong>：RDS 无任何公网暴露，仅接受本环境应用服务器与堡垒机的内网连接。</li>
+</ul>
+</section>
+
+<section id="s3">
+<h2><span class="sec-n">3</span>环境清单</h2>
+
+<p>共 6 套部署环境 + 1 项本地开发支撑，域名均已配置 HTTPS 并实测可用：</p>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>环境</th><th>用途</th><th>访问地址</th><th>服务器</th><th>数据</th><th>发布方式</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill st-delivered">prod</span></td>
+      <td><strong>正式生产</strong></td>
+      <td><code>chain-serve.com</code>（含 www）</td>
+      <td>4C/16G，独立 VPC</td>
+      <td>真实业务数据（独立数据库，跨可用区高可用）</td>
+      <td>自动构建，<strong>人工确认后发布</strong></td>
+    </tr>
+    <tr>
+      <td><span class="pill st-new">test</span></td>
+      <td>日常开发验证</td>
+      <td><code>test.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>脱敏测试数据</td>
+      <td>提交代码即自动发布</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-packed">uat</span></td>
+      <td>预发布验收</td>
+      <td><code>uat.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>与生产同源的脱敏数据</td>
+      <td>自动发布（发布前自动打数据库快照）</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-arrived">support-ref</span></td>
+      <td>支持 / 参考</td>
+      <td><code>support-ref-demo.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>脱敏数据</td>
+      <td>手动发布</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-arrived">support-demo</span></td>
+      <td>支持 / 演示（原功能面）</td>
+      <td><code>support-demo.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>原开发环境数据副本</td>
+      <td>手动发布</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-arrived">support-sync</span></td>
+      <td>支持 / 同步对照</td>
+      <td><code>support-sync.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>脱敏数据</td>
+      <td>手动发布</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-canceled">dev（本地）</span></td>
+      <td>开发者本机环境</td>
+      <td>—</td>
+      <td>无云端服务器</td>
+      <td>云端仅一个对象存储桶</td>
+      <td>—</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="callout">
+  <div class="co-title">环境间的代码晋级路径</div>
+  <p>test（开发验证）→ uat（验收）→ prod（生产）。test 与 uat 提交即自动部署；进入生产必须经人工确认。三套 support-* 环境为旁路支持环境，不参与晋级链。</p>
+</div>
+
+<h3>原托管环境迁移状态</h3>
+<p>原团队 AWS 账号（欧洲区）中的三套遗留环境已完成数据迁移：数据库、文件存储与配置已全量转移至当前账号。原环境的前端与中间件服务已停止，仅保留少量容器待最终关停；原环境 HTTPS 证书将于 2026-09-15 到期，届时旧环境将自然失效。</p>
+</section>
+
+<section id="s4">
+<h2><span class="sec-n">4</span>应用运行形态</h2>
+
+<p>每个环境在一台应用服务器上以容器化方式运行<strong>三组独立服务栈</strong>，可分别独立更新：</p>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>服务栈</th><th>包含服务</th><th>职责</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>前端栈</strong></td>
+      <td>Web 前端（单页应用）</td>
+      <td>用户界面；同源反向代理到后端，避免跨域问题</td>
+    </tr>
+    <tr>
+      <td><strong>后端栈</strong>（11 个容器）</td>
+      <td>主 API、聊天服务、通知服务、异步任务、短信发送、邮件发送、AI 助手、产品目录识别（OCR）等</td>
+      <td>全部业务逻辑；按职责拆分为独立容器，互不阻塞</td>
+    </tr>
+    <tr>
+      <td><strong>中间件栈</strong></td>
+      <td>Redis 缓存、RabbitMQ 消息队列、Kafka 事件流</td>
+      <td>缓存、通知投递、验证码等事件消息</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>数据库不在服务器上，统一使用 AWS 托管的 RDS PostgreSQL——主业务库与 OCR 库分库存放（详见第 5 章）。</p>
+
+<h3>技术栈</h3>
+<ul>
+  <li><strong>后端</strong>：Python / FastAPI，容器化部署，多进程 + 异步任务队列</li>
+  <li><strong>前端</strong>：React 19 + TypeScript，构建产物为静态资源 + Nginx</li>
+  <li><strong>数据库</strong>：PostgreSQL 16（AWS RDS 托管）</li>
+  <li><strong>基础设施</strong>：全量代码化管理（IaC）</li>
+</ul>
+</section>
+
+<section id="s5">
+<h2><span class="sec-n">5</span>数据与存储</h2>
+
+<h3>数据库</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>实例</th><th>服务对象</th><th>规格</th><th>高可用</th><th>备份</th><th>保护</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>生产实例</strong></td>
+      <td>仅 prod（独占）</td>
+      <td>PostgreSQL 16 · 2C/4G · 存储自动扩容（上限 200GB）</td>
+      <td class="ok">跨可用区 Multi-AZ，故障自动切换</td>
+      <td>自动备份保留 <strong>35 天</strong>，支持按时间点恢复（PITR）</td>
+      <td>存储加密 + 删除保护 + 主密码 7 天自动轮换</td>
+    </tr>
+    <tr>
+      <td><strong>非生产实例</strong></td>
+      <td>5 套非生产环境共享（各自独立数据库）</td>
+      <td>PostgreSQL 16 · 2C/2G · 存储自动扩容（上限 100GB）</td>
+      <td>单可用区（成本考量，非生产可接受）</td>
+      <td>自动备份保留 35 天</td>
+      <td>删除保护 + 主密码 7 天自动轮换</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<h3>数据分级与脱敏</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>环境</th><th>数据来源</th><th>脱敏状态</th></tr></thead>
+  <tbody>
+    <tr><td>prod</td><td>正式业务数据（自原生产环境全量迁移）</td><td>真实数据，用户使用原有账号密码直接登录</td></tr>
+    <tr><td>test / uat / support-ref / support-sync</td><td>业务数据副本</td><td class="ok">已脱敏：邮箱、手机号已变形，登录口令统一重置为测试口令</td></tr>
+    <tr><td>support-demo</td><td>原开发环境数据副本</td><td>按需求保留原样</td></tr>
+  </tbody>
+</table></div>
+
+<h3>文件存储（S3）</h3>
+<ul>
+  <li><strong>一环境一桶，完全隔离</strong>：每个环境的发票、产品目录、图片等文件存放在各自专属的存储桶，通过各自专属的最小权限账号访问，跨环境不可见。</li>
+  <li><strong>统一防护</strong>：默认加密、版本控制、生命周期清理（残留分段上传 7 天、历史版本 30 天）。</li>
+  <li>生产桶现存约 5.8 万个文件（约 7GB），已与原环境全量核对一致。</li>
+</ul>
+</section>
+
+<section id="s6">
+<h2><span class="sec-n">6</span>安全基线</h2>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>维度</th><th>措施</th><th>状态</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>网络隔离</strong></td>
+      <td>生产 / 非生产两套 VPC 物理隔离；应用服务器与数据库全部位于私有子网、无公网地址；安全组每环境独立、最小放行</td>
+      <td class="ok">已落实</td>
+    </tr>
+    <tr>
+      <td><strong>传输加密</strong></td>
+      <td>全部 7 个域名 HTTPS（通配符证书 + 裸域），HTTP 自动 301 跳转；生产启用 TLS 1.3 策略</td>
+      <td class="ok">已落实，全域名实测通过</td>
+    </tr>
+    <tr>
+      <td><strong>静态加密</strong></td>
+      <td>应用服务器磁盘加密、RDS 存储加密、S3 默认加密</td>
+      <td class="ok">已落实</td>
+    </tr>
+    <tr>
+      <td><strong>凭证管理</strong></td>
+      <td>CI/CD 使用 OIDC 临时凭证（GitHub 侧不保存任何长期密钥）；应用密钥集中于 Parameter Store；数据库主密码由 Secrets Manager 托管、7 天自动轮换；应用使用低权限专用数据库账号</td>
+      <td class="ok">已落实</td>
+    </tr>
+    <tr>
+      <td><strong>访问控制</strong></td>
+      <td>SSH 仅堡垒机 + IP 白名单；开发者只读访问单独授权、临时密钥带过期时间</td>
+      <td class="ok">已落实</td>
+    </tr>
+    <tr>
+      <td><strong>监控告警</strong></td>
+      <td>55 条 CloudWatch 告警（负载均衡 5xx / 延迟 / 健康目标，服务器 CPU / 磁盘 / 内存 / 状态检查，数据库 CPU / 内存 / 存储 / 连接数）+ 6 个仪表盘 + 邮件通知；每日成本预算双档告警</td>
+      <td class="ok">全部生效，当前全绿</td>
+    </tr>
+    <tr>
+      <td><strong>变更管理</strong></td>
+      <td>基础设施全量代码化管理；生产代码仓库主分支仅接受 PR（禁止直推）；生产部署人工闸口</td>
+      <td class="ok">已落实</td>
+    </tr>
+    <tr>
+      <td><strong>数据防丢失</strong></td>
+      <td>RDS 自动备份 35 天 + 按时间点恢复；重大数据操作前手动快照；生产数据库删除保护 + 跨可用区双活</td>
+      <td class="ok">已落实</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="callout warn">
+  <div class="co-title">⚠ 尚未收敛的事项</div>
+  <p>为迁移期联调便利而临时放宽的几项配置（文件直链公开可读、跨域策略全开、Kafka 控制台公网可达）已识别并列入整改计划，详见第 9 章。</p>
+</div>
+</section>
+
+<section id="s7">
+<h2><span class="sec-n">7</span>发布与运维</h2>
+
+<h3>发布流程</h3>
+<ol class="steps">
+  <li class="step">
+    <span class="who w-manager">开发</span>
+    <div class="act">提交代码到对应环境分支</div>
+    <div class="fx">自动触发 CI：代码检查 → 单元测试 → 构建容器镜像 → 推送镜像仓库（版本化编号 + 浮动标签双轨）</div>
+  </li>
+  <li class="step">
+    <span class="who w-sys">系统</span>
+    <div class="act">test / uat：自动部署</div>
+    <div class="fx">数据库迁移（uat 迁移前自动打快照）→ 通过 AWS 系统通道下发部署指令（全程无 SSH、无长期密钥）→ 拉取镜像 → 滚动更新 → 健康检查冒烟</div>
+  </li>
+  <li class="step alt">
+    <span class="who w-manager">负责人</span>
+    <div class="act">prod：人工确认后发布</div>
+    <div class="fx">主分支提交只构建镜像不部署；发布需在流水线上手动触发（人工闸口），流程与自动部署一致</div>
+  </li>
+  <li class="step endgood">
+    <span class="who w-sys">系统</span>
+    <div class="act">发布完成，通知送达</div>
+    <div class="fx">部署结果自动推送消息通知；如需回滚，选择上一个版本化镜像重新部署，<strong>分钟级完成</strong></div>
+  </li>
+</ol>
+
+<h3>故障恢复能力</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>场景</th><th>恢复手段</th><th>恢复目标</th></tr></thead>
+  <tbody>
+    <tr><td>应用版本问题</td><td>回滚到上一个版本化镜像</td><td>分钟级</td></tr>
+    <tr><td>生产数据库故障</td><td>Multi-AZ 备机自动接管</td><td>自动切换，通常 1–2 分钟</td></tr>
+    <tr><td>数据误操作</td><td>RDS 按时间点恢复（PITR）</td><td>可恢复至 35 天内任意时刻</td></tr>
+    <tr><td>服务器故障</td><td>基础设施代码化，可按原规格重建；镜像与配置均在云端</td><td>小时级</td></tr>
+  </tbody>
+</table></div>
+
+<h3>日常监控</h3>
+<p>指标越过阈值 → 告警触发 → 邮件即时送达运维负责人。核心告警包括：服务不可用（健康目标为零，比用户报障更早发现）、应用报错（5xx）、响应变慢（P95 &gt; 3 秒）、磁盘 / 内存 / 存储水位、数据库连接数等。另配每日成本预算双档告警，异常支出当天可见。</p>
+</section>
+
+<section id="s8">
+<h2><span class="sec-n">8</span>成本结构</h2>
+
+<p>以下为 Cost Explorer 实测数据（真实用量口径，未计入平台赠送额度的抵扣）：</p>
+
+<div class="keyfacts">
+  <div class="keyfact">
+    <div class="kf-q">全账号月成本</div>
+    <div class="kf-a"><span class="kf-big">≈ $912</span><br>≈ $30.4 / 天，近一周走势平稳</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">生产环境</div>
+    <div class="kf-a"><span class="kf-big">≈ $310</span><br>独立 VPC / 高可用数据库 / 全球加速，全含</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">非生产（5 套）</div>
+    <div class="kf-a"><span class="kf-big">≈ $600</span><br>每套全成本 ≈$120（含共享资源分摊）</div>
+  </div>
+</div>
+
+<h3>按服务拆分（月）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>服务</th><th class="num">月成本</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>服务器计算（EC2）</td><td class="num">$482</td><td>6 台应用服务器 + 2 台堡垒机</td></tr>
+    <tr><td>负载均衡（ELB）</td><td class="num">$128</td><td>8 个 ALB（6 业务 + 2 运维入口）</td></tr>
+    <tr><td>数据库（RDS）</td><td class="num">$123</td><td>生产（跨可用区）+ 非生产（共享实例）</td></tr>
+    <tr><td>网络（IPv4 / NAT）</td><td class="num">$91</td><td>公网 IP 与 NAT 流量处理</td></tr>
+    <tr><td>磁盘存储（EBS）</td><td class="num">$77</td><td>合计 618GB</td></tr>
+    <tr><td>监控 / 镜像仓库 / 对象存储等</td><td class="num">$11</td><td>CloudWatch、ECR、S3、Secrets Manager 等</td></tr>
+    <tr><td><strong>合计</strong></td><td class="num"><strong>≈ $912</strong></td><td>另：全球加速新增 ≈$18/月将计入下期账单</td></tr>
+  </tbody>
+</table></div>
+
+<h3>成本优化路径（按收益排序）</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>#</th><th>措施</th><th class="num">月节省</th><th>代价</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>三套 support-* 支持环境用毕即删</td><td class="num">≈ $360</td><td>需要时可按代码重建（小时级）</td></tr>
+    <tr><td>2</td><td>购买 1 年期 Savings Plan / 预留实例</td><td class="num">≈ $180–240</td><td>一年用量承诺；全账号可降至 ≈$700 以内</td></tr>
+    <tr><td>3</td><td>非生产服务器夜间 / 周末停机</td><td class="num">≤ $170</td><td>随用随起，脚本化控制</td></tr>
+    <tr><td>4</td><td>裁减冗余公网 IP（随 ALB 精简自动实现）</td><td class="num">随 #1 附带</td><td>—</td></tr>
+  </tbody>
+</table></div>
+
+</section>
+
+<section id="s9">
+<h2><span class="sec-n">9</span>已识别风险与整改建议</h2>
+
+<p>以下事项均为迁移期已知的临时性安排，已纳入管控清单，按建议优先级列出：</p>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>级别</th><th>事项</th><th>现状与影响</th><th>整改建议</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="sev sev-high">HIGH</span></td>
+      <td>文件直链公开可读</td>
+      <td>为兼容旧版文件链接，全部存储桶临时开放了对象公开读取；知悉链接者无需登录即可访问文件</td>
+      <td>应用改造为预签名 URL（带时效的临时链接）后关闭公开读取</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-high">HIGH</span></td>
+      <td>Kafka 控制台公网可达</td>
+      <td>用于查看验证码消息的 Kafka 控制台（kafka-ui，含生产）当前对公网开放，仅靠登录口令防护；生产侧涉及真实数据</td>
+      <td>收敛为 IP 白名单或 VPN 接入；作为最高优先级安全项处理</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-med">MEDIUM</span></td>
+      <td>跨域策略全开</td>
+      <td>存储桶 CORS 允许任意来源（迁移期联调便利）</td>
+      <td>收敛为实际业务域名清单</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-low">LOW</span></td>
+      <td>留档快照与备份库待清理</td>
+      <td>迁移期间的 8 个手动数据库快照及若干库内留档副本仍在占用空间</td>
+      <td>确认无回滚需求后分批清理</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-low">LOW</span></td>
+      <td>前端构建暂跳过类型检查</td>
+      <td>存量类型错误 16 处，构建临时使用免校验通道，不影响功能</td>
+      <td>修复后恢复标准构建流程</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-low">LOW</span></td>
+      <td>原环境退役收尾</td>
+      <td>原托管账号少量容器仍在运行；其证书 2026-09-15 到期</td>
+      <td>确认回滚窗口关闭后彻底关停，停止原账号计费</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="callout">
+  <div class="co-title">整体评估</div>
+  <p>基础设施已达到生产可用标准：网络隔离、加密、备份、监控、发布管控均已落实并经实测验证。上表风险项均为已知、可控且有明确整改路径的迁移期遗留事项，其中两项 HIGH 建议在近期迭代中优先处理。</p>
+</div>
+</section>
+
+<footer>
+  本文档基于 2026-08-22 对 AWS 账号 582797602427（us-east-1）的实况校准数据生成：资源清单来自 AWS 资源 API 实查，成本来自 Cost Explorer（真实用量口径），可用性结论来自全部 7 个域名的连通性实测。基础设施代码与详细运维文档随代码仓库维护。
+</footer>
+</main>
+</div>
+
+
+</body>
+</html>

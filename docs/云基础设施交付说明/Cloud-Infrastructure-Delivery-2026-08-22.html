@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chain Serve Cloud Infrastructure</title>
+</head>
+<body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --ink: #1c2534;
+    --muted: #5a6577;
+    --faint: #8a94a6;
+    --line: #dce2ea;
+    --line-strong: #c3ccd8;
+    --accent: #14649c;
+    --accent-ink: #0f4f7c;
+    --accent-soft: #e3eef7;
+    --code-bg: #eef1f5;
+    --code-ink: #35415a;
+    --st-new: #2563a8;      --st-new-bg: #e4edf8;
+    --st-packed: #0e7490;   --st-packed-bg: #e0f1f5;
+    --st-transit: #5b5bd6;  --st-transit-bg: #eaeafb;
+    --st-arrived: #a06a10;  --st-arrived-bg: #f7edda;
+    --st-delivered: #1a7f4e;--st-delivered-bg: #e2f2e9;
+    --st-canceled: #a03c36; --st-canceled-bg: #f7e6e4;
+    --sev-crit: #b3403a;
+    --sev-high: #c26a1d;
+    --sev-med: #a08015;
+    --sev-low: #5a6577;
+    --yes: #1a7f4e;
+    --no: #a03c36;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161d; --surface: #1a202b; --surface-2: #222a37;
+      --ink: #e5e9f0; --muted: #a0abbe; --faint: #7b8699;
+      --line: #2b3442; --line-strong: #3a465a;
+      --accent: #63aede; --accent-ink: #8cc4e8; --accent-soft: #1c2f41;
+      --code-bg: #232b39; --code-ink: #b8c4d8;
+      --st-new: #7fb2e8;      --st-new-bg: #1c2c40;
+      --st-packed: #6cc5da;   --st-packed-bg: #16303a;
+      --st-transit: #a3a3f0;  --st-transit-bg: #262650;
+      --st-arrived: #dfb264;  --st-arrived-bg: #3a2e16;
+      --st-delivered: #6fce9c;--st-delivered-bg: #16351f;
+      --st-canceled: #e08a84; --st-canceled-bg: #40201d;
+      --sev-crit: #e08a84; --sev-high: #dfa163; --sev-med: #d3bc50; --sev-low: #a0abbe;
+      --yes: #6fce9c; --no: #e08a84;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161d; --surface: #1a202b; --surface-2: #222a37;
+    --ink: #e5e9f0; --muted: #a0abbe; --faint: #7b8699;
+    --line: #2b3442; --line-strong: #3a465a;
+    --accent: #63aede; --accent-ink: #8cc4e8; --accent-soft: #1c2f41;
+    --code-bg: #232b39; --code-ink: #b8c4d8;
+    --st-new: #7fb2e8;      --st-new-bg: #1c2c40;
+    --st-packed: #6cc5da;   --st-packed-bg: #16303a;
+    --st-transit: #a3a3f0;  --st-transit-bg: #262650;
+    --st-arrived: #dfb264;  --st-arrived-bg: #3a2e16;
+    --st-delivered: #6fce9c;--st-delivered-bg: #16351f;
+    --st-canceled: #e08a84; --st-canceled-bg: #40201d;
+    --sev-crit: #e08a84; --sev-high: #dfa163; --sev-med: #d3bc50; --sev-low: #a0abbe;
+    --yes: #6fce9c; --no: #e08a84;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.85;
+    margin: 0;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 0 20px 96px;
+  }
+  @media (min-width: 1100px) {
+    .shell { grid-template-columns: 248px minmax(0, 1fr); gap: 48px; }
+  }
+
+  nav.toc { display: none; }
+  @media (min-width: 1100px) {
+    nav.toc {
+      display: block;
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+      overflow-y: auto;
+      padding: 48px 0 32px;
+      font-size: 12.5px;
+    }
+  }
+  nav.toc .toc-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 18px 0 8px;
+  }
+  nav.toc .toc-label:first-child { margin-top: 0; }
+  nav.toc a {
+    display: flex;
+    gap: 9px;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 4px 10px 4px 12px;
+    border-left: 2px solid var(--line);
+    line-height: 1.5;
+  }
+  nav.toc a:hover, nav.toc a:focus-visible {
+    color: var(--accent-ink);
+    border-left-color: var(--accent);
+    background: var(--accent-soft);
+    outline: none;
+  }
+  nav.toc a .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    color: var(--faint);
+    min-width: 22px;
+    padding-top: 2px;
+  }
+
+  main { min-width: 0; }
+
+  header.doc-head {
+    padding: 56px 0 36px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 8px;
+  }
+  .doc-kicker {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900;
+    font-size: clamp(30px, 4.4vw, 44px);
+    line-height: 1.25;
+    margin: 0 0 14px;
+    letter-spacing: .01em;
+    text-wrap: balance;
+  }
+  .doc-sub { color: var(--muted); max-width: 46em; margin: 0 0 26px; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    margin: 0;
+  }
+  .meta-grid > div { background: var(--surface); padding: 10px 14px; }
+  .meta-grid dt {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 2px;
+  }
+  .meta-grid dd { margin: 0; color: var(--ink); }
+  .meta-grid dd code { font-size: 12px; }
+
+  section { padding-top: 20px; }
+  h2 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 25px;
+    line-height: 1.4;
+    margin: 44px 0 6px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line-strong);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    text-wrap: balance;
+  }
+  h2 .sec-n {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  h3 {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin: 30px 0 4px;
+    text-wrap: balance;
+  }
+  h4 { font-size: 15px; font-weight: 700; margin: 26px 0 4px; }
+  p { margin: 10px 0; max-width: 52em; }
+  ul, ol { margin: 10px 0; padding-left: 1.6em; max-width: 50em; }
+  li { margin: 5px 0; }
+  li::marker { color: var(--faint); }
+  strong { font-weight: 700; }
+
+  code, .path {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .84em;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 1px 5px;
+    border-radius: 3px;
+    word-break: break-all;
+  }
+  .src {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--faint);
+    word-break: break-all;
+  }
+
+  .fstrip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    font-size: 13px;
+    margin: 16px 0 10px;
+  }
+  .fstrip > div { background: var(--surface); padding: 9px 13px; }
+  .fstrip .fs-k {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 2px;
+  }
+  .fstrip .fs-v { line-height: 1.6; }
+  .fstrip .fs-v code { font-size: 11px; }
+
+  .tbl-wrap { overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; line-height: 1.65; }
+  th {
+    background: var(--surface-2);
+    text-align: left;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line-strong);
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    background: var(--surface);
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 11.5px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .ok { color: var(--yes); font-weight: 700; }
+  .deny { color: var(--no); font-weight: 700; }
+  .warn-txt { color: var(--sev-high); font-weight: 700; }
+
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 8px 2px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .st-new { color: var(--st-new); background: var(--st-new-bg); }
+  .st-packed { color: var(--st-packed); background: var(--st-packed-bg); }
+  .st-transit { color: var(--st-transit); background: var(--st-transit-bg); }
+  .st-arrived { color: var(--st-arrived); background: var(--st-arrived-bg); }
+  .st-delivered { color: var(--st-delivered); background: var(--st-delivered-bg); }
+  .st-canceled { color: var(--st-canceled); background: var(--st-canceled-bg); }
+
+  .sev {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    padding: 1px 7px 2px;
+    border-radius: 3px;
+    color: var(--surface);
+    white-space: nowrap;
+  }
+  .sev-crit { background: var(--sev-crit); }
+  .sev-high { background: var(--sev-high); }
+  .sev-med { background: var(--sev-med); }
+  .sev-low { background: var(--sev-low); }
+
+  .who {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    padding: 1px 7px 2px;
+    border-radius: 3px;
+    white-space: nowrap;
+    vertical-align: 1px;
+    margin-right: 6px;
+  }
+  .w-packer { color: var(--st-packed); background: var(--st-packed-bg); }
+  .w-driver { color: var(--st-transit); background: var(--st-transit-bg); }
+  .w-manager { color: var(--st-new); background: var(--st-new-bg); }
+  .w-rest { color: var(--st-arrived); background: var(--st-arrived-bg); }
+  .w-sys { color: var(--muted); background: var(--surface-2); }
+  .w-store { color: var(--st-delivered); background: var(--st-delivered-bg); }
+
+  .flow-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 18px 0 10px;
+  }
+  ol.steps {
+    list-style: none;
+    margin: 12px 0 22px;
+    padding: 4px 0 0 0;
+    max-width: 56em;
+  }
+  .step {
+    position: relative;
+    margin-left: 12px;
+    padding: 0 0 16px 30px;
+    border-left: 2px solid var(--line-strong);
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 2px; }
+  .step::before {
+    content: "";
+    position: absolute;
+    left: -7px;
+    top: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 3px solid var(--accent);
+  }
+  .step.alt::before { border-color: var(--sev-high); }
+  .step.endgood::before { border-color: var(--yes); }
+  .step.endbad::before { border-color: var(--no); }
+  .step .act { font-size: 14px; }
+  .step .fx {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.7;
+  }
+  .step .fx code { font-size: 11px; }
+
+  .flow-wrap {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 22px 20px 18px;
+    margin: 18px 0;
+    overflow-x: auto;
+  }
+  .flow-main {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    min-width: 720px;
+  }
+  .flow-node { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; }
+  .flow-node .pill { font-size: 12px; padding: 3px 12px 4px; }
+  .flow-edge {
+    flex: 1 1 0;
+    min-width: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 6px;
+  }
+  .flow-edge .edge-line {
+    width: 100%;
+    height: 11px;
+    position: relative;
+    border-bottom: 2px solid var(--line-strong);
+  }
+  .flow-edge .edge-line::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    bottom: -5px;
+    border: 4px solid transparent;
+    border-left: 6px solid var(--line-strong);
+  }
+  .flow-edge .edge-label {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 6px;
+    max-width: 12em;
+  }
+
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    padding: 14px 18px;
+    margin: 18px 0;
+    max-width: 56em;
+  }
+  .callout.warn { border-left-color: var(--sev-high); }
+  .callout.danger { border-left-color: var(--sev-crit); }
+  .callout .co-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .callout p { margin: 6px 0; font-size: 14px; }
+  .callout ul { font-size: 14px; }
+
+  .keyfacts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin: 18px 0 8px;
+  }
+  .keyfact {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    padding: 12px 16px 13px;
+  }
+  .keyfact .kf-q {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+  .keyfact .kf-a { font-size: 14px; line-height: 1.7; }
+  .keyfact .kf-big {
+    font-family: "Noto Serif SC", serif;
+    font-size: 26px;
+    font-weight: 900;
+    line-height: 1.3;
+    color: var(--accent-ink);
+  }
+
+  /* 架构图（纯 CSS） */
+  .arch {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 18px 0;
+  }
+  @media (min-width: 860px) { .arch { grid-template-columns: 1fr 1fr; } }
+  .vpc {
+    border: 2px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 14px 16px 16px;
+  }
+  .vpc.prod { border-color: var(--accent); }
+  .vpc-title {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .vpc-title .cidr { color: var(--faint); font-weight: 400; font-size: 11px; }
+  .subnet {
+    border: 1px dashed var(--line-strong);
+    border-radius: 4px;
+    padding: 8px 12px 10px;
+    margin: 8px 0;
+    background: var(--bg);
+  }
+  .subnet .sn-t {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+  .subnet ul { margin: 2px 0; padding-left: 1.2em; font-size: 13px; }
+  .subnet li { margin: 2px 0; }
+  .arch-shared {
+    grid-column: 1 / -1;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    padding: 10px 16px 12px;
+    font-size: 13px;
+  }
+  .arch-shared .sn-t {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 4px;
+  }
+  .arch-shared ul {
+    margin: 2px 0; padding-left: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 2px 20px;
+  }
+
+  /* 应用分层架构图 */
+  .sd-frame {
+    position: relative;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 14px;
+    background: var(--surface-2);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 4%, transparent), transparent 40%);
+    padding: 22px 16px 16px;
+    margin: 26px 0 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+  }
+  .sd-cap {
+    position: absolute;
+    top: -11px;
+    left: 16px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    padding: 2px 12px 3px;
+  }
+  .sd { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; }
+  .sd-full { grid-column: 1 / -1; }
+  .sd-mid { display: flex; flex-direction: column; min-width: 0; }
+  @media (min-width: 900px) {
+    .sd { grid-template-columns: minmax(0, 1fr) 242px; column-gap: 18px; }
+    .sd-mid { grid-column: 1; grid-row: 3; }
+    .sd-side { grid-column: 2; grid-row: 3; align-self: stretch; margin-top: 0; }
+  }
+  .sd-layer, .sd-side {
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--lc, var(--accent));
+    border-radius: 10px;
+    background: var(--surface);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--lc, var(--accent)) 7%, transparent), transparent 62%);
+    padding: 12px 14px 14px;
+  }
+  .l-user { --lc: var(--st-new); }
+  .l-edge { --lc: var(--st-transit); }
+  .l-app  { --lc: var(--accent); }
+  .l-data { --lc: var(--st-delivered); }
+  .sd-side { --lc: var(--st-arrived); border-style: dashed; border-top-style: solid; display: flex; flex-direction: column; margin-top: 14px; }
+  .sd-tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--lc, var(--accent)); font-weight: 500;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 9px;
+  }
+  .sd-tag::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-strong), transparent); }
+  .sd-cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .sd-card {
+    border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+    padding: 9px 12px 10px; font-size: 13px; line-height: 1.65;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  }
+  .sd-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .10);
+    border-color: color-mix(in srgb, var(--lc, var(--accent)) 45%, var(--line));
+  }
+  .sd-card b { display: block; font-size: 13.5px; }
+  .sd-card .d { display: block; color: var(--muted); font-size: 12px; }
+  .sd-card .d code { font-size: 10.5px; }
+  .sd-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .sd-chips i {
+    font-style: normal; font-family: "IBM Plex Mono", monospace; font-size: 10.5px;
+    padding: 2px 8px 3px; border-radius: 999px; white-space: nowrap;
+    background: var(--surface-2); border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--lc, var(--accent)) 9%, var(--surface-2));
+    border-color: color-mix(in srgb, var(--lc, var(--accent)) 28%, var(--line));
+  }
+  .sd-link { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 5px 0; }
+  .sd-link i {
+    position: relative; width: 2px; height: 26px;
+    background: repeating-linear-gradient(180deg, var(--accent) 0 5px, transparent 5px 10px);
+    animation: sdflow 1.2s linear infinite;
+  }
+  .sd-link i::after {
+    content: ""; position: absolute; left: 50%; bottom: -2px; transform: translateX(-50%);
+    border: 5px solid transparent; border-top: 7px solid var(--accent); border-bottom: none;
+  }
+  @keyframes sdflow { to { background-position: 0 10px; } }
+  @media (prefers-reduced-motion: reduce) { .sd-link i { animation: none; } }
+  .sd-link em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+  .sd-ext {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    flex: 1 0 auto; padding: 7px 2px; border-bottom: 1px dashed var(--line); font-size: 12.5px;
+  }
+  .sd-ext:last-of-type { border-bottom: none; }
+  .sd-ext b { white-space: nowrap; }
+  .sd-ext .d { color: var(--muted); font-size: 11.5px; text-align: right; }
+  .sd-note { font-size: 11.5px; color: var(--faint); margin-top: 10px; line-height: 1.7; }
+  @media print {
+    .sd-card { box-shadow: none !important; transform: none !important; }
+    .sd-link i { animation: none; }
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--faint);
+  }
+  a { color: var(--accent-ink); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media print {
+    nav.toc { display: none; }
+    .shell { grid-template-columns: 1fr; max-width: none; padding: 0; }
+    body { font-size: 12px; }
+  }
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Table of contents">
+  <div class="toc-label">Overview</div>
+  <a href="#s1"><span class="n">1</span>Executive summary</a>
+  <a href="#s2"><span class="n">2</span>Architecture</a>
+  <a href="#s3"><span class="n">3</span>Environments</a>
+  <div class="toc-label">Tech &amp; operations</div>
+  <a href="#s4"><span class="n">4</span>Runtime shape</a>
+  <a href="#s5"><span class="n">5</span>Data &amp; storage</a>
+  <a href="#s6"><span class="n">6</span>Security baseline</a>
+  <a href="#s7"><span class="n">7</span>Releases &amp; operations</a>
+  <div class="toc-label">Cost &amp; planning</div>
+  <a href="#s8"><span class="n">8</span>Cost structure</a>
+  <a href="#s9"><span class="n">9</span>Risks &amp; recommendations</a>
+</nav>
+
+<main>
+<header class="doc-head">
+  <div class="doc-kicker">Chain Serve · AWS Infrastructure · Delivery Notes</div>
+  <h1>Chain Serve Cloud Infrastructure</h1>
+  <p class="doc-sub">Written for the Chain Serve business team, this document describes the current AWS cloud environment in full: the architecture, the environment portfolio, the security baseline, how releases and operations work, monthly costs, and the known risks with remediation recommendations.</p>
+  <dl class="meta-grid">
+    <div><dt>Scope</dt><dd>All resources in AWS account <code>582797602427</code> (us-east-1)</dd></div>
+    <div><dt>Status baseline</dt><dd>Fully verified against live AWS state on 2026-08-22</dd></div>
+    <div><dt>Version</dt><dd>v1.3-EN · 2026-08-24 (mirrors Chinese edition v1.3)</dd></div>
+    <div><dt>Method</dt><dd>Resource APIs / Cost Explorer / CloudWatch measurements + connectivity checks on every domain</dd></div>
+  </dl>
+</header>
+
+<section id="s1">
+<h2><span class="sec-n">1</span>Executive summary</h2>
+
+<div class="keyfacts">
+  <div class="keyfact">
+    <div class="kf-q">Production</div>
+    <div class="kf-a"><span class="kf-big">Live</span><br>Product domain <code>chain-serve.com</code>, fixed global-accelerator entry points, HTTPS everywhere, verified reachable.</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">Environments</div>
+    <div class="kf-a"><span class="kf-big">1 + 5</span><br>1 production + 5 non-production (test / acceptance / support &amp; demo); production and non-production networks are <strong>physically isolated</strong>.</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">Monthly cost (measured)</div>
+    <div class="kf-a"><span class="kf-big">≈ $912 / mo</span><br>Production ≈$310; a clear optimization path brings the total to ≈$700 or less (see Section 8).</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">Availability &amp; monitoring</div>
+    <div class="kf-a"><span class="kf-big">55 alarms</span><br>Covering load balancers / servers / databases in every environment; all currently OK, e-mail delivery confirmed.</div>
+  </div>
+</div>
+
+<p>The infrastructure has the following characteristics:</p>
+<ul>
+  <li><strong>Fully codified (IaC)</strong>: every AWS resource is under unified management; any change is traceable and reproducible; critical production resources (database, load balancer) have deletion protection enabled.</li>
+  <li><strong>Production isolation</strong>: production has its own network (VPC), its own database instance (highly available across availability zones) and its own release-approval gate, invisible to all non-production environments.</li>
+  <li><strong>Data protection</strong>: automatic database backups kept for 35 days with point-in-time recovery; all storage encrypted; non-production environments use masked data.</li>
+  <li><strong>Automated releases</strong>: test and acceptance environments build and deploy automatically on every push; production releases require manual approval, with versioned images and minute-level rollback.</li>
+</ul>
+</section>
+
+<section id="s2">
+<h2><span class="sec-n">2</span>Architecture</h2>
+
+<p>Everything runs in AWS us-east-1 (N. Virginia), split into <strong>two fully isolated virtual private networks (VPCs)</strong> — one for production, one for everything else. All application servers and databases sit in <strong>private subnets with no public IP addresses</strong>; the only internet-facing components are the load balancers (ALBs).</p>
+
+<div class="arch">
+  <div class="vpc prod">
+    <div class="vpc-title">Production VPC · css-prod <span class="cidr">10.10.0.0/16</span></div>
+    <div class="subnet">
+      <div class="sn-t">Public subnets (internet-facing entry)</div>
+      <ul>
+        <li>Business load balancer ALB (HTTPS 443 + automatic HTTP redirect)</li>
+        <li>Global Accelerator: 2 static IPs fronting the apex domain <code>chain-serve.com</code></li>
+        <li>Managed NAT gateway (server egress)</li>
+        <li>Bastion host (the only SSH entry, allow-listed IPs only)</li>
+        <li>Ops entry ALB (Kafka console kafka-ui)</li>
+      </ul>
+    </div>
+    <div class="subnet">
+      <div class="sn-t">Private subnets (no public addresses)</div>
+      <ul>
+        <li>Application server ×1 (4 vCPU / 16 GB, termination protection)</li>
+        <li>RDS PostgreSQL database (<strong>Multi-AZ high availability</strong>, 35-day backups, deletion protection)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vpc">
+    <div class="vpc-title">Non-production VPC · css-non-prod <span class="cidr">10.20.0.0/16</span></div>
+    <div class="subnet">
+      <div class="sn-t">Public subnets (entry, spread across 3 AZs)</div>
+      <ul>
+        <li>Business load balancer ALBs ×5 (test / uat / three support environments, one each)</li>
+        <li>Bastion host (the only SSH entry, doubles as NAT egress)</li>
+        <li>Dev tools entry ALB (Kafka console kafka-ui)</li>
+      </ul>
+    </div>
+    <div class="subnet">
+      <div class="sn-t">Private subnets (no public addresses)</div>
+      <ul>
+        <li>Application servers ×5 (2 vCPU / 8 GB each, one per environment)</li>
+        <li>Shared RDS PostgreSQL instance (independent databases per environment, 35-day backups, deletion protection)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="arch-shared">
+    <div class="sn-t">Account-level shared services</div>
+    <ul>
+      <li>ECR container registries ×42 (per environment, versioned retention)</li>
+      <li>S3 object storage ×8 buckets (one per environment + infrastructure state bucket)</li>
+      <li>SSM Parameter Store (single source of truth for runtime configuration)</li>
+      <li>CloudWatch monitoring: 55 alarms + 6 dashboards + e-mail notifications</li>
+      <li>GitHub Actions CI/CD (OIDC short-lived credentials, no long-term keys)</li>
+      <li>Secrets Manager (database master passwords, auto-rotated every 7 days)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="flow-title">Production request path</div>
+<div class="flow-wrap">
+  <div class="flow-main">
+    <div class="flow-node"><span class="pill st-new">User</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">chain-serve.com<br>(HTTPS)</div></div>
+    <div class="flow-node"><span class="pill st-transit">Global Accelerator</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">2 static IPs<br>pass-through</div></div>
+    <div class="flow-node"><span class="pill st-packed">Load balancer</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">TLS termination<br>health checks</div></div>
+    <div class="flow-node"><span class="pill st-arrived">App server</span></div>
+    <div class="flow-edge"><div class="edge-line"></div><div class="edge-label">private network<br>port 5432</div></div>
+    <div class="flow-node"><span class="pill st-delivered">RDS database</span></div>
+  </div>
+</div>
+
+<h3>Layered application architecture</h3>
+<p>All six environments share exactly the same internal shape, four layers top to bottom: requests enter through an encrypted edge into the application server, and data only ever lands in the managed data layer at the bottom. External capabilities — document recognition, SMS, e-mail and the like — are called out to third-party services (right) through the servers' egress path.</p>
+
+<div class="sd-frame">
+<div class="sd-cap">Inside one environment · identical across all six</div>
+<div class="sd">
+    <div class="sd-layer l-user sd-full">
+      <div class="sd-tag">User</div>
+      <div class="sd-cards">
+        <div class="sd-card"><b>Browser / mobile</b><span class="d">HTTPS to <code>chain-serve.com</code> and the per-environment domains</span></div>
+      </div>
+    </div>
+    <div class="sd-link sd-full"><i></i><em>443 · TLS everywhere, HTTP redirects automatically</em></div>
+    <div class="sd-mid">
+    <div class="sd-layer l-edge">
+      <div class="sd-tag">Edge</div>
+      <div class="sd-cards">
+        <div class="sd-card"><b>Global Accelerator (production only)</b><span class="d">2 static IPs fronting the apex domain</span></div>
+        <div class="sd-card"><b>Load balancer ALB</b><span class="d">TLS termination · health checks · one per environment</span></div>
+      </div>
+    </div>
+    <div class="sd-link"><i></i><em>:80 internal forwarding (app servers have no public address)</em></div>
+    <div class="sd-layer l-app">
+      <div class="sd-tag">App server · three container stacks</div>
+      <div class="sd-cards">
+        <div class="sd-card">
+          <b>Frontend stack</b>
+          <span class="d">Nginx + React single-page app; same-origin reverse proxy for <code>/api</code> and <code>/ws</code> to the backend — no cross-origin issues</span>
+        </div>
+        <div class="sd-card">
+          <b>Backend stack</b>
+          <span class="d">Nginx → FastAPI main API, plus single-purpose containers:</span>
+          <div class="sd-chips"><i>Chat WebSocket</i><i>Notifications</i><i>Async jobs</i><i>SMS sender</i><i>E-mail sender</i><i>AI assistant</i><i>Catalog OCR</i></div>
+        </div>
+        <div class="sd-card">
+          <b>Middleware stack</b>
+          <span class="d">Events &amp; message delivery</span>
+          <div class="sd-chips"><i>Kafka event stream</i><i>RabbitMQ message queue</i></div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /sd-mid -->
+    <div class="sd-link sd-full"><i></i><em>Private network only · database 5432 / object-storage API / cache 6379</em></div>
+    <div class="sd-layer l-data sd-full">
+      <div class="sd-tag">Data</div>
+      <div class="sd-cards">
+        <div class="sd-card"><b>RDS PostgreSQL</b><span class="d">Main + OCR databases · 35-day backups · Multi-AZ in production</span></div>
+        <div class="sd-card"><b>S3 object storage</b><span class="d">Invoices / catalogs / images · one bucket per environment, fully isolated</span></div>
+        <div class="sd-card"><b>Redis cache</b><span class="d">Sessions / job queue · deployed with the app stacks</span></div>
+      </div>
+    </div>
+  <aside class="sd-side">
+    <div class="sd-tag">Third-party services</div>
+    <div class="sd-ext"><b>Eden AI</b><span class="d">Invoice / document OCR</span></div>
+    <div class="sd-ext"><b>Google Gemini</b><span class="d">Product-catalog recognition</span></div>
+    <div class="sd-ext"><b>OpenAI</b><span class="d">AI assistant</span></div>
+    <div class="sd-ext"><b>Twilio</b><span class="d">SMS / verification codes</span></div>
+    <div class="sd-ext"><b>Office365 mail</b><span class="d">System e-mail</span></div>
+    <div class="sd-ext"><b>Google Maps</b><span class="d">Addresses &amp; maps</span></div>
+    <div class="sd-ext"><b>Sentry</b><span class="d">Front- and back-end error monitoring</span></div>
+    <div class="sd-note">All calls leave through the servers' NAT egress over HTTPS; credentials live in Parameter Store, isolated per environment and never in code.</div>
+  </aside>
+</div>
+</div>
+
+<h3>Three access rules</h3>
+<ul>
+  <li><strong>SSH only via the bastion</strong>: application servers expose no public port 22; management access goes through the bastion jump host, reachable from allow-listed IPs only.</li>
+  <li><strong>Web only via the environment's own load balancer</strong>: one independent ALB per environment; environments never route through each other.</li>
+  <li><strong>Databases stay on the private network</strong>: RDS has no public exposure of any kind and only accepts connections from its own environment's application server and the bastion.</li>
+</ul>
+</section>
+
+<section id="s3">
+<h2><span class="sec-n">3</span>Environments</h2>
+
+<p>Six deployed environments plus local-development support; every domain serves HTTPS and has been verified reachable:</p>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Environment</th><th>Purpose</th><th>URL</th><th>Server</th><th>Data</th><th>Release</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="pill st-delivered">prod</span></td>
+      <td><strong>Live production</strong></td>
+      <td><code>chain-serve.com</code> (incl. www)</td>
+      <td>4C/16G, dedicated VPC</td>
+      <td>Real business data (dedicated Multi-AZ database)</td>
+      <td>Auto-build, <strong>deploys after manual approval</strong></td>
+    </tr>
+    <tr>
+      <td><span class="pill st-new">test</span></td>
+      <td>Day-to-day development verification</td>
+      <td><code>test.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>Masked test data</td>
+      <td>Auto-deploys on every push</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-packed">uat</span></td>
+      <td>Pre-release acceptance</td>
+      <td><code>uat.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>Masked data from the production lineage</td>
+      <td>Auto-deploys (DB snapshot taken before each migration)</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-arrived">support-ref</span></td>
+      <td>Support / reference</td>
+      <td><code>support-ref-demo.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>Masked data</td>
+      <td>Manual release</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-arrived">support-demo</span></td>
+      <td>Support / demo (legacy feature set)</td>
+      <td><code>support-demo.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>Copy of the legacy dev-environment data</td>
+      <td>Manual release</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-arrived">support-sync</span></td>
+      <td>Support / sync comparison</td>
+      <td><code>support-sync.chain-serve.com</code></td>
+      <td>2C/8G</td>
+      <td>Masked data</td>
+      <td>Manual release</td>
+    </tr>
+    <tr>
+      <td><span class="pill st-canceled">dev (local)</span></td>
+      <td>Developers' local machines</td>
+      <td>—</td>
+      <td>No cloud server</td>
+      <td>One cloud object-storage bucket, nothing else</td>
+      <td>—</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="callout">
+  <div class="co-title">Code promotion path across environments</div>
+  <p>test (development verification) → uat (acceptance) → prod (production). test and uat deploy automatically on push; reaching production requires manual approval. The three support-* environments are side branches for support work and are not part of the promotion chain.</p>
+</div>
+
+<h3>Status of the legacy hosting environment</h3>
+<p>The three legacy environments in the previous team's AWS account (EU region) have been fully migrated: databases, file storage and configuration have all been transferred to the current account. The legacy front-ends and middleware have been stopped, with only a few containers left pending final shutdown; the legacy HTTPS certificate expires on 2026-09-15, at which point the old environments lapse naturally.</p>
+</section>
+
+<section id="s4">
+<h2><span class="sec-n">4</span>Runtime shape</h2>
+
+<p>Each environment runs <strong>three independent, individually updatable service stacks</strong> in containers on a single application server:</p>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Stack</th><th>Services</th><th>Responsibility</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Frontend stack</strong></td>
+      <td>Web front-end (single-page app)</td>
+      <td>User interface; same-origin reverse proxy to the backend, avoiding cross-origin issues</td>
+    </tr>
+    <tr>
+      <td><strong>Backend stack</strong> (11 containers)</td>
+      <td>Main API, chat, notifications, async jobs, SMS sender, e-mail sender, AI assistant, product-catalog recognition (OCR), etc.</td>
+      <td>All business logic, split into single-purpose containers that do not block each other</td>
+    </tr>
+    <tr>
+      <td><strong>Middleware stack</strong></td>
+      <td>Redis cache, RabbitMQ message queue, Kafka event stream</td>
+      <td>Caching, notification delivery, verification-code and other event messages</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>Databases do not live on the server: both tiers use AWS-managed RDS PostgreSQL, with the main business database and the OCR database kept separate (see Section 5).</p>
+
+<h3>Technology stack</h3>
+<ul>
+  <li><strong>Backend</strong>: Python / FastAPI, containerized, multi-process + async job queue</li>
+  <li><strong>Frontend</strong>: React 19 + TypeScript, built to static assets served by Nginx</li>
+  <li><strong>Database</strong>: PostgreSQL 16 (AWS RDS managed)</li>
+  <li><strong>Infrastructure</strong>: fully codified (IaC)</li>
+</ul>
+</section>
+
+<section id="s5">
+<h2><span class="sec-n">5</span>Data &amp; storage</h2>
+
+<h3>Databases</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Instance</th><th>Serves</th><th>Spec</th><th>High availability</th><th>Backups</th><th>Protection</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Production instance</strong></td>
+      <td>prod only (dedicated)</td>
+      <td>PostgreSQL 16 · 2C/4G · auto-scaling storage (up to 200 GB)</td>
+      <td class="ok">Multi-AZ with automatic failover</td>
+      <td>Automatic backups kept <strong>35 days</strong>, point-in-time recovery (PITR)</td>
+      <td>Storage encryption + deletion protection + master password auto-rotated every 7 days</td>
+    </tr>
+    <tr>
+      <td><strong>Non-production instance</strong></td>
+      <td>Shared by the 5 non-production environments (independent databases each)</td>
+      <td>PostgreSQL 16 · 2C/2G · auto-scaling storage (up to 100 GB)</td>
+      <td>Single AZ (cost decision, acceptable for non-production)</td>
+      <td>Automatic backups kept 35 days</td>
+      <td>Deletion protection + master password auto-rotated every 7 days</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<h3>Data classification &amp; masking</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Environment</th><th>Data source</th><th>Masking</th></tr></thead>
+  <tbody>
+    <tr><td>prod</td><td>Live business data (fully migrated from the original production environment)</td><td>Real data; users sign in with their existing accounts and passwords</td></tr>
+    <tr><td>test / uat / support-ref / support-sync</td><td>Copies of business data</td><td class="ok">Masked: e-mail addresses and phone numbers transformed, sign-in passwords reset to a uniform test password</td></tr>
+    <tr><td>support-demo</td><td>Copy of the legacy dev-environment data</td><td>Kept as-is by request</td></tr>
+  </tbody>
+</table></div>
+
+<h3>File storage (S3)</h3>
+<ul>
+  <li><strong>One bucket per environment, fully isolated</strong>: each environment's invoices, product catalogs and images live in a dedicated bucket, accessed through a dedicated least-privilege identity; environments cannot see each other's files.</li>
+  <li><strong>Uniform protection</strong>: default encryption, versioning, lifecycle cleanup (abandoned multipart uploads after 7 days, old versions after 30 days).</li>
+  <li>The production bucket holds about 58,000 files (≈7 GB), verified object-for-object against the source environment.</li>
+</ul>
+</section>
+
+<section id="s6">
+<h2><span class="sec-n">6</span>Security baseline</h2>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Dimension</th><th>Measures</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Network isolation</strong></td>
+      <td>Production and non-production in two physically separate VPCs; every application server and database in private subnets with no public address; per-environment security groups with minimal openings</td>
+      <td class="ok">In place</td>
+    </tr>
+    <tr>
+      <td><strong>Encryption in transit</strong></td>
+      <td>HTTPS on all 7 domains (wildcard certificate + apex), HTTP 301s to HTTPS; TLS 1.3 policy in production</td>
+      <td class="ok">In place, verified on every domain</td>
+    </tr>
+    <tr>
+      <td><strong>Encryption at rest</strong></td>
+      <td>Encrypted server disks, encrypted RDS storage, S3 default encryption</td>
+      <td class="ok">In place</td>
+    </tr>
+    <tr>
+      <td><strong>Credential management</strong></td>
+      <td>CI/CD uses OIDC short-lived credentials (no long-term keys stored on GitHub); application secrets centralized in Parameter Store; database master passwords managed by Secrets Manager with 7-day rotation; applications use low-privilege dedicated database accounts</td>
+      <td class="ok">In place</td>
+    </tr>
+    <tr>
+      <td><strong>Access control</strong></td>
+      <td>SSH only via the bastion + IP allow-list; developer read-only access granted separately; temporary keys expire automatically</td>
+      <td class="ok">In place</td>
+    </tr>
+    <tr>
+      <td><strong>Monitoring &amp; alerting</strong></td>
+      <td>55 CloudWatch alarms (load balancer 5xx / latency / healthy targets; server CPU / disk / memory / status checks; database CPU / memory / storage / connections) + 6 dashboards + e-mail notifications; two-tier daily cost budget alarms</td>
+      <td class="ok">Active, all green</td>
+    </tr>
+    <tr>
+      <td><strong>Change management</strong></td>
+      <td>Infrastructure fully codified; the production main branch accepts pull requests only (no direct pushes); manual gate on production deploys</td>
+      <td class="ok">In place</td>
+    </tr>
+    <tr>
+      <td><strong>Data-loss prevention</strong></td>
+      <td>35-day RDS automatic backups + point-in-time recovery; manual snapshots before major data operations; production database deletion protection + Multi-AZ</td>
+      <td class="ok">In place</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="callout warn">
+  <div class="co-title">⚠ Items not yet tightened</div>
+  <p>A few settings temporarily relaxed for migration-period integration work (publicly readable file links, wide-open CORS, Kafka console reachable from the internet) have been identified and scheduled for remediation — see Section 9.</p>
+</div>
+</section>
+
+<section id="s7">
+<h2><span class="sec-n">7</span>Releases &amp; operations</h2>
+
+<h3>Release flow</h3>
+<ol class="steps">
+  <li class="step">
+    <span class="who w-manager">Dev</span>
+    <div class="act">Push code to the environment's branch</div>
+    <div class="fx">CI runs automatically: code checks → unit tests → container image build → push to the registry (immutable version number + floating tag)</div>
+  </li>
+  <li class="step">
+    <span class="who w-sys">System</span>
+    <div class="act">test / uat: automatic deployment</div>
+    <div class="fx">Database migration (uat snapshots the database first) → deploy command delivered over the AWS Systems Manager channel (no SSH, no long-term keys) → pull images → rolling update → health-check smoke test</div>
+  </li>
+  <li class="step alt">
+    <span class="who w-manager">Owner</span>
+    <div class="act">prod: deploys after manual approval</div>
+    <div class="fx">Pushes to the main branch only build images, never deploy; a production release is triggered manually in the pipeline (human gate) and then follows the same automated flow</div>
+  </li>
+  <li class="step endgood">
+    <span class="who w-sys">System</span>
+    <div class="act">Release complete, notification delivered</div>
+    <div class="fx">Deployment results are pushed as messages; to roll back, redeploy the previous versioned image — <strong>done in minutes</strong></div>
+  </li>
+</ol>
+
+<h3>Failure recovery</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Scenario</th><th>Recovery</th><th>Target</th></tr></thead>
+  <tbody>
+    <tr><td>Bad application release</td><td>Roll back to the previous versioned image</td><td>Minutes</td></tr>
+    <tr><td>Production database failure</td><td>Multi-AZ standby takes over automatically</td><td>Automatic, typically 1–2 minutes</td></tr>
+    <tr><td>Accidental data change</td><td>RDS point-in-time recovery (PITR)</td><td>Any moment within the past 35 days</td></tr>
+    <tr><td>Server failure</td><td>Infrastructure is codified — rebuild to the same spec; images and configuration all live in the cloud</td><td>Hours</td></tr>
+  </tbody>
+</table></div>
+
+<h3>Day-to-day monitoring</h3>
+<p>A metric crosses its threshold → the alarm fires → e-mail reaches the operations owner immediately. Key alarms include: service down (zero healthy targets — caught earlier than user reports), application errors (5xx), slow responses (P95 &gt; 3 s), disk / memory / storage watermarks, and database connection counts. A two-tier daily cost budget alarm makes unusual spend visible the same day.</p>
+</section>
+
+<section id="s8">
+<h2><span class="sec-n">8</span>Cost structure</h2>
+
+<p>The figures below are measured in Cost Explorer (true-usage basis, before promotional credits are applied):</p>
+
+<div class="keyfacts">
+  <div class="keyfact">
+    <div class="kf-q">Whole account, monthly</div>
+    <div class="kf-a"><span class="kf-big">≈ $912</span><br>≈ $30.4 / day, stable over the past week</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">Production</div>
+    <div class="kf-a"><span class="kf-big">≈ $310</span><br>Dedicated VPC / highly available database / Global Accelerator — all included</div>
+  </div>
+  <div class="keyfact">
+    <div class="kf-q">Non-production (5 environments)</div>
+    <div class="kf-a"><span class="kf-big">≈ $600</span><br>≈$120 per environment all-in (including its share of pooled resources)</div>
+  </div>
+</div>
+
+<h3>By service (monthly)</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Service</th><th class="num">Monthly cost</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Compute (EC2)</td><td class="num">$482</td><td>6 application servers + 2 bastion hosts</td></tr>
+    <tr><td>Load balancing (ELB)</td><td class="num">$128</td><td>8 ALBs (6 business + 2 ops entries)</td></tr>
+    <tr><td>Database (RDS)</td><td class="num">$123</td><td>Production (Multi-AZ) + non-production (shared instance)</td></tr>
+    <tr><td>Network (IPv4 / NAT)</td><td class="num">$91</td><td>Public IP addresses and NAT data processing</td></tr>
+    <tr><td>Disk storage (EBS)</td><td class="num">$77</td><td>618 GB in total</td></tr>
+    <tr><td>Monitoring / registry / object storage etc.</td><td class="num">$11</td><td>CloudWatch, ECR, S3, Secrets Manager, …</td></tr>
+    <tr><td><strong>Total</strong></td><td class="num"><strong>≈ $912</strong></td><td>Plus: Global Accelerator adds ≈$18/mo starting with the next bill</td></tr>
+  </tbody>
+</table></div>
+
+<h3>Optimization levers (ranked by payoff)</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>#</th><th>Measure</th><th class="num">Monthly saving</th><th>Trade-off</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Delete the three support-* environments once no longer needed</td><td class="num">≈ $360</td><td>Rebuildable from code within hours whenever needed again</td></tr>
+    <tr><td>2</td><td>Buy a 1-year Savings Plan / reserved instances</td><td class="num">≈ $180–240</td><td>One-year usage commitment; brings the account to ≈$700 or below</td></tr>
+    <tr><td>3</td><td>Stop non-production servers overnight / on weekends</td><td class="num">≤ $170</td><td>Start on demand, fully scriptable</td></tr>
+    <tr><td>4</td><td>Trim redundant public IPs (follows automatically from #1)</td><td class="num">with #1</td><td>—</td></tr>
+  </tbody>
+</table></div>
+
+</section>
+
+<section id="s9">
+<h2><span class="sec-n">9</span>Known risks &amp; recommendations</h2>
+
+<p>All items below are known, temporary arrangements from the migration period and are on the management list, ordered by recommended priority:</p>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Level</th><th>Item</th><th>Current state &amp; impact</th><th>Recommendation</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="sev sev-high">HIGH</span></td>
+      <td>Publicly readable file links</td>
+      <td>To keep legacy file links working, all storage buckets temporarily allow public object reads; anyone holding a link can fetch the file without signing in</td>
+      <td>Move the application to pre-signed (time-limited) URLs, then switch public read off</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-high">HIGH</span></td>
+      <td>Kafka console reachable from the internet</td>
+      <td>The Kafka console (kafka-ui) used to read verification-code messages — including production's — is currently open to the internet, protected only by its login credentials; the production console touches real data</td>
+      <td>Restrict to an IP allow-list or VPN access; treat as the top-priority security item</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-med">MEDIUM</span></td>
+      <td>Wide-open CORS</td>
+      <td>Bucket CORS allows any origin (migration-period integration convenience)</td>
+      <td>Narrow to the actual product domain list</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-low">LOW</span></td>
+      <td>Leftover snapshots and backup copies</td>
+      <td>8 manual database snapshots and several in-instance backup copies from the migration still occupy space</td>
+      <td>Clean up in batches once rollback needs are ruled out</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-low">LOW</span></td>
+      <td>Frontend build skips type checking</td>
+      <td>16 pre-existing type errors; the build temporarily uses a no-check path — no functional impact</td>
+      <td>Fix the errors, then restore the standard build</td>
+    </tr>
+    <tr>
+      <td><span class="sev sev-low">LOW</span></td>
+      <td>Legacy environment decommissioning</td>
+      <td>A few containers still run in the original hosting account; its certificate expires 2026-09-15</td>
+      <td>Shut down completely once the rollback window closes, ending charges in the old account</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<div class="callout">
+  <div class="co-title">Overall assessment</div>
+  <p>The infrastructure meets production standards: network isolation, encryption, backups, monitoring and release controls are all in place and verified. The risks above are known, controlled, migration-period leftovers with clear remediation paths; the two HIGH items should be prioritized in an upcoming iteration.</p>
+</div>
+</section>
+
+<footer>
+  This document is based on a full verification of AWS account 582797602427 (us-east-1) against live state on 2026-08-22: the resource inventory comes from AWS resource APIs, costs from Cost Explorer (true-usage basis), and availability conclusions from connectivity tests on all 7 domains. Infrastructure code and detailed runbooks are maintained alongside the code repositories.
+</footer>
+</main>
+</div>
+
+</body>
+</html>
