@@ -74,3 +74,5 @@ prod 堡垒机：**当前无任何开发者钥**。
 - 2026-08-03 `dev1l` @ nonprod 堡垒机（css-non-prod-bastion 3.225.148.166，通 test/uat 应用机与共享 RDS）｜到期 **202609020647** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
 - 2026-08-12 `dev1l` @ prod 堡垒机（css-prod-bastion 34.225.237.45，仅通 prod 应用机）｜到期 **202609110856** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
 - 2026-08-12 `dev2f` @ prod 堡垒机（css-prod-bastion 34.225.237.45，仅通 prod 应用机）｜到期 **202609110856** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
+- 2026-08-27 `devteam` @ nonprod 堡垒机（css-non-prod-bastion 3.225.148.166，通 test/uat 应用机与共享 RDS）｜到期 **202702230325** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
+- 2026-08-27 `devteam` @ prod 堡垒机（css-prod-bastion 34.225.237.45，仅通 prod 应用机）｜到期 **202702230326** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
