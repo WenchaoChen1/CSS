@@ -1,0 +1,10 @@
+{
+  "_comment": "要同步的 Lark 云文档清单。url 可直接粘浏览器地址；out 相对本目录。此文件不含凭证，可提交。",
+  "documents": [
+    {
+      "name": "demo-需求文档",
+      "url": "https://xjprsp3bmgl4.jp.larksuite.com/docx/JGfedAScMoMYIuxblNZjZ8V5pIb",
+      "out": "../../docs/lark/A-Demo-用户需求文档.md"
+    }
+  ]
+}
