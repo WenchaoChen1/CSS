@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>交付线路图</title>
+<meta name="description" content="需求、开发、交付三阶段流程线路图：13 个站点、3 道放行门禁、4 条返工支线。">
+<script>
+  // 尽早应用主题，避免首屏闪白/闪黑
+  try {
+    var t = localStorage.getItem("dlm-theme");
+    if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+
+<style>
+  :root{
+    --ground:#F2F5FA;
+    --surface:#FFFFFF;
+    --surface-2:#E7ECF4;
+    --ink:#141A24;
+    --ink-2:#485364;
+    --ink-3:#7A8698;
+    --rule:#D3DAE5;
+    --rule-soft:#E4E9F1;
+    --req:#C2255C;
+    --dev:#3448C5;
+    --del:#0B8A5B;
+    --rework:#B26400;
+    --gate:#2C3542;
+    --shadow:0 1px 2px rgba(20,26,36,.06), 0 12px 28px -18px rgba(20,26,36,.35);
+    --sans:"Archivo","Noto Sans SC","Microsoft YaHei UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono","Cascadia Mono","Consolas","Menlo",ui-monospace,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0D121A;
+      --surface:#151C27;
+      --surface-2:#1D2632;
+      --ink:#E9EEF5;
+      --ink-2:#A6B2C2;
+      --ink-3:#788494;
+      --rule:#2A3441;
+      --rule-soft:#212B37;
+      --req:#F0629B;
+      --dev:#8397FF;
+      --del:#2FCE90;
+      --rework:#E8A83C;
+      --gate:#C6D0DD;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 14px 30px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0D121A;
+    --surface:#151C27;
+    --surface-2:#1D2632;
+    --ink:#E9EEF5;
+    --ink-2:#A6B2C2;
+    --ink-3:#788494;
+    --rule:#2A3441;
+    --rule-soft:#212B37;
+    --req:#F0629B;
+    --dev:#8397FF;
+    --del:#2FCE90;
+    --rework:#E8A83C;
+    --gate:#C6D0DD;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 14px 30px -18px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:clamp(28px,5vw,64px) clamp(18px,4vw,40px) 72px}
+
+  /* ---------- 主题切换（本地版专用） ---------- */
+  .themebtn{
+    position:fixed;top:16px;right:16px;z-index:50;
+    display:inline-flex;align-items:center;gap:7px;
+    padding:7px 13px;border-radius:22px;cursor:pointer;
+    background:var(--surface);color:var(--ink-2);
+    border:1px solid var(--rule);box-shadow:var(--shadow);
+    font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    transition:color .15s ease,border-color .15s ease;
+  }
+  .themebtn:hover{color:var(--ink);border-color:var(--ink-3)}
+  .themebtn i{font-style:normal;font-size:13px;line-height:1}
+
+  /* ---------- 标识条 ---------- */
+  .masthead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:24px 40px;padding-bottom:22px;border-bottom:2px solid var(--ink)}
+  .mark{display:flex;align-items:center;gap:14px}
+  .mark-glyph{
+    width:46px;height:46px;flex:none;border-radius:50%;
+    background:var(--surface);border:3.5px solid var(--gate);
+    display:grid;place-items:center;
+  }
+  .mark-glyph i{width:14px;height:14px;border-radius:50%;background:var(--gate);display:block}
+  h1{
+    margin:0;font-size:clamp(28px,3.6vw,42px);line-height:1.08;font-weight:700;
+    letter-spacing:-.015em;text-wrap:balance;
+  }
+  .kicker{
+    margin:0 0 6px;font-family:var(--mono);
+    font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);
+  }
+  .lede{margin:0;max-width:52ch;color:var(--ink-2);font-size:15px}
+
+  /* ---------- 图例 ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:10px 22px;margin:22px 0 8px;align-items:center}
+  .lg{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+  .lg b{color:var(--ink);font-weight:600}
+  .lg-line{width:26px;height:7px;border-radius:4px;flex:none}
+  .lg-gate{width:16px;height:16px;border-radius:50%;border:3px solid var(--gate);background:var(--surface);flex:none;position:relative}
+  .lg-gate::after{content:"";position:absolute;inset:3.5px;border-radius:50%;background:var(--gate)}
+  .lg-dash{width:26px;height:0;border-top:2.5px dashed var(--rework);flex:none}
+
+  /* ---------- 线路图 ---------- */
+  .mapframe{
+    margin:14px 0 0;padding:0;
+    background:var(--surface);border:1px solid var(--rule);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .mapscroll{overflow-x:auto;padding:8px 14px 14px}
+  .map{display:block;width:100%;min-width:940px;height:auto}
+  figure{margin:0}
+  figcaption{
+    padding:14px 18px;border-top:1px solid var(--rule-soft);
+    font-size:13px;color:var(--ink-2);background:var(--surface-2);
+  }
+  figcaption b{color:var(--ink);font-weight:600}
+
+  .map text{font-family:var(--sans);fill:var(--ink)}
+  .st-name{font-size:15px;font-weight:500;text-anchor:middle}
+  .gate-name{font-size:15px;font-weight:700;text-anchor:middle;fill:var(--ink)}
+  .st-num{font-family:var(--mono);font-size:11px;font-weight:500;fill:var(--ink-3);text-anchor:middle}
+  .rw-label{font-size:11.5px;font-weight:500;fill:var(--rework);text-anchor:middle;letter-spacing:.02em}
+  .line-name{font-size:15px;font-weight:700}
+  .line-meta{font-family:var(--mono);font-size:11.5px;font-weight:500;fill:var(--ink-3)}
+
+  .trunk{fill:none;stroke-width:9;stroke-linecap:round;stroke-linejoin:round}
+  .rw{fill:none;stroke:var(--rework);stroke-width:2.2;stroke-dasharray:7 5;stroke-linecap:round}
+  .st circle{transition:stroke-width .18s ease}
+  .st:hover circle.dot{stroke-width:6}
+  .st:hover .st-name{font-weight:700}
+
+  @media (prefers-reduced-motion: no-preference){
+    .trunk{stroke-dasharray:900;stroke-dashoffset:900;animation:draw 1.1s cubic-bezier(.65,.02,.32,1) forwards}
+    .t-req{animation-delay:.1s}
+    .t-dev{animation-delay:.62s}
+    .t-del{animation-delay:1.1s}
+    .st,.rwg,.lbl{opacity:0;animation:pop .5s ease forwards}
+    .rwg{animation-delay:1.9s}
+    @keyframes draw{to{stroke-dashoffset:0}}
+    @keyframes pop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+  }
+
+  /* ---------- 泳道详情 ---------- */
+  h2{margin:64px 0 4px;font-size:clamp(20px,2.2vw,25px);font-weight:700;letter-spacing:-.01em}
+  .sub{margin:0 0 22px;color:var(--ink-2);font-size:14.5px;max-width:60ch}
+  .lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
+  .lane{
+    background:var(--surface);border:1px solid var(--rule);border-radius:12px;
+    overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;
+  }
+  .lane-top{height:6px;flex:none}
+  .lane-hd{padding:16px 18px 12px;border-bottom:1px solid var(--rule-soft)}
+  .lane-hd h3{margin:0;font-size:18px;font-weight:700;display:flex;align-items:baseline;gap:9px}
+  .lane-hd h3 span{font-family:var(--mono);font-size:12px;font-weight:600}
+  .lane-hd p{margin:5px 0 0;font-size:12.5px;color:var(--ink-3);font-family:var(--mono);letter-spacing:.03em}
+  .stops{list-style:none;margin:0;padding:6px 0 10px;display:flex;flex-direction:column}
+  .stops li{display:grid;grid-template-columns:34px 1fr;gap:0 10px;padding:11px 18px;border-bottom:1px dashed var(--rule-soft)}
+  .stops li:last-child{border-bottom:0}
+  .stops li.gate{background:var(--surface-2)}
+  .num{
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink-3);
+    padding-top:2px;font-variant-numeric:tabular-nums;
+  }
+  .gate .num{color:var(--ink)}
+  .stop-t{font-size:15px;font-weight:600;line-height:1.4}
+  .gate .stop-t::after{content:" 门禁";font-size:10.5px;font-weight:600;letter-spacing:.1em;color:var(--ink-3);vertical-align:2px}
+  .stop-o{grid-column:2;font-size:13px;color:var(--ink-2);margin-top:2px}
+  .roles{grid-column:2;display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+  .roles span{
+    font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:2px 7px;border-radius:20px;
+    background:var(--surface-2);color:var(--ink-2);border:1px solid var(--rule);
+  }
+  .lane.l-req .lane-top{background:var(--req)}
+  .lane.l-req .lane-hd h3 span{color:var(--req)}
+  .lane.l-dev .lane-top{background:var(--dev)}
+  .lane.l-dev .lane-hd h3 span{color:var(--dev)}
+  .lane.l-del .lane-top{background:var(--del)}
+  .lane.l-del .lane-hd h3 span{color:var(--del)}
+
+  /* ---------- 门禁卡 ---------- */
+  .gates{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+  .gcard{
+    background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--gate);
+    border-radius:10px;padding:18px 20px 20px;box-shadow:var(--shadow);
+  }
+  .gcard h3{margin:0;font-size:17px;font-weight:700}
+  .gcard .gid{
+    display:block;font-family:var(--mono);font-size:11px;font-weight:600;
+    letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;margin-bottom:3px;
+  }
+  .gcard ul{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .gcard li{position:relative;padding-left:24px;font-size:13.5px;color:var(--ink-2);line-height:1.5}
+  .gcard li::before{
+    content:"";position:absolute;left:0;top:5px;width:13px;height:13px;border-radius:3px;
+    border:1.8px solid var(--rule);background:var(--surface-2);
+  }
+  .gcard li::after{
+    content:"";position:absolute;left:3.6px;top:8.4px;width:5.5px;height:2.6px;
+    border-left:2px solid var(--del);border-bottom:2px solid var(--del);
+    transform:rotate(-45deg);
+  }
+  .gowner{
+    margin:14px 0 0;padding-top:12px;border-top:1px dashed var(--rule);
+    font-size:12px;color:var(--ink-3);font-family:var(--mono);letter-spacing:.03em;
+  }
+
+  /* ---------- 返工表 ---------- */
+  .tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:680px;font-size:13.5px}
+  thead th{
+    text-align:left;padding:13px 16px;background:var(--surface-2);color:var(--ink-2);
+    font-family:var(--mono);font-size:11px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid var(--rule);white-space:nowrap;
+  }
+  tbody td{padding:14px 16px;border-bottom:1px solid var(--rule-soft);vertical-align:top;color:var(--ink-2)}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr.worst td{background:var(--surface-2)}
+  td.rname{color:var(--ink);font-weight:600;white-space:nowrap}
+  td.rpath{font-size:12.5px;white-space:nowrap;color:var(--ink)}
+  td.rpath em{font-style:normal;color:var(--rework);font-weight:600;padding:0 4px}
+  td.rcost{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+  tbody tr.worst td.rcost{color:var(--rework);font-weight:600}
+
+  /* ---------- 节奏页脚 ---------- */
+  .cadence{
+    margin:56px 0 0;padding:22px 24px;border-radius:12px;
+    background:var(--surface);border:1px solid var(--rule);
+    display:flex;flex-wrap:wrap;gap:18px 40px;align-items:center;justify-content:space-between;
+  }
+  .cad-item{display:flex;flex-direction:column;gap:2px}
+  .cad-item dt{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+  .cad-item dd{margin:0;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .cad-item dd small{font-size:13px;font-weight:500;color:var(--ink-2)}
+  .foot{margin:28px 0 0;font-size:12.5px;color:var(--ink-3)}
+
+  :focus-visible{outline:2.5px solid var(--dev);outline-offset:3px;border-radius:3px}
+
+  /* ---------- 打印 / 导出 PDF ---------- */
+  @media print{
+    @page{size:A4 landscape;margin:12mm}
+    :root, :root[data-theme="dark"]{
+      --ground:#FFFFFF;--surface:#FFFFFF;--surface-2:#F1F4F9;
+      --ink:#101620;--ink-2:#3D4757;--ink-3:#6B7686;
+      --rule:#C7CFDB;--rule-soft:#E1E6EE;
+      --req:#B01E52;--dev:#2C3EAE;--del:#097A50;--rework:#9A5600;--gate:#232B36;
+      --shadow:none;
+    }
+    body{background:#fff;font-size:11.5px}
+    .wrap{max-width:none;padding:0}
+    .themebtn{display:none}
+    .trunk{stroke-dasharray:none;stroke-dashoffset:0;animation:none}
+    .st,.rwg,.lbl{opacity:1;animation:none}
+    .mapframe,.lane,.gcard,.tablewrap,.cadence{box-shadow:none;break-inside:avoid}
+    .mapscroll{overflow:visible;padding:4px}
+    .map{min-width:0}
+    table{min-width:0}
+    h2{margin-top:24px;break-after:avoid}
+    .lanes,.gates{break-inside:avoid}
+    .mapframe{break-after:page}
+    a[href]::after{content:""}
+  }
+</style>
+</head>
+<body>
+
+<button class="themebtn" id="themebtn" type="button" aria-label="切换明暗主题">
+  <i id="themeicon" aria-hidden="true">◐</i><span id="themetext">跟随系统</span>
+</button>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="mark">
+      <div class="mark-glyph" aria-hidden="true"><i></i></div>
+      <div>
+        <p class="kicker">Delivery Line Map · v1 · 本地版</p>
+        <h1>交付线路图</h1>
+      </div>
+    </div>
+    <p class="lede">一条主线、三段线路、十三个站点。每段之间设一道门禁，过不了就停车；四条虚线是返工支线——它们才是工期真正流失的地方。</p>
+  </header>
+
+  <div class="legend">
+    <span class="lg"><span class="lg-line" style="background:var(--req)"></span><b>需求线</b></span>
+    <span class="lg"><span class="lg-line" style="background:var(--dev)"></span><b>开发线</b></span>
+    <span class="lg"><span class="lg-line" style="background:var(--del)"></span><b>交付线</b></span>
+    <span class="lg"><span class="lg-gate"></span>阶段门禁（换乘站，不通过不放行）</span>
+    <span class="lg"><span class="lg-dash"></span>返工支线（原路退回）</span>
+  </div>
+
+  <div class="mapframe">
+    <figure>
+      <div class="mapscroll">
+        <svg class="map" viewBox="0 24 1330 392" role="img"
+             aria-label="工作流程线路图：需求线经需求收集、需求分析、产品设计、需求评审到需求基线门禁；开发线经技术方案、方案评审、任务拆分、编码自测、代码审查到提测准入门禁；交付线经集成测试、UAT 验收、发布上线、线上观测到交付归档终点。四条返工支线分别为需求评审退回产品设计、代码审查退回编码自测、集成测试退回编码自测，以及 UAT 验收回炉至需求分析。">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,1 L9,5 L0,9 z" fill="var(--rework)"></path>
+            </marker>
+          </defs>
+
+          <!-- ===== 返工支线 ===== -->
+          <g class="rwg">
+            <path class="rw" d="M1056,288 L1056,68 Q1056,55 1043,55 L137,55 Q124,55 124,68 L124,127" marker-end="url(#ar)"></path>
+            <text class="rw-label" x="590" y="46">需求偏差 · 回炉重估（最贵的一条路）</text>
+
+            <path class="rw" d="M988,288 L988,183 Q988,170 975,170 L697,170 Q684,170 684,183 L684,206" marker-end="url(#ar)"></path>
+            <text class="rw-label" x="840" y="161">缺陷返工</text>
+
+            <path class="rw" d="M752,210 C752,191 684,191 684,207" marker-end="url(#ar)"></path>
+            <text class="rw-label" x="718" y="187">CR 打回</text>
+
+            <path class="rw" d="M260,130 C260,110 192,110 192,127" marker-end="url(#ar)"></path>
+            <text class="rw-label" x="226" y="105">驳回补正</text>
+          </g>
+
+          <!-- ===== 三段主干 ===== -->
+          <polyline class="trunk t-req" points="56,140 360,140" stroke="var(--req)"></polyline>
+          <polyline class="trunk t-dev" points="360,140 440,220 840,220" stroke="var(--dev)"></polyline>
+          <polyline class="trunk t-del" points="840,220 920,300 1272,300" stroke="var(--del)"></polyline>
+
+          <!-- ===== 线路名牌 ===== -->
+          <g class="lbl">
+            <rect x="48" y="188" width="7" height="26" rx="3.5" fill="var(--req)"></rect>
+            <text class="line-name" x="64" y="200" fill="var(--req)">第一段 · 需求</text>
+            <text class="line-meta" x="64" y="216">DISCOVER · 典型 3–5 天</text>
+
+            <rect x="472" y="268" width="7" height="26" rx="3.5" fill="var(--dev)"></rect>
+            <text class="line-name" x="488" y="280" fill="var(--dev)">第二段 · 开发</text>
+            <text class="line-meta" x="488" y="296">BUILD · 典型 5–10 天</text>
+
+            <rect x="944" y="348" width="7" height="26" rx="3.5" fill="var(--del)"></rect>
+            <text class="line-name" x="960" y="360" fill="var(--del)">第三段 · 交付</text>
+            <text class="line-meta" x="960" y="376">DELIVER · 典型 2–4 天</text>
+          </g>
+
+          <!-- ===== 需求线站点 ===== -->
+          <g class="st" style="animation-delay:.5s">
+            <circle class="dot" cx="56" cy="140" r="7" fill="var(--surface)" stroke="var(--req)" stroke-width="4"></circle>
+            <text class="st-name" x="56" y="167">需求收集</text>
+            <text class="st-num" x="56" y="182">01</text>
+          </g>
+          <g class="st" style="animation-delay:.58s">
+            <circle class="dot" cx="124" cy="140" r="7" fill="var(--surface)" stroke="var(--req)" stroke-width="4"></circle>
+            <text class="st-name" x="124" y="185">需求分析</text>
+            <text class="st-num" x="124" y="200">02</text>
+          </g>
+          <g class="st" style="animation-delay:.66s">
+            <circle class="dot" cx="192" cy="140" r="7" fill="var(--surface)" stroke="var(--req)" stroke-width="4"></circle>
+            <text class="st-name" x="192" y="167">产品设计</text>
+            <text class="st-num" x="192" y="182">03</text>
+          </g>
+          <g class="st" style="animation-delay:.74s">
+            <circle class="dot" cx="260" cy="140" r="7" fill="var(--surface)" stroke="var(--req)" stroke-width="4"></circle>
+            <text class="st-name" x="260" y="185">需求评审</text>
+            <text class="st-num" x="260" y="200">04</text>
+          </g>
+
+          <g class="st" style="animation-delay:.86s">
+            <circle class="dot" cx="360" cy="140" r="12" fill="var(--surface)" stroke="var(--gate)" stroke-width="4"></circle>
+            <circle cx="360" cy="140" r="4.5" fill="var(--gate)"></circle>
+            <text class="gate-name" x="360" y="172">需求基线</text>
+            <text class="st-num" x="360" y="187">GATE 01 · 范围冻结</text>
+          </g>
+
+          <!-- ===== 开发线站点 ===== -->
+          <g class="st" style="animation-delay:1.02s">
+            <circle class="dot" cx="480" cy="220" r="7" fill="var(--surface)" stroke="var(--dev)" stroke-width="4"></circle>
+            <text class="st-name" x="480" y="247">技术方案</text>
+            <text class="st-num" x="480" y="262">05</text>
+          </g>
+          <g class="st" style="animation-delay:1.1s">
+            <circle class="dot" cx="548" cy="220" r="7" fill="var(--surface)" stroke="var(--dev)" stroke-width="4"></circle>
+            <text class="st-name" x="548" y="265">方案评审</text>
+            <text class="st-num" x="548" y="280">06</text>
+          </g>
+          <g class="st" style="animation-delay:1.18s">
+            <circle class="dot" cx="616" cy="220" r="7" fill="var(--surface)" stroke="var(--dev)" stroke-width="4"></circle>
+            <text class="st-name" x="616" y="247">任务拆分</text>
+            <text class="st-num" x="616" y="262">07</text>
+          </g>
+          <g class="st" style="animation-delay:1.26s">
+            <circle class="dot" cx="684" cy="220" r="7" fill="var(--surface)" stroke="var(--dev)" stroke-width="4"></circle>
+            <text class="st-name" x="684" y="265">编码自测</text>
+            <text class="st-num" x="684" y="280">08</text>
+          </g>
+          <g class="st" style="animation-delay:1.34s">
+            <circle class="dot" cx="752" cy="220" r="7" fill="var(--surface)" stroke="var(--dev)" stroke-width="4"></circle>
+            <text class="st-name" x="752" y="247">代码审查</text>
+            <text class="st-num" x="752" y="262">09</text>
+          </g>
+
+          <g class="st" style="animation-delay:1.46s">
+            <circle class="dot" cx="840" cy="220" r="12" fill="var(--surface)" stroke="var(--gate)" stroke-width="4"></circle>
+            <circle cx="840" cy="220" r="4.5" fill="var(--gate)"></circle>
+            <text class="gate-name" x="840" y="265">提测准入</text>
+            <text class="st-num" x="840" y="280">GATE 02 · CI 全绿</text>
+          </g>
+
+          <!-- ===== 交付线站点 ===== -->
+          <g class="st" style="animation-delay:1.6s">
+            <circle class="dot" cx="988" cy="300" r="7" fill="var(--surface)" stroke="var(--del)" stroke-width="4"></circle>
+            <text class="st-name" x="988" y="327">集成测试</text>
+            <text class="st-num" x="988" y="342">10</text>
+          </g>
+          <g class="st" style="animation-delay:1.68s">
+            <circle class="dot" cx="1056" cy="300" r="7" fill="var(--surface)" stroke="var(--del)" stroke-width="4"></circle>
+            <text class="st-name" x="1056" y="345">UAT 验收</text>
+            <text class="st-num" x="1056" y="360">11</text>
+          </g>
+          <g class="st" style="animation-delay:1.76s">
+            <circle class="dot" cx="1124" cy="300" r="7" fill="var(--surface)" stroke="var(--del)" stroke-width="4"></circle>
+            <text class="st-name" x="1124" y="327">发布上线</text>
+            <text class="st-num" x="1124" y="342">12</text>
+          </g>
+          <g class="st" style="animation-delay:1.84s">
+            <circle class="dot" cx="1192" cy="300" r="7" fill="var(--surface)" stroke="var(--del)" stroke-width="4"></circle>
+            <text class="st-name" x="1192" y="345">线上观测</text>
+            <text class="st-num" x="1192" y="360">13</text>
+          </g>
+
+          <g class="st" style="animation-delay:1.96s">
+            <circle class="dot" cx="1272" cy="300" r="12" fill="var(--del)" stroke="var(--del)" stroke-width="4"></circle>
+            <circle cx="1272" cy="300" r="4.5" fill="var(--surface)"></circle>
+            <text class="gate-name" x="1272" y="332">交付归档</text>
+            <text class="st-num" x="1272" y="347">TERMINUS · 复盘</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>
+        <b>怎么读这张图：</b>实线是正向流转，斜坡是阶段交接。双环站是<b>门禁</b>——它不产出物，只做一件事：判断能不能放行。琥珀色虚线是四条返工支线，箭头指向退回的站点；最上方那条从 <b>UAT 验收</b> 一路绕回 <b>需求分析</b>，绕过整张图的长度就是它的代价。
+      </figcaption>
+    </figure>
+  </div>
+
+  <h2>每站交出什么</h2>
+  <p class="sub">站点不是「阶段」，是可交付物的交接点。没有产出物的活动不设站——它属于站内工作。</p>
+
+  <div class="lanes">
+    <section class="lane l-req">
+      <div class="lane-top"></div>
+      <div class="lane-hd">
+        <h3><span>01</span>需求</h3>
+        <p>DISCOVER · 4 站 + 1 门禁</p>
+      </div>
+      <ol class="stops">
+        <li><span class="num">01</span><div class="stop-t">需求收集</div>
+          <div class="stop-o">原始需求池、来源与背景记录</div>
+          <div class="roles"><span>项目负责人</span><span>业务方</span></div></li>
+        <li><span class="num">02</span><div class="stop-t">需求分析</div>
+          <div class="stop-o">价值与成本评估、优先级排序、Epic 拆分</div>
+          <div class="roles"><span>项目负责人</span><span>产品</span></div></li>
+        <li><span class="num">03</span><div class="stop-t">产品设计</div>
+          <div class="stop-o">PRD、原型、交互与异常流说明</div>
+          <div class="roles"><span>产品</span><span>设计</span></div></li>
+        <li><span class="num">04</span><div class="stop-t">需求评审</div>
+          <div class="stop-o">评审纪要、可测的验收标准、遗留问题清单</div>
+          <div class="roles"><span>产品</span><span>研发</span><span>测试</span></div></li>
+        <li class="gate"><span class="num">G1</span><div class="stop-t">需求基线</div>
+          <div class="stop-o">范围冻结、排期确认；后续变更一律走变更单</div>
+          <div class="roles"><span>项目负责人</span></div></li>
+      </ol>
+    </section>
+
+    <section class="lane l-dev">
+      <div class="lane-top"></div>
+      <div class="lane-hd">
+        <h3><span>02</span>开发</h3>
+        <p>BUILD · 5 站 + 1 门禁</p>
+      </div>
+      <ol class="stops">
+        <li><span class="num">05</span><div class="stop-t">技术方案</div>
+          <div class="stop-o">架构图、数据模型、接口定义、迁移方案</div>
+          <div class="roles"><span>架构</span><span>研发</span></div></li>
+        <li><span class="num">06</span><div class="stop-t">方案评审</div>
+          <div class="stop-o">风险清单、工作量估算、依赖确认</div>
+          <div class="roles"><span>架构</span><span>研发</span><span>运维</span></div></li>
+        <li><span class="num">07</span><div class="stop-t">任务拆分</div>
+          <div class="stop-o">任务看板、责任人、里程碑与联调时点</div>
+          <div class="roles"><span>项目负责人</span><span>研发</span></div></li>
+        <li><span class="num">08</span><div class="stop-t">编码自测</div>
+          <div class="stop-o">特性分支、单元测试覆盖 ≥ 80%、自测记录</div>
+          <div class="roles"><span>研发</span></div></li>
+        <li><span class="num">09</span><div class="stop-t">代码审查</div>
+          <div class="stop-o">CR 记录、安全审查结论、合入集成分支</div>
+          <div class="roles"><span>研发</span><span>安全</span></div></li>
+        <li class="gate"><span class="num">G2</span><div class="stop-t">提测准入</div>
+          <div class="stop-o">CI 全绿、冒烟通过，测试才接单</div>
+          <div class="roles"><span>研发</span><span>测试</span></div></li>
+      </ol>
+    </section>
+
+    <section class="lane l-del">
+      <div class="lane-top"></div>
+      <div class="lane-hd">
+        <h3><span>03</span>交付</h3>
+        <p>DELIVER · 4 站 + 1 终点</p>
+      </div>
+      <ol class="stops">
+        <li><span class="num">10</span><div class="stop-t">集成测试</div>
+          <div class="stop-o">测试环境回归报告、缺陷清单与分级</div>
+          <div class="roles"><span>测试</span></div></li>
+        <li><span class="num">11</span><div class="stop-t">UAT 验收</div>
+          <div class="stop-o">业务在验收环境实操，逐条对照验收标准签字</div>
+          <div class="roles"><span>业务方</span><span>产品</span></div></li>
+        <li><span class="num">12</span><div class="stop-t">发布上线</div>
+          <div class="stop-o">发布单、发布窗口、回滚方案与演练</div>
+          <div class="roles"><span>运维</span><span>研发</span></div></li>
+        <li><span class="num">13</span><div class="stop-t">线上观测</div>
+          <div class="stop-o">48 小时值守、告警处置、稳定性报告</div>
+          <div class="roles"><span>运维</span><span>测试</span></div></li>
+        <li class="gate"><span class="num">G3</span><div class="stop-t">交付归档</div>
+          <div class="stop-o">复盘纪要、文档与配置归档、经验回灌需求池</div>
+          <div class="roles"><span>项目负责人</span></div></li>
+      </ol>
+    </section>
+  </div>
+
+  <h2>三道门禁的放行条件</h2>
+  <p class="sub">门禁只有两种结果：放行，或者退回上一站。不存在「先过、后面补」——那等于把门禁取消了。</p>
+
+  <div class="gates">
+    <div class="gcard">
+      <h3><span class="gid">Gate 01 · 需求 → 开发</span>需求基线</h3>
+      <ul>
+        <li>PRD 与原型通过三方评审，无未决问题</li>
+        <li>每条需求都有一条可测的验收标准</li>
+        <li>范围与排期已书面确认</li>
+        <li>变更通道已约定：走变更单，重估工期</li>
+      </ul>
+      <p class="gowner">把关人：项目负责人</p>
+    </div>
+    <div class="gcard">
+      <h3><span class="gid">Gate 02 · 开发 → 交付</span>提测准入</h3>
+      <ul>
+        <li>CI 流水线全绿，构建产物可部署</li>
+        <li>单元测试覆盖 ≥ 80%，新增代码无下降</li>
+        <li>代码审查与安全审查无阻塞项</li>
+        <li>研发自测冒烟用例全部通过</li>
+      </ul>
+      <p class="gowner">把关人：研发负责人 · 测试负责人</p>
+    </div>
+    <div class="gcard">
+      <h3><span class="gid">Gate 03 · 交付 → 收尾</span>交付归档</h3>
+      <ul>
+        <li>UAT 业务签字，验收标准逐条核对</li>
+        <li>线上 48 小时无 P0 / P1 故障</li>
+        <li>文档、配置、运维手册已归档</li>
+        <li>复盘完成，改进项落到负责人</li>
+      </ul>
+      <p class="gowner">把关人：项目负责人</p>
+    </div>
+  </div>
+
+  <h2>四条返工支线的代价</h2>
+  <p class="sub">返工不是异常，是流程的一部分。差别只在于它退回多远——越靠后发现，退回的路越长。</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">支线</th>
+          <th scope="col">退回路径</th>
+          <th scope="col">触发条件</th>
+          <th scope="col">典型代价</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="rname">驳回补正</td>
+          <td class="rpath">需求评审 <em>→</em> 产品设计</td>
+          <td>验收标准写不成可测的句子；异常流或权限没设计</td>
+          <td class="rcost">0.5–2 天</td>
+        </tr>
+        <tr>
+          <td class="rname">CR 打回</td>
+          <td class="rpath">代码审查 <em>→</em> 编码自测</td>
+          <td>存在阻塞级问题：安全、数据正确性、缺测试</td>
+          <td class="rcost">0.5–1 天</td>
+        </tr>
+        <tr>
+          <td class="rname">缺陷返工</td>
+          <td class="rpath">集成测试 <em>→</em> 编码自测</td>
+          <td>P0 / P1 缺陷，或回归打破了既有功能</td>
+          <td class="rcost">1–3 天</td>
+        </tr>
+        <tr class="worst">
+          <td class="rname">回炉重估</td>
+          <td class="rpath">UAT 验收 <em>→</em> 需求分析</td>
+          <td>做出来的东西业务不认：需求理解偏差，或验收标准本身就错了</td>
+          <td class="rcost">整段重走</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <dl class="cadence">
+    <div class="cad-item"><dt>单次迭代总时长</dt><dd>10–19 <small>天</small></dd></div>
+    <div class="cad-item"><dt>正向站点</dt><dd>13 <small>个</small></dd></div>
+    <div class="cad-item"><dt>放行门禁</dt><dd>3 <small>道</small></dd></div>
+    <div class="cad-item"><dt>返工支线</dt><dd>4 <small>条</small></dd></div>
+    <div class="cad-item"><dt>最贵的一条路</dt><dd>UAT <small>→ 需求分析</small></dd></div>
+  </dl>
+
+  <p class="foot">工期为典型值，随需求规模浮动；门禁条件与责任角色请按团队实际配置调整。本地版：双击即可离线打开，Ctrl+P 可直接导出 A4 横向 PDF。</p>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById("themebtn");
+    var icon = document.getElementById("themeicon");
+    var text = document.getElementById("themetext");
+    var order = ["auto", "light", "dark"];
+    var face = { auto: ["◐", "跟随系统"], light: ["☀", "浅色"], dark: ["☾", "深色"] };
+
+    function read() {
+      try {
+        var v = localStorage.getItem("dlm-theme");
+        return v === "light" || v === "dark" ? v : "auto";
+      } catch (e) { return "auto"; }
+    }
+    function apply(mode) {
+      if (mode === "auto") root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", mode);
+      icon.textContent = face[mode][0];
+      text.textContent = face[mode][1];
+      try {
+        if (mode === "auto") localStorage.removeItem("dlm-theme");
+        else localStorage.setItem("dlm-theme", mode);
+      } catch (e) {}
+    }
+    apply(read());
+    btn.addEventListener("click", function () {
+      apply(order[(order.indexOf(read()) + 1) % order.length]);
+    });
+  })();
+</script>
+
+</body>
+</html>
