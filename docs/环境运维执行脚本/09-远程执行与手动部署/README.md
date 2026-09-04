@@ -34,6 +34,17 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 
 - 部署 prod 前要求手输 `prod` 二次确认；机器端 deploy.sh 的完整行为（渲染 env → pull → up → 冒烟 → 清理）见下文第四节。
 
+### `ec2-power.sh` — 停机 / 启动 / 查看某环境的应用 EC2（暂停不常用环境省钱；stopped 实例只计 EBS 费）
+
+```bash
+./ec2-power.sh <stop|start|status> <env> [env ...]           # env: test|uat|support-ref|support-demo|support-sync|prod
+./ec2-power.sh stop support-ref support-demo support-sync      # 2026-09-04：暂停三台 support 机
+./ec2-power.sh start support-demo                              # 恢复；容器随机自起，三栈约 2 分钟内可用
+```
+
+- `stop` 先关闭该环境全部 `css-<env>-*` 告警动作（否则 `alb-no-healthy-target`/`ec2-status-check` 翻 ALARM 发邮件）再停机并等待 stopped；`start` 启动、等状态检查通过后再恢复告警动作。
+- 实例按 `Name=css-<env>-app` 定位；不动 RDS/ALB，私网 IP 不变；停机期间该域名 5xx、CI 部署因 SSM 不 Online 会失败；prod 需手输 `prod` 二次确认。
+
 ## 二、工作原理与机器前置
 
 ```
