@@ -51,14 +51,18 @@ cd docs/环境运维执行脚本/06-服务器密钥与访问
 产物：`deploy-env/ssh/dev-keys/<环境组>-<名字>.pem`（gitignore；**走安全渠道交付，勿发邮件/群聊**）。
 开发者拿到后连库：`bash docs/环境运维执行脚本/05-数据库运维/db-tunnel.sh test`（用 `DEV_KEY=` 指向自己的钥）。
 
-## 四、当前有效发放（2026-08-03 实时核对）
+## 四、当前有效发放（2026-09-04 实时核对，`revoke-dev-ssh.sh --list`）
 
 | 开发者 | 环境组 | 档位 | 到期（UTC） | 能做什么 |
 |---|---|---|---|---|
-| `dev1l` | nonprod | A 纯隧道 | 2026-09-02 06:47 | 连 test/uat 数据库、访问 kafka-ui；**不能开 shell、不能登应用机** |
-| `dev2f` | nonprod | A 纯隧道 | 2026-09-02 02:41 | 同上 |
+| `dev1l` | nonprod | A 纯隧道 | 2026-12-31 23:59 | 连 test/uat 数据库、访问 kafka-ui；**不能开 shell、不能登应用机** |
+| `dev2f` | nonprod | A 纯隧道 | 2026-12-31 23:59 | 同上 |
+| `devteam` | nonprod | A 纯隧道 | 2027-02-23 03:25 | 同上 |
+| `dev1l` | prod | A 纯隧道 | 2026-12-31 23:59 | 连 prod 数据库、跳 prod 应用机 22；不能开 shell |
+| `dev2f` | prod | A 纯隧道 | 2026-12-31 23:59 | 同上 |
+| `devteam` | prod | A 纯隧道 | 2027-02-23 03:26 | 同上 |
 
-prod 堡垒机：**当前无任何开发者钥**。
+test / uat 应用机：**当前无任何开发者条目**。安全组 22 白名单（`dev_ssh_cidrs`）：`96.64.37.222/32`、`60.208.121.22/32`。
 
 > ⚠️ 2026-08-03 修复：此前 `expiry-time` 写成 ISO 格式（带 `T`/`Z`），OpenSSH 8.7 解析失败会**拒绝整条 key**——
 > 在此之前发出去的钥匙其实从未生效过。现已改为纯 12 位 `YYYYMMDDHHMM`，并实测隧道打通。
@@ -77,3 +81,7 @@ prod 堡垒机：**当前无任何开发者钥**。
 - 2026-08-27 `devteam` @ nonprod 堡垒机（css-non-prod-bastion 3.225.148.166，通 test/uat 应用机与共享 RDS）｜到期 **202702230325** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
 - 2026-08-27 `devteam` @ prod 堡垒机（css-prod-bastion 34.225.237.45，仅通 prod 应用机）｜到期 **202702230326** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
 - 2026-09-04 安全组白名单新增开发团队出口 IP `60.208.121.22/32`（nonprod + prod 堡垒机 22，`dev_ssh_cidrs`，css-terraform 4c52b64/620b0b8；钥匙仍用 2026-08-27 发的 `devteam`，未新发）
+- 2026-09-04 `dev1l` @ nonprod 堡垒机（css-non-prod-bastion 3.225.148.166，通 test/uat 应用机与共享 RDS）｜到期 **202612312359** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
+- 2026-09-04 `dev2f` @ nonprod 堡垒机（css-non-prod-bastion 3.225.148.166，通 test/uat 应用机与共享 RDS）｜到期 **202612312359** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
+- 2026-09-04 `dev1l` @ prod 堡垒机（css-prod-bastion 34.225.237.45，仅通 prod 应用机）｜到期 **202612312359** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）
+- 2026-09-04 `dev2f` @ prod 堡垒机（css-prod-bastion 34.225.237.45，仅通 prod 应用机）｜到期 **202612312359** UTC｜档位A：纯隧道（连库/内网HTTP/跳板，堡垒机上开不了 shell）

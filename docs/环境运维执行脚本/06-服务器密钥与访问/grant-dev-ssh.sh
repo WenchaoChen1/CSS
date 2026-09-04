@@ -6,7 +6,8 @@
 #   不能在堡垒机开 shell、只能转发到白名单目标）；应用机条目可正常开 shell。
 #
 # 用法:
-#   ./grant-dev-ssh.sh <开发者名> <有效天数> [nonprod|prod] [apps...]
+#   ./grant-dev-ssh.sh <开发者名> <有效天数|YYYY-MM-DD> [nonprod|prod] [apps...]
+#     第二参数可写绝对日期（2026-09-04 增）：如 2026-12-31 → 到期 202612312359 UTC（当天最后一分钟）。
 #     apps 可选：test uat —— 把同一把钥匙也装到对应应用机（同样带过期）。
 #     不带 apps：开发者只能到堡垒机做隧道/跳板（够用 RDS/kafka-ui 场景），登不进应用机。
 #   例:
@@ -20,9 +21,9 @@
 set -euo pipefail
 
 DEV="${1:?用法: grant-dev-ssh.sh <开发者名> <有效天数> [nonprod|prod] [apps...]}"
-DAYS="${2:?缺有效天数，如 30}"
+DAYS="${2:?缺有效天数（如 30）或绝对日期（如 2026-12-31）}"
 [[ "$DEV" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "[FATAL] 开发者名只允许 字母/数字/_/-（会拼进远程命令与 authorized_keys 标签）"; exit 1; }
-[[ "$DAYS" =~ ^[0-9]+$ ]] || { echo "[FATAL] 有效天数必须是纯数字"; exit 1; }
+[[ "$DAYS" =~ ^[0-9]+$ || "$DAYS" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "[FATAL] 第二参数必须是纯数字天数或 YYYY-MM-DD 日期"; exit 1; }
 TARGET="${3:-nonprod}"
 shift $(( $# >= 3 ? 3 : 2 ))
 APPS=("$@")
@@ -52,7 +53,13 @@ TAG="dev-${DEV}"
 #   ② 去掉 T 只留 Z 仍然失败 —— 本机 sshd 是 OpenSSH_8.7p1（AL2023），其 parse_absolute_time()
 #      只接受 8/12/14 位纯数字，**不支持 Z（UTC）后缀**（Z 是更高版本才加的）。
 # 不带 Z 时按【服务器本地时区】解释；三台目标机实测均为 UTC，故用 date -u 生成即语义正确。
-EXPIRY=$(date -u -d "+${DAYS} days" +%Y%m%d%H%M 2>/dev/null || date -u -v+"${DAYS}"d +%Y%m%d%H%M)
+if [[ "$DAYS" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  date -u -d "$DAYS" >/dev/null 2>&1 || { echo "[FATAL] 非法日期 $DAYS"; exit 1; }
+  EXPIRY="${DAYS//-/}2359"   # 绝对日期：当天 23:59 UTC 失效
+  [ "$EXPIRY" -gt "$(date -u +%Y%m%d%H%M)" ] || { echo "[FATAL] 到期时间 $EXPIRY 已过"; exit 1; }
+else
+  EXPIRY=$(date -u -d "+${DAYS} days" +%Y%m%d%H%M 2>/dev/null || date -u -v+"${DAYS}"d +%Y%m%d%H%M)
+fi
 
 echo "===== 发放开发者密钥：$DEV / $TARGET / 到期 $EXPIRY UTC ====="
 
