@@ -57,7 +57,9 @@ db_compare/
 # ===== IDE / 编辑器 / 系统 / 杂项 =====
 .idea/
 .vscode/
-.claude/
+# .claude 目录忽略其内容（本机设置/会话等），只放行根目录的自定义命令（团队共享的提示词入口）
+**/.claude/*
+!/.claude/commands/
 *.stackdump
 .DS_Store
 Thumbs.db

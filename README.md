@@ -13,6 +13,8 @@
 | `docs/云服务搭建部署方案/` | 设计方案(独立服务器/Serverless/CICD v2.2) |
 | `备份/` | 迁移产物:`数据库/`、`docker镜像/`、`s3/`。**含真实数据,不进 git** |
 | `审计报告/` | 安全与架构审计(已脱敏) |
+| `docs/优化/` | 优化台账:`待优化.md`/`已优化.md` 索引 + `待优化/`/`已优化/` 问题与方案文档(见其 README) |
+| `提示词/` | 专项巡检提示词(如 `手机号国家字段巡检.md`,Claude Code 内 `/phone-country-audit`;命令入口在 `.claude/commands/`) |
 | `*.local.md` / `*.local` | 私有凭证/清单,`.gitignore` 已排除 |
 
 > `部署包/`、`发布包/`、`db_compare/` 已于 2026-07-28 退役:部署包并入 `CSS_backend-main/deploy/`,其余删除。
