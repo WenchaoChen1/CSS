@@ -1,0 +1,1476 @@
+<title>组织与权限模型</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (max 1120px), diagram-first explainer; wide figures and tables scroll inside their own frames */
+:root {
+  --bg: #F3F6F5;
+  --surface: #FFFFFF;
+  --ink: #13201B;
+  --muted: #55665F;
+  --line: #D5DED9;
+  --line-strong: #8A9D95;
+  --people: #0B6B5A;       /* 人员侧：Account / 角色 / 权限 */
+  --people-soft: #E0F0EB;
+  --org: #2E4A8E;          /* 组织侧：公司 / 类型 / 菜单 */
+  --org-soft: #E3E9F6;
+  --link: #9A5A06;         /* 公司之间的管理关系 */
+  --link-soft: #F6EBD7;
+  --del: #A3311E;          /* 删除 */
+  --del-soft: #F8E4DF;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1412; --surface: #151D1A; --ink: #E3ECE8; --muted: #9AACA5;
+    --line: #27332E; --line-strong: #5A6D65;
+    --people: #5CC9AE; --people-soft: #12302A;
+    --org: #9DB4F2; --org-soft: #1B2440;
+    --link: #E3AA4F; --link-soft: #352812;
+    --del: #F19A86; --del-soft: #3A1E18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1412; --surface: #151D1A; --ink: #E3ECE8; --muted: #9AACA5;
+  --line: #27332E; --line-strong: #5A6D65;
+  --people: #5CC9AE; --people-soft: #12302A;
+  --org: #9DB4F2; --org-soft: #1B2440;
+  --link: #E3AA4F; --link-soft: #352812;
+    --del: #F19A86; --del-soft: #3A1E18;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15.5px;
+  line-height: 1.75;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 72px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+a { color: inherit; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--org); outline-offset: 3px; border-radius: 4px; }
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+
+/* ---------- header ---------- */
+.top { padding-block: 52px 8px; }
+.eyebrow {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+h1 {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(2rem, 1.3rem + 2.6vw, 3.1rem); line-height: 1.2;
+  margin: .35em 0 .35em; text-wrap: balance;
+}
+.lede { max-width: 66ch; color: var(--muted); font-size: 1.04rem; margin: 0; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 22px; font-size: 14px; }
+.toc a { text-decoration: none; border-bottom: 1px solid var(--line-strong); padding-bottom: 1px; }
+.toc a:hover { border-bottom-color: var(--ink); }
+
+.thesis {
+  margin-top: 32px; padding: 22px 24px 20px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+}
+.thesis p { margin: 0 0 14px; max-width: 70ch; }
+.formula { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.tok { padding: 7px 14px; border-radius: 999px; font-weight: 700; font-size: 1.02rem; line-height: 1.4; }
+.tok.og { background: var(--org-soft); color: var(--org); }
+.tok.pp { background: var(--people-soft); color: var(--people); }
+.tok.res { background: var(--ink); color: var(--bg); }
+.op { font-family: var(--font-mono); font-size: 1.35rem; color: var(--muted); }
+
+/* ---------- sections ---------- */
+section { padding-block: 52px 8px; }
+h2 {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(1.45rem, 1.2rem + .9vw, 1.85rem); line-height: 1.3;
+  margin: 0 0 6px; text-wrap: balance;
+}
+h3 { font-size: 1.08rem; margin: 0 0 8px; line-height: 1.4; }
+.sub { color: var(--muted); max-width: 70ch; margin: 0 0 4px; }
+.kicker {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 6px;
+}
+
+figure { margin: 22px 0 0; }
+.frame {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px; overflow-x: auto;
+}
+figcaption { font-size: 13.5px; color: var(--muted); margin-top: 10px; max-width: 80ch; }
+
+/* ---------- diagrams (inline SVG, styled by tokens) ---------- */
+.dg { display: block; width: 100%; height: auto; }
+.dg.er { min-width: 860px; }
+.dg.seq { min-width: 760px; }
+.dg text { font-family: var(--font-body); }
+.dg .t { font-size: 15px; font-weight: 700; fill: var(--ink); }
+.dg .s { font-size: 12px; fill: var(--muted); }
+.dg .l { font-size: 12.5px; fill: var(--ink); }
+.dg .l.lk { fill: var(--link); font-weight: 700; }
+.dg .m { font-family: var(--font-mono); font-size: 11.5px; fill: var(--muted); }
+.dg .bx rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
+.dg .bx.us rect { stroke: var(--ink); stroke-width: 1.5; }
+.dg .bx.pp rect { fill: var(--people-soft); stroke: var(--people); }
+.dg .bx.og rect { fill: var(--org-soft); stroke: var(--org); }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .e.lk { stroke: var(--link); stroke-width: 1.8; }
+.dg .e.dash { stroke-dasharray: 5 4; }
+.dg .ah { fill: var(--ink); }
+.dg .ah.lk { fill: var(--link); }
+.dg .rg { fill: none; stroke: var(--people); stroke-width: 1.3; stroke-dasharray: 6 5; }
+.dg .rl { fill: var(--people); font-weight: 700; font-size: 13px; }
+.dg .bd circle { fill: var(--ink); }
+.dg .bd text { fill: var(--bg); font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+.dg .bd.lk circle { fill: var(--link); }
+.dg .vo { fill: var(--org); fill-opacity: .13; stroke: var(--org); stroke-width: 1.3; }
+.dg .vp { fill: var(--people); fill-opacity: .13; stroke: var(--people); stroke-width: 1.3; }
+.dg .ll { stroke: var(--line-strong); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.dg .vt { font-size: 13px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
+.dg .vs { font-size: 12px; fill: var(--muted); text-anchor: middle; }
+
+/* ---------- requirement map ---------- */
+.badge {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 700;
+  font-family: var(--font-mono); flex: none;
+}
+.badge.lk { background: var(--link); }
+.table-scroll { overflow-x: auto; margin-top: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+thead th { font-size: 12.5px; color: var(--muted); font-weight: 500; letter-spacing: .03em; background: var(--surface); }
+.req td:first-child { width: 44px; }
+.req td:nth-child(2) { width: 36%; font-weight: 500; }
+
+/* ---------- type × menu matrix ---------- */
+.matrix { min-width: 1040px; font-size: 13.5px; }
+.matrix th, .matrix td { padding: 8px 10px; text-align: center; vertical-align: middle; }
+.matrix tbody th { text-align: left; font-weight: 500; white-space: nowrap; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.matrix tbody th small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; line-height: 1.3; }
+.matrix thead th { vertical-align: bottom; }
+.matrix thead .grp th { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; border-bottom: 2px solid var(--line-strong); }
+.matrix thead .ty th { color: var(--ink); font-weight: 700; font-size: 13px; line-height: 1.35; }
+.matrix thead .ty th small { display: block; color: var(--muted); font-weight: 400; font-size: 11.5px; }
+.matrix thead th.corner { position: sticky; left: 0; z-index: 2; text-align: left; vertical-align: bottom; }
+.matrix .gsep { border-left: 2px solid var(--line-strong); }
+.matrix tbody tr:hover td, .matrix tbody tr:hover th { background: var(--org-soft); }
+.matrix tr.sec th { position: static; background: var(--bg); padding: 9px 12px; text-align: left; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.matrix tr.sec th span { position: sticky; left: 12px; }
+.matrix tr.sec:hover th { background: var(--bg); }
+.matrix tr.l1 th, .matrix tr.l1 td { border-top: 1px solid var(--line-strong); }
+.matrix tr.l1 th { font-weight: 700; }
+.matrix tr.l2 th { font-weight: 400; font-size: 13px; padding-left: 14px; }
+.matrix tr.l2 th small { padding-left: 22px; }
+.matrix .tree { display: inline-block; width: 22px; color: var(--line-strong); font-family: var(--font-mono); }
+.tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--muted); font-size: 11px; font-weight: 400; line-height: 1.6; vertical-align: 1px; font-family: var(--font-body); }
+.tag.new { border-color: var(--people); color: var(--people); background: var(--people-soft); }
+.tag.soon, .tag.plan, .tag.hidden { border-style: dashed; }
+.tag.int { border-color: var(--link); color: var(--link); }
+.count { color: var(--ink); font-weight: 500; }
+.matrix .cxcol, .matrix .cxcell { text-align: center; white-space: nowrap; }
+.cx { display: inline-block; font-size: 11.5px; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+.cx-keep { color: var(--muted); }
+.cx-new { color: var(--people); background: var(--people-soft); font-weight: 500; }
+.cx-ren, .cx-movein { color: var(--org); background: var(--org-soft); font-weight: 500; }
+.cx-move, .cx-merge { color: var(--link); background: var(--link-soft); font-weight: 500; }
+.cx-del { color: var(--del); background: var(--del-soft); font-weight: 500; }
+.matrix tr.gone th, .matrix tr.gone td:not(.cxcell) { opacity: .5; }
+.c-on { color: var(--org); font-size: 15px; }
+.c-opt { color: var(--link); font-size: 15px; }
+.c-off { color: var(--line-strong); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 12px; font-size: 13.5px; color: var(--muted); }
+.notes { margin: 12px 0 0; padding-left: 1.2em; color: var(--muted); font-size: 13.5px; max-width: 86ch; }
+
+/* ---------- example lanes ---------- */
+.who {
+  margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding: 14px 18px; border: 1.5px solid var(--ink); border-radius: 12px; background: var(--surface);
+}
+.who strong { font-size: 1.05rem; }
+.who span { color: var(--muted); font-size: 14px; }
+.lanes { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 14px; }
+@media (min-width: 860px) { .lanes { grid-template-columns: repeat(3, 1fr); } }
+.lane {
+  min-width: 0; display: grid; grid-template-rows: auto auto auto 1fr; gap: 12px;
+  padding: 16px 18px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+}
+.lane-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lane-head .acc { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.lane h3 { margin: 0; font-size: 1.12rem; }
+.ttag { font-family: var(--font-mono); font-size: 12px; color: var(--org); background: var(--org-soft); padding: 2px 8px; border-radius: 6px; }
+.row-label { font-size: 12px; color: var(--muted); letter-spacing: .04em; margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 13px; line-height: 1.6; border: 1px solid var(--line-strong); color: var(--ink); }
+.chip.role { border-color: var(--people); color: var(--people); font-weight: 700; background: var(--surface); }
+.chip.on { background: var(--people-soft); border-color: var(--people); }
+.chip.off { border-style: dashed; color: var(--muted); }
+.src { font-size: 13px; color: var(--link); background: var(--link-soft); padding: 6px 10px; border-radius: 8px; line-height: 1.55; }
+.src.plain { color: var(--muted); background: transparent; padding: 0; }
+
+/* ---------- flows ---------- */
+.flows { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 22px; }
+@media (min-width: 860px) { .flows.two { grid-template-columns: 1fr 1fr; } }
+.card { min-width: 0; padding: 18px 20px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 8px; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 14.5px; }
+ol.steps li::before {
+  content: counter(s); display: grid; place-items: center; width: 22px; height: 22px; margin-top: 3px;
+  border-radius: 50%; border: 1.3px solid var(--ink); font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
+}
+.states { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 14px; font-size: 13.5px; }
+.st { padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-strong); }
+.st.ok { border-color: var(--link); color: var(--link); background: var(--link-soft); font-weight: 700; }
+.arrow { color: var(--muted); font-family: var(--font-mono); }
+
+/* Teams mock */
+.mock { margin-top: 4px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.mock-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg); font-size: 13.5px; }
+.mock-bar b { font-weight: 700; }
+.mock-btn { font-size: 12.5px; padding: 3px 10px; border-radius: 6px; background: var(--ink); color: var(--bg); white-space: nowrap; }
+.mock-scroll { overflow-x: auto; }
+.mock table { font-size: 13.5px; min-width: 460px; }
+.mock td, .mock th { padding: 8px 14px; }
+.from { color: var(--link); font-weight: 500; }
+.pending { color: var(--muted); }
+
+/* ---------- rules & questions ---------- */
+.rules { display: grid; grid-template-columns: 1fr; gap: 0; margin-top: 18px; border-top: 1px solid var(--line); }
+@media (min-width: 860px) { .rules { grid-template-columns: 1fr 1fr; column-gap: 36px; } }
+.rule { display: grid; grid-template-columns: 30px 1fr; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; min-width: 0; }
+.rule .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); padding-top: 3px; }
+.rule b { font-weight: 700; }
+
+.qs { margin-top: 18px; display: grid; gap: 12px; }
+.q { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.q .qn { font-family: var(--font-mono); font-weight: 500; color: var(--link); padding-top: 1px; }
+.q p { margin: 0; }
+.q .rec { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.q .rec b { color: var(--ink); font-weight: 500; }
+.q.done { background: var(--people-soft); border-color: var(--people); }
+.q.done .qn { color: var(--people); }
+.q.done .rec { color: var(--ink); }
+
+details { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 20px; }
+summary { cursor: pointer; padding: 12px 0; font-weight: 700; }
+details[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.tech td:first-child { white-space: nowrap; font-family: var(--font-mono); font-size: 13px; color: var(--org); }
+.tech { font-size: 14px; }
+.tech-wrap { overflow-x: auto; }
+.tech-wrap table { min-width: 560px; }
+
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+
+/* ---------- 功能单（未来计划） ---------- */
+#features .fx-part { margin-top: 34px; }
+#features h3.part { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; line-height: 1.35; margin: 0 0 4px; }
+#features .map { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+@media (min-width: 960px) { #features .map { grid-template-columns: repeat(3, 1fr); } }
+#features .lvl { min-width: 0; padding: 16px 18px; border-radius: 12px; border: 1.5px solid; background: var(--surface); }
+#features .lvl.user { border-color: var(--org); }
+#features .lvl.co { border-color: var(--people); }
+#features .lvl.adm { border-color: var(--ink); }
+#features .lvl h4 { margin: 0; font-size: 1.05rem; }
+#features .lvl.user h4, #features .lvl.user li .id { color: var(--org); }
+#features .lvl.co h4, #features .lvl.co li .id { color: var(--people); }
+#features .lvl.adm h4, #features .lvl.adm li .id { color: var(--ink); }
+#features .lvl p.def { margin: 2px 0 10px; font-size: 13.5px; color: var(--muted); }
+#features .lvl ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+#features .lvl li a { display: grid; grid-template-columns: 40px 1fr; gap: 8px; padding: 6px 8px; border-radius: 8px; text-decoration: none; font-size: 14.5px; }
+#features .lvl li a:hover { background: var(--bg); }
+#features .lvl li .id { font-family: var(--font-mono); font-weight: 500; }
+#features .lvl li small { color: var(--muted); font-size: 13px; }
+#features .cross { display: grid; grid-template-columns: 48px 1fr; gap: 8px; margin-top: 14px; padding: 12px 16px; border: 1.5px solid var(--ink); border-radius: 12px; background: var(--surface); text-decoration: none; }
+#features .cross .id { font-family: var(--font-mono); font-weight: 500; }
+#features .cross b { display: block; font-weight: 700; }
+#features .cross small { color: var(--muted); font-size: 13px; }
+#features .feat { margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; scroll-margin-top: 16px; }
+#features .feat-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+#features .fid { font-family: var(--font-mono); font-weight: 500; font-size: 1.05rem; }
+#features .fid.user { color: var(--org); }
+#features .fid.co { color: var(--people); }
+#features .feat-head h4 { margin: 0; font-size: 1.15rem; line-height: 1.4; }
+#features .scope { font-size: 12px; padding: 1px 9px; border-radius: 999px; font-weight: 500; }
+#features .scope.user { color: var(--org); background: var(--org-soft); }
+#features .scope.co { color: var(--people); background: var(--people-soft); }
+#features .scope.adm, #features .scope.both { color: var(--ink); background: var(--bg); border: 1px solid var(--ink); }
+#features .entry { margin: 12px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; }
+#features .entry .lab { font-weight: 700; margin-right: 4px; }
+#features .crumb { font-family: var(--font-mono); font-size: 12.5px; padding: 2px 9px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line-strong); white-space: nowrap; }
+#features .sep { color: var(--muted); font-family: var(--font-mono); }
+#features .entry .note { color: var(--muted); font-size: 13.5px; }
+#features .cols { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+@media (min-width: 780px) { #features .cols { grid-template-columns: 1.15fr 1fr; } #features .cols.one { grid-template-columns: 1fr; } }
+#features .col { min-width: 0; }
+#features .col-label { font-size: 12px; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
+#features .pts, #features .sugs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#features .pts li, #features .sugs li { display: grid; grid-template-columns: 48px 1fr; gap: 6px; font-size: 14.5px; }
+#features .pts .k, #features .sugs .k { font-family: var(--font-mono); font-size: 12.5px; padding-top: 2px; }
+#features .pts .k { color: var(--ink); font-weight: 500; }
+#features .sugbox { border: 1px dashed var(--link); background: var(--link-soft); border-radius: 10px; padding: 12px 14px; }
+#features .sugbox .col-label { color: var(--link); }
+#features .sugs .k { color: var(--link); font-weight: 500; }
+#features .chg { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+#features .chg ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+#features .chg li { display: grid; grid-template-columns: 46px 1fr; gap: 10px; font-size: 14px; }
+#features .t { font-size: 12px; text-align: center; border-radius: 4px; padding: 0 4px; height: fit-content; margin-top: 2px; line-height: 1.7; font-weight: 500; }
+#features .t.del { color: var(--del); background: var(--del-soft); }
+#features .t.mod { color: var(--org); background: var(--org-soft); }
+#features .t.keep { color: var(--muted); border: 1px solid var(--line-strong); }
+#features .t.tbd { color: var(--link); border: 1px dashed var(--link); }
+#features .t.ok { color: var(--people); background: var(--people-soft); }
+#features .navgroups { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
+@media (min-width: 780px) { #features .navgroups { grid-template-columns: repeat(3, 1fr); } }
+#features .ng { min-width: 0; border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px 14px; }
+#features .ng h5 { margin: 0 0 8px; font-size: .98rem; }
+#features .ng ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+#features .ng li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; padding: 6px 10px; border-radius: 8px; background: var(--bg); font-size: 14px; }
+#features .ng li span:last-child { color: var(--muted); font-size: 12.5px; }
+#features .impact-title { margin: 18px 0 2px; font-size: 1rem; }
+#features .impact-sub { margin: 0; font-size: 13.5px; color: var(--muted); max-width: 80ch; }
+#features .impact { margin-top: 10px; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+#features .impact table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; }
+#features .impact th, #features .impact td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+#features .impact tr:last-child td { border-bottom: 0; }
+#features .impact thead th { font-size: 12.5px; color: var(--muted); font-weight: 500; background: var(--bg); }
+#features .impact td:first-child { font-weight: 700; width: 132px; }
+#features .impact td:last-child { color: var(--muted); width: 150px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Chain Serve · 方案草案 v1.2 · 2026-10-16</div>
+  <h1>组织与权限模型</h1>
+  <p class="lede">用户、Account、公司、公司类型、菜单、角色、权限、Teams，以及公司之间的管理关系。本页用一张总图说明它们怎么连在一起，再用一个人的例子和四个流程把规则走一遍。</p>
+  <nav class="toc" aria-label="页面目录">
+    <a href="#model">关系总图</a>
+    <a href="#types">九种公司类型与菜单</a>
+    <a href="#example">一个人、三个 Account</a>
+    <a href="#flows">关键流程</a>
+    <a href="#rules">业务规则</a>
+    <a href="#questions">确认事项</a>
+    <a href="#features">功能单</a>
+    <a href="#appendix">技术附录</a>
+  </nav>
+
+  <div class="thesis">
+    <p>一个人只注册一次，在每家公司里各有一个 Account。在某家公司里<strong>看得到哪些菜单</strong>由这家公司的类型决定，<strong>能做哪些操作</strong>由他在这家公司的角色决定。</p>
+    <div class="formula" role="img" aria-label="公司类型开放的菜单，与当前 Account 全部角色的权限取交集，等于这个人实际能用的功能">
+      <span class="tok og">公司类型开放的菜单</span>
+      <span class="op">∩</span>
+      <span class="tok pp">当前 Account 全部角色的权限</span>
+      <span class="op">=</span>
+      <span class="tok res">实际能用的功能</span>
+    </div>
+  </div>
+</header>
+
+<!-- ================= 关系总图 ================= -->
+<section id="model">
+  <div class="kicker">关系总图</div>
+  <h2>九个概念，一张图</h2>
+  <p class="sub">蓝色一侧是组织（公司、类型、菜单），绿色一侧是人员（Account、角色、权限），琥珀色是公司与公司之间的管理关系。图上的圆形编号对应您提出的 10 条需求。</p>
+
+  <figure>
+    <div class="frame">
+      <svg class="dg er" viewBox="0 0 1120 650" role="img" aria-label="关系总图：用户拥有多个 Account，每个 Account 属于一家公司；公司属于一种类型，类型开放一组菜单；公司定义自己的角色，Account 拥有多个角色，角色包含权限，权限指向菜单和按钮；公司可以管理另一家公司；Teams 模块管理本公司的 Account 和角色。">
+        <defs>
+          <marker id="ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="ah1lk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah lk" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+
+        <!-- Teams 区域 -->
+        <rect class="rg" x="400" y="48" width="320" height="400" rx="16"/>
+        <g class="bd"><circle cx="422" cy="70" r="10"/><text x="422" y="70">9</text></g>
+        <text class="rl" x="440" y="75">Teams 模块：本公司的人和角色</text>
+
+        <!-- 边：用户 → Account -->
+        <line class="e" x1="240" y1="148" x2="438" y2="148" marker-end="url(#ah1)"/>
+        <text class="l" x="330" y="138" text-anchor="middle">拥有</text>
+        <text class="m" x="330" y="168" text-anchor="middle">1 : N</text>
+
+        <!-- 边：Account → 公司 -->
+        <line class="e" x1="680" y1="148" x2="838" y2="148" marker-end="url(#ah1)"/>
+        <text class="l" x="780" y="138" text-anchor="middle">属于</text>
+        <text class="m" x="780" y="168" text-anchor="middle">N : 1</text>
+
+        <!-- 边：管理关系（公司 → 公司） -->
+        <path class="e lk" d="M935 96 V44 H1035 V94" marker-end="url(#ah1lk)"/>
+        <g class="bd lk"><circle cx="884" cy="27" r="10"/><text x="884" y="27">10</text></g>
+        <text class="l lk" x="900" y="32">管理另一家公司（创建 / 申请 / 邀请）</text>
+
+        <!-- 边：Account → 角色 -->
+        <line class="e" x1="560" y1="200" x2="560" y2="314" marker-end="url(#ah1)"/>
+        <g class="bd"><circle cx="576" cy="250" r="10"/><text x="576" y="250">7</text></g>
+        <text class="l" x="594" y="255">拥有多个角色</text>
+        <text class="m" x="594" y="274">N : M</text>
+
+        <!-- 边：公司 → 角色 -->
+        <polyline class="e" points="840,184 770,184 770,368 682,368" marker-end="url(#ah1)"/>
+        <g class="bd"><circle cx="792" cy="250" r="10"/><text x="792" y="250">5</text></g>
+        <text class="l" x="810" y="255">定义本公司角色</text>
+        <text class="m" x="810" y="274">1 : N</text>
+
+        <!-- 边：公司 → 类型 -->
+        <line class="e" x1="960" y1="200" x2="960" y2="314" marker-end="url(#ah1)"/>
+        <g class="bd"><circle cx="976" cy="250" r="10"/><text x="976" y="250">3</text></g>
+        <text class="l" x="994" y="255">属于一种类型</text>
+        <text class="m" x="994" y="274">N : 1</text>
+
+        <!-- 边：角色 → 权限 -->
+        <line class="e" x1="560" y1="420" x2="560" y2="534" marker-end="url(#ah1)"/>
+        <g class="bd"><circle cx="576" cy="470" r="10"/><text x="576" y="470">6</text></g>
+        <text class="l" x="594" y="475">包含多项权限</text>
+        <text class="m" x="594" y="494">N : M</text>
+
+        <!-- 边：类型 → 菜单 -->
+        <line class="e" x1="960" y1="420" x2="960" y2="534" marker-end="url(#ah1)"/>
+        <g class="bd"><circle cx="976" cy="470" r="10"/><text x="976" y="470">4</text></g>
+        <text class="l" x="994" y="475">开放哪些菜单</text>
+        <text class="m" x="994" y="494">N : M</text>
+
+        <!-- 边：权限 → 菜单 -->
+        <line class="e" x1="680" y1="584" x2="838" y2="584" marker-end="url(#ah1)"/>
+        <text class="l" x="760" y="574" text-anchor="middle">指向菜单 / 按钮</text>
+        <text class="m" x="760" y="604" text-anchor="middle">≤ 类型开放范围</text>
+
+        <!-- 节点：用户 -->
+        <g class="bx us"><rect x="40" y="96" width="200" height="104" rx="10"/></g>
+        <text class="t" x="60" y="134">用户 User</text>
+        <text class="s" x="60" y="160">一个人只注册一次</text>
+        <text class="s" x="60" y="180">注册 · 登录 · 改密码</text>
+        <g class="bd"><circle cx="240" cy="96" r="10"/><text x="240" y="96">1</text></g>
+
+        <!-- 节点：Account -->
+        <g class="bx pp"><rect x="440" y="96" width="240" height="104" rx="10"/></g>
+        <text class="t" x="460" y="134">Account</text>
+        <text class="s" x="460" y="160">用户在某家公司的身份</text>
+        <text class="s" x="460" y="180">同一家公司只有一个</text>
+        <g class="bd"><circle cx="680" cy="96" r="10"/><text x="680" y="96">2</text></g>
+
+        <!-- 节点：公司 -->
+        <g class="bx og"><rect x="840" y="96" width="240" height="104" rx="10"/></g>
+        <text class="t" x="860" y="134">公司 Company</text>
+        <text class="s" x="860" y="160">一个业务主体</text>
+        <text class="s" x="860" y="180">有自己的人、角色和数据</text>
+
+        <!-- 节点：角色 -->
+        <g class="bx pp"><rect x="440" y="316" width="240" height="104" rx="10"/></g>
+        <text class="t" x="460" y="354">角色 Role</text>
+        <text class="s" x="460" y="380">属于某一家公司</text>
+        <text class="s" x="460" y="400">可新建、改名、停用</text>
+
+        <!-- 节点：公司类型 -->
+        <g class="bx og"><rect x="840" y="316" width="240" height="104" rx="10"/></g>
+        <text class="t" x="860" y="354">公司类型 Type</text>
+        <text class="s" x="860" y="380">共 9 种（见下一节）</text>
+        <text class="s" x="860" y="400">决定菜单的上限</text>
+        <g class="bd"><circle cx="1080" cy="316" r="10"/><text x="1080" y="316">8</text></g>
+
+        <!-- 节点：权限 -->
+        <g class="bx pp"><rect x="440" y="536" width="240" height="96" rx="10"/></g>
+        <text class="t" x="460" y="570">权限 Permission</text>
+        <text class="s" x="460" y="594">看得到哪个菜单</text>
+        <text class="s" x="460" y="614">能点哪个按钮</text>
+
+        <!-- 节点：菜单 -->
+        <g class="bx og"><rect x="840" y="536" width="240" height="96" rx="10"/></g>
+        <text class="t" x="860" y="570">菜单功能 Menu</text>
+        <text class="s" x="860" y="594">全部页面与按钮的目录</text>
+        <text class="s" x="860" y="614">由平台统一维护</text>
+
+        <!-- 权限计算 -->
+        <text class="t" x="40" y="318">当前能用什么？</text>
+        <text class="s" x="40" y="340">登录并选定一个 Account 后计算</text>
+        <circle class="vo" cx="150" cy="458" r="92"/>
+        <circle class="vp" cx="250" cy="458" r="92"/>
+        <text class="vs" x="106" y="452">类型开放</text>
+        <text class="vs" x="106" y="470">的菜单</text>
+        <text class="vs" x="294" y="452">角色权限</text>
+        <text class="vs" x="294" y="470">之和</text>
+        <text class="vt" x="200" y="452">实际</text>
+        <text class="vt" x="200" y="471">可用</text>
+        <text class="vs" x="200" y="584">菜单跟公司类型走，操作跟角色走</text>
+        <text class="vs" x="200" y="604">交集以外的功能不会出现</text>
+      </svg>
+    </div>
+    <figcaption>读法：一个用户拥有多个 Account（每家公司一个）；Account 属于公司，公司属于一种类型，类型决定开放哪些菜单；公司自己定义角色，Account 可以挂多个角色，角色包含权限，权限只能落在类型开放的菜单范围内。琥珀色回环表示一家公司可以管理另一家公司。</figcaption>
+  </figure>
+
+  <div class="table-scroll">
+    <table class="req">
+      <thead><tr><th>编号</th><th>您的需求</th><th>在模型中的落点</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge">1</span></td><td>用户可以注册、登录、修改密码</td><td>「用户」只是登录身份，和任何公司都无关。改一次密码，他在所有公司的 Account 都用新密码登录。</td></tr>
+        <tr><td><span class="badge">2</span></td><td>用户在每家公司都有一个 Account</td><td>Account = 用户 × 公司。同一个用户在同一家公司只有一个 Account，权限全部挂在 Account 上。</td></tr>
+        <tr><td><span class="badge">3</span></td><td>公司有类型</td><td>每家公司只属于一种公司类型，创建公司时选定。兼营多种业务时建多家公司，用管理关系串起来。<span class="tag new">已确认</span></td></tr>
+        <tr><td><span class="badge">4</span></td><td>每种类型的菜单功能不一样</td><td>平台后台维护「类型 × 菜单」配置，决定这一类公司最多能用哪些菜单。改配置不需要改代码。</td></tr>
+        <tr><td><span class="badge">5</span></td><td>每家公司有自己的角色</td><td>角色挂在公司下。新建公司时按类型复制一套预设角色，之后公司可以自己新建、改名、停用，互不影响。</td></tr>
+        <tr><td><span class="badge">6</span></td><td>权限和角色关联</td><td>角色 × 权限。权限分两级：能看到哪个菜单、能点哪个按钮。只能在本公司类型开放的菜单里勾选。</td></tr>
+        <tr><td><span class="badge">7</span></td><td>一个 Account 有多个角色</td><td>Account × 角色。多个角色的权限取并集，例如「店长 + 采购员」。</td></tr>
+        <tr><td><span class="badge">8</span></td><td>九种公司类型</td><td>Restaurant、Food Vendor、LV、E&amp;S Dealer、Broadliner、Dealer、E&amp;S Manufacturer、Food Manufacturer、管理端。菜单对照见下一节。</td></tr>
+        <tr><td><span class="badge">9</span></td><td>Teams 模块关联本公司人员和角色</td><td>Teams 是公司管理自己人员的地方：邀请成员（生成 Account）、分配角色、停用、移除，也能看到管理方派驻来的人。按人管理，不设小组或部门。<span class="tag new">已确认</span></td></tr>
+        <tr><td><span class="badge lk">10</span></td><td>公司可以创建公司，其他公司可以申请管理我的公司</td><td>公司与公司之间的「管理关系」。三种来源：自己创建的公司自动生效；别人申请需我方审批；我方也可以主动邀请。被管理方随时可撤销。一家公司可以同时被多家公司管理，每段关系单独授权；管理关系不传递。<span class="tag new">已确认</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= 类型与菜单 ================= -->
+<section id="types">
+  <div class="kicker">公司类型 × 菜单</div>
+  <h2>九种公司类型的一级、二级菜单</h2>
+  <p class="sub">这张表定义每一类公司的菜单上限，公司里的每个人最终看到多少，再由他的角色在这个范围内决定。表中同时列出<b>现有菜单</b>和<b>修改后的菜单</b>：「变化」一列逐项标明现有、新增、改名、移入、移出、并入或删除；移出、并入、删除的现有菜单不从表中删掉，灰色显示，表示修改后不再出现在原位置。现有菜单按前端代码逐项盘点，修改内容按下文功能单同步。<span class="count" id="menu-count">修改后的菜单数量</span>。开放范围是初稿，请逐项确认。</p>
+
+  <div class="table-scroll">
+    <table class="matrix">
+      <thead>
+        <tr class="grp">
+          <th class="corner" rowspan="2" scope="col">一级菜单 / 二级菜单</th>
+          <th class="cxcol" rowspan="2" scope="col">变化</th>
+          <th class="gsep" scope="colgroup">采购方</th>
+          <th class="gsep" colspan="5" scope="colgroup">供应方</th>
+          <th class="gsep" colspan="2" scope="colgroup">制造商</th>
+          <th class="gsep" scope="colgroup">平台</th>
+        </tr>
+        <tr class="ty">
+          <th class="gsep" scope="col">Restaurant<small>餐厅</small></th>
+          <th class="gsep" scope="col">Food Vendor<small>食品供应商</small></th>
+          <th scope="col">LV<small>酒类供应商</small></th>
+          <th scope="col">E&amp;S Dealer<small>设备用品经销</small></th>
+          <th scope="col">Broadliner<small>综合分销商</small></th>
+          <th scope="col">Dealer<small>经销商</small></th>
+          <th class="gsep" scope="col">E&amp;S Mfr<small>设备用品制造</small></th>
+          <th scope="col">Food Mfr<small>食品制造</small></th>
+          <th class="gsep" scope="col">管理端<small>平台运营</small></th>
+        </tr>
+      </thead>
+      <tbody id="matrix-body"></tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <span><span class="c-on">●</span> 默认开放</span>
+    <span><span class="c-opt">○</span> 可开放，待确认</span>
+    <span><span class="c-off">—</span> 不开放</span>
+    <span><span class="cx cx-keep">现有</span> 保持不变</span>
+    <span><span class="cx cx-new">新增</span> <span class="cx cx-ren">改名</span> <span class="cx cx-movein">移入</span> 修改后的菜单</span>
+    <span><span class="cx cx-move">移出</span> <span class="cx cx-merge">并入</span> <span class="cx cx-del">删除</span> 现有菜单，修改后不在原位置（灰色）</span>
+    <span><span class="tag soon">即将上线</span> <span class="tag hidden">已隐藏</span> <span class="tag plan">规划中</span> 代码里已有路由或占位，目前不显示</span>
+    <span><span class="tag int">仅内部</span> 只对内部开发管理员开放</span>
+  </div>
+  <ul class="notes">
+    <li>二级菜单的开放范围不会超过它所属的一级菜单。</li>
+    <li>同一个菜单在不同类型下名称和内容不同：Products 在餐厅叫 Products（采购浏览），在供应方叫 My Catalog，在制造商叫 MFR Catalog；Orders 在餐厅是下单，在供应方是接单、拣货和配送；Restaurant 的 Quotations 是单页，没有二级菜单。</li>
+    <li>制造商的 Orders、Invoices、Packing Slips、Clients（制造商叫 MFR Customers）目前因缺少对应后端接口已隐藏，所以标 ○。</li>
+    <li>LV 的 Clients 页附带客户酒牌（Liquor License）校验。</li>
+    <li>表中只列菜单和页签。页面里的按钮和子页面（新建订单、上传商品、邀请成员、报价/发票编号规则等）在「按钮权限」中配置。顶栏常驻功能不受类型限制：全局搜索、Account 切换、个人资料与修改密码、退出。</li>
+    <li>标 ○ 的项确认后在平台后台勾选即可上线，不需要改代码或发版。</li>
+  </ul>
+</section>
+
+<!-- ================= 示例 ================= -->
+<section id="example">
+  <div class="kicker">示例</div>
+  <h2>一个人、三个 Account</h2>
+  <p class="sub">Alex 在综合分销商 Harbor Foodservice 做运营经理。Harbor 经 Corner Café 同意后管理这家餐厅，把 Alex 派驻过去负责采购。Alex 同时在另一家食品供应商兼职做财务。</p>
+
+  <div class="who">
+    <strong>Alex Wang</strong>
+    <span>一次注册 · 一套密码 · 名下 3 个 Account</span>
+    <span>登录后选择要进入的 Account，随时可以切换，菜单和数据整体跟着换</span>
+  </div>
+
+  <div class="lanes">
+    <article class="lane">
+      <div class="lane-head"><span class="acc">Account ①</span><span class="ttag">Broadliner</span></div>
+      <h3>Harbor Foodservice</h3>
+      <div>
+        <div class="row-label">角色（2 个，权限取并集）</div>
+        <div class="chips"><span class="chip role">运营经理</span><span class="chip role">销售</span></div>
+      </div>
+      <div>
+        <div class="row-label">菜单</div>
+        <div class="chips">
+          <span class="chip on">Dashboard</span><span class="chip on">Orders</span><span class="chip on">Products</span><span class="chip on">Quotations</span><span class="chip on">Clients</span><span class="chip on">Packing Slips</span><span class="chip on">Chats</span><span class="chip on">Teams</span><span class="chip on">管理关系</span><span class="chip off">Invoices</span><span class="chip off">Settings</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="lane">
+      <div class="lane-head"><span class="acc">Account ②</span><span class="ttag">Restaurant</span></div>
+      <h3>Corner Café</h3>
+      <div>
+        <div class="row-label">角色</div>
+        <div class="chips"><span class="chip role">采购员</span></div>
+      </div>
+      <div style="display:grid;gap:12px;align-content:start">
+        <div>
+          <div class="row-label">菜单</div>
+          <div class="chips">
+            <span class="chip on">Dashboard</span><span class="chip on">Orders</span><span class="chip on">Products</span><span class="chip on">Quotations</span><span class="chip on">Vendors</span><span class="chip on">Chats</span><span class="chip off">Invoices</span><span class="chip off">Teams</span><span class="chip off">Settings</span><span class="chip off">管理关系</span>
+          </div>
+        </div>
+        <div class="src">来源：Harbor Foodservice 派驻。Corner Café 撤销管理关系后，这个 Account 自动失效。</div>
+      </div>
+    </article>
+
+    <article class="lane">
+      <div class="lane-head"><span class="acc">Account ③</span><span class="ttag">Food Vendor</span></div>
+      <h3>Golden Leaf Foods</h3>
+      <div>
+        <div class="row-label">角色</div>
+        <div class="chips"><span class="chip role">财务</span></div>
+      </div>
+      <div style="display:grid;gap:12px;align-content:start">
+        <div>
+          <div class="row-label">菜单</div>
+          <div class="chips">
+            <span class="chip on">Dashboard</span><span class="chip on">Invoices</span><span class="chip on">Clients</span><span class="chip on">Chats</span><span class="chip off">Orders</span><span class="chip off">Products</span><span class="chip off">Quotations</span><span class="chip off">Manufacturers</span><span class="chip off">Packing Slips</span><span class="chip off">Teams</span><span class="chip off">Settings</span><span class="chip off">管理关系</span>
+          </div>
+        </div>
+        <div class="src plain">来源：Golden Leaf 直接邀请，与 Harbor 无关。</div>
+      </div>
+    </article>
+  </div>
+  <div class="legend">
+    <span><span class="chip on" style="font-size:12px">实线</span> 类型开放且角色已授予，Alex 能看到并使用</span>
+    <span><span class="chip off" style="font-size:12px">虚线</span> 类型开放但角色未授予，Alex 看不到（此处画出只为说明交集）</span>
+  </div>
+  <p class="sub" style="margin-top:14px">注意 Account ② 的菜单是 Restaurant 的菜单，而不是 Harbor 的 Broadliner 菜单：菜单永远跟着「当前进入的公司」的类型走，与这个人来自哪家公司无关。</p>
+</section>
+
+<!-- ================= 流程 ================= -->
+<section id="flows">
+  <div class="kicker">关键流程</div>
+  <h2>注册、建公司、申请管理、Teams</h2>
+
+  <div class="flows two">
+    <div class="card">
+      <h3>注册、登录与密码</h3>
+      <ol class="steps">
+        <li>注册：邮箱 + 密码，邮件验证码激活。注册只产生「用户」，不产生任何权限。</li>
+        <li>登录：一套账号密码。只有一个 Account 时直接进入；有多个时默认进入上次使用的，可在顶栏切换。</li>
+        <li>修改密码：登录后输入旧密码和新密码。忘记密码时通过邮箱验证码重置。</li>
+        <li>密码属于用户，改一次对他所有 Account 同时生效。</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>创建公司</h3>
+      <ol class="steps">
+        <li>已登录的用户点「创建公司」，填写公司信息并选择公司类型。</li>
+        <li>系统按类型自动配置：开放对应菜单，复制一套该类型的预设角色。</li>
+        <li>创建人自动获得这家公司的 Account，角色为 Owner。</li>
+        <li>如果是在某家公司里创建（例如集团开新门店），自动建立「原公司管理新公司」的管理关系，无需审批。</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h3>申请管理另一家公司</h3>
+    <p class="sub" style="margin-bottom:0">以 Harbor Foodservice（A）申请管理 Corner Café（B）为例。B 也可以反过来主动邀请 A，A 接受后同样从第 4 步开始。</p>
+    <figure style="margin-top:12px">
+      <div class="frame" style="padding:8px">
+        <svg class="dg seq" viewBox="0 0 900 462" role="img" aria-label="申请管理时序：A 发起申请并写明期望角色，系统通知 B 审批，B 同意并设定可授予角色上限，关系生效后 A 在 Teams 派驻成员，系统在 B 下生成来源为 A 的 Account，B 随时可以撤销，撤销后派驻 Account 立即失效。">
+          <defs>
+            <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+            <marker id="ah2lk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="ah lk" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+          <g class="bx og"><rect x="60" y="14" width="220" height="50" rx="10"/></g>
+          <text class="t" x="170" y="36" text-anchor="middle">A 公司管理员</text>
+          <text class="s" x="170" y="55" text-anchor="middle">管理方 · Harbor</text>
+          <g class="bx"><rect x="360" y="14" width="220" height="50" rx="10"/></g>
+          <text class="t" x="470" y="36" text-anchor="middle">系统</text>
+          <text class="s" x="470" y="55" text-anchor="middle">Chain Serve</text>
+          <g class="bx og"><rect x="660" y="14" width="220" height="50" rx="10"/></g>
+          <text class="t" x="770" y="36" text-anchor="middle">B 公司 Owner</text>
+          <text class="s" x="770" y="55" text-anchor="middle">被管理方 · Corner Café</text>
+
+          <line class="ll" x1="170" y1="64" x2="170" y2="446"/>
+          <line class="ll" x1="470" y1="64" x2="470" y2="446"/>
+          <line class="ll" x1="770" y1="64" x2="770" y2="446"/>
+
+          <!-- 1 -->
+          <g class="bd"><circle cx="30" cy="104" r="10"/><text x="30" y="104">1</text></g>
+          <line class="e" x1="170" y1="104" x2="468" y2="104" marker-end="url(#ah2)"/>
+          <text class="l" x="320" y="96" text-anchor="middle">发起申请，写明期望的角色</text>
+          <!-- 2 -->
+          <g class="bd"><circle cx="30" cy="150" r="10"/><text x="30" y="150">2</text></g>
+          <line class="e" x1="470" y1="150" x2="768" y2="150" marker-end="url(#ah2)"/>
+          <text class="l" x="620" y="142" text-anchor="middle">通知 B 审批</text>
+          <!-- 3 -->
+          <g class="bd"><circle cx="30" cy="196" r="10"/><text x="30" y="196">3</text></g>
+          <line class="e" x1="770" y1="196" x2="472" y2="196" marker-end="url(#ah2)"/>
+          <text class="l" x="620" y="188" text-anchor="middle">同意，并设定可授予的角色上限</text>
+          <text class="s" x="782" y="214">或拒绝，流程结束</text>
+          <!-- 4 -->
+          <g class="bd lk"><circle cx="30" cy="242" r="10"/><text x="30" y="242">4</text></g>
+          <line class="e lk" x1="470" y1="242" x2="172" y2="242" marker-end="url(#ah2lk)"/>
+          <text class="l lk" x="320" y="234" text-anchor="middle">管理关系生效</text>
+          <!-- 5 -->
+          <g class="bd"><circle cx="30" cy="288" r="10"/><text x="30" y="288">5</text></g>
+          <line class="e" x1="170" y1="288" x2="468" y2="288" marker-end="url(#ah2)"/>
+          <text class="l" x="320" y="280" text-anchor="middle">在 Teams 派驻成员并选角色（≤ 上限）</text>
+          <!-- 6 -->
+          <g class="bd"><circle cx="30" cy="334" r="10"/><text x="30" y="334">6</text></g>
+          <line class="e" x1="470" y1="334" x2="768" y2="334" marker-end="url(#ah2)"/>
+          <text class="l" x="620" y="326" text-anchor="middle">在 B 下生成 Account，标记来源 A</text>
+          <!-- 7 -->
+          <g class="bd lk"><circle cx="30" cy="380" r="10"/><text x="30" y="380">7</text></g>
+          <line class="e lk dash" x1="770" y1="380" x2="472" y2="380" marker-end="url(#ah2lk)"/>
+          <text class="l lk" x="620" y="372" text-anchor="middle">随时撤销关系，或只移除某个人</text>
+          <!-- 8 -->
+          <g class="bd lk"><circle cx="30" cy="426" r="10"/><text x="30" y="426">8</text></g>
+          <line class="e lk dash" x1="470" y1="426" x2="172" y2="426" marker-end="url(#ah2lk)"/>
+          <text class="l lk" x="320" y="418" text-anchor="middle">派驻的 Account 立即失效</text>
+        </svg>
+      </div>
+      <figcaption>被管理方始终掌握主动权：第 3 步决定对方最多能拿到哪些角色，第 7 步随时可以收回。第 6 步生成的 Account 在 B 的 Teams 里可见，并标明来自 A。</figcaption>
+    </figure>
+    <div class="states" aria-label="管理关系的状态">
+      <span style="color:var(--muted)">管理关系状态：</span>
+      <span class="st">待审批</span><span class="arrow">→</span><span class="st ok">已生效</span><span class="arrow">→</span><span class="st">已撤销</span>
+      <span style="color:var(--muted);margin-left:10px">或</span>
+      <span class="st">待审批</span><span class="arrow">→</span><span class="st">已拒绝</span>
+    </div>
+  </div>
+
+  <div class="flows two">
+    <div class="card">
+      <h3>Teams：管理本公司的人和角色</h3>
+      <ol class="steps">
+        <li>管理员在 Teams 邀请成员（填邮箱），并预选一个或多个角色。</li>
+        <li>对方已注册就直接接受邀请；未注册就先注册再接受。</li>
+        <li>接受后生成本公司的 Account，角色立即生效。</li>
+        <li>之后可在 Teams 调整角色、停用或移除。管理方派驻的人也列在这里，标明来源。</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Corner Café 的 Teams 页面（界面示意）</h3>
+      <div class="mock">
+        <div class="mock-bar"><b>Corner Café · Teams</b><span class="mock-btn">邀请成员</span></div>
+        <div class="mock-scroll">
+          <table>
+            <thead><tr><th>成员</th><th>角色</th><th>来源</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr><td>Mia Lopez</td><td>Owner</td><td>本公司</td><td>正常</td></tr>
+              <tr><td>Sam Rivera</td><td>店长、采购员</td><td>本公司</td><td>正常</td></tr>
+              <tr><td>Alex Wang</td><td>采购员</td><td class="from">Harbor 派驻</td><td>正常</td></tr>
+              <tr><td>Jordan Kim</td><td>服务员</td><td class="pending">邀请中</td><td class="pending">待接受</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="sub" style="font-size:13.5px;margin-top:10px">Sam 一个 Account 挂了两个角色；Alex 来自管理关系，Corner Café 撤销授权后他会从列表中消失。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 规则 ================= -->
+<section id="rules">
+  <div class="kicker">业务规则</div>
+  <h2>系统会强制执行的规则</h2>
+  <div class="rules">
+    <div class="rule"><span class="n">R1</span><div><b>权限只挂在 Account 上。</b>用户本身没有任何业务权限，没有 Account 就进不了任何公司。</div></div>
+    <div class="rule"><span class="n">R2</span><div><b>一人一公司一个 Account。</b>需要多种职能时给这个 Account 加角色，而不是再开一个。</div></div>
+    <div class="rule"><span class="n">R3</span><div><b>菜单取交集。</b>公司类型给出上限，角色在上限内勾选；角色权限不能超出类型范围。</div></div>
+    <div class="rule"><span class="n">R4</span><div><b>多角色取并集。</b>一个 Account 的所有角色权限合在一起生效。</div></div>
+    <div class="rule"><span class="n">R5</span><div><b>角色各公司独立。</b>A 公司调整「经理」的权限，不影响 B 公司的「经理」。</div></div>
+    <div class="rule"><span class="n">R6</span><div><b>每家公司至少一个 Owner。</b>Owner 角色不能删除，也不能授予管理方派驻来的人。</div></div>
+    <div class="rule"><span class="n">R7</span><div><b>管理关系必须被管理方同意。</b>自己创建的公司除外；被管理方随时可撤销。</div></div>
+    <div class="rule"><span class="n">R8</span><div><b>派驻人员不超授权上限。</b>派驻人员的角色只能从被管理方批准的范围里选。</div></div>
+    <div class="rule"><span class="n">R9</span><div><b>切换 Account 整体切换。</b>菜单、按钮、可见数据一起切换，不会出现上一家公司的内容。</div></div>
+    <div class="rule"><span class="n">R10</span><div><b>前后端同一份权限。</b>菜单隐藏的同时，后台接口也拒绝访问，直接输入网址也进不去。</div></div>
+    <div class="rule"><span class="n">R11</span><div><b>每次变更都留记录。</b>角色、权限、成员、管理关系的变更记录操作人和时间，可追溯。</div></div>
+    <div class="rule"><span class="n">R12</span><div><b>管理端也是一种公司类型。</b>平台运营人员同样通过 Account 和角色获得权限，没有特殊后门。</div></div>
+    <div class="rule"><span class="n">R13</span><div><b>一家公司只属于一种类型。</b>兼营多种业务时建多家公司，再用管理关系串起来。</div></div>
+    <div class="rule"><span class="n">R14</span><div><b>可以被多家公司同时管理。</b>每段管理关系单独授权、单独撤销，互不影响。</div></div>
+    <div class="rule"><span class="n">R15</span><div><b>管理关系不传递。</b>A 管 B、B 管 C，A 不能因此管理 C；需要时 A 单独向 C 申请。</div></div>
+    <div class="rule"><span class="n">R16</span><div><b>Teams 按人管理。</b>不设小组或部门，角色直接分配到每个人的 Account 上。</div></div>
+  </div>
+</section>
+
+<!-- ================= 待确认 ================= -->
+<section id="questions">
+  <div class="kicker">确认事项</div>
+  <h2>已确认五项，待确认两项</h2>
+  <p class="sub">已确认的决定已写入上面的业务规则（R13–R16）和下面的功能单。待确认的问题附了我们的建议，按建议执行可以直接进入开发。</p>
+  <h3 style="margin-top:22px">已确认 · 2026-10-16</h3>
+  <div class="qs">
+    <div class="q done"><span class="qn">Q1</span><div><p>一家公司能否同时属于多种类型？</p><p class="rec"><b>结论：</b>一家公司一种类型。兼营多种业务时建多家公司，用管理关系串起来。</p></div></div>
+    <div class="q done"><span class="qn">Q2</span><div><p>一家公司能否同时被多家公司管理？</p><p class="rec"><b>结论：</b>允许。每段管理关系单独授权、单独撤销。</p></div></div>
+    <div class="q done"><span class="qn">Q3</span><div><p>管理关系是否逐级传递（A 管 B、B 管 C，A 是否自动管 C）？</p><p class="rec"><b>结论：</b>不传递。A 需要管理 C 时单独申请。</p></div></div>
+    <div class="q done"><span class="qn">Q4</span><div><p>Teams 是否需要「小组 / 部门」分组？</p><p class="rec"><b>结论：</b>按人管理，不设小组。</p></div></div>
+    <div class="q done"><span class="qn">Q7</span><div><p>Settings 里的 My Restaurants / My Stores 是否并入「管理关系」？</p><p class="rec"><b>结论：</b>并入。两个页签从 Settings 移出，名下餐厅和门店改在 Managed Companies → Companies I Manage 里维护（见功能单 F7）。</p></div></div>
+  </div>
+  <h3 style="margin-top:26px">待确认</h3>
+  <div class="qs">
+    <div class="q"><span class="qn">Q5</span><div><p>平台（管理端）人员能否直接进入客户公司？</p><p class="rec"><b>建议：</b>不能直接进入。需要客户授权，或通过支持工单开临时访问，全程留记录。</p></div></div>
+    <div class="q"><span class="qn">Q6</span><div><p>类型菜单表中标 ○ 的项首期是否开放？</p><p class="rec"><b>建议：</b>逐项确认。确认后在后台勾选即可，不影响开发排期。</p></div></div>
+  </div>
+</section>
+
+<!-- ================= 功能单 ================= -->
+<section id="features">
+  <div class="kicker">未来计划</div>
+  <h2>功能单（未来计划）</h2>
+  <p class="sub">在本模型基础上的后续功能计划，共 13 项：用户级 3 项、公司级 4 项、管理端 5 项，另有 1 项贯穿三类。每项先写导航入口，再写功能点，最后简单说删除或改造什么。琥珀色虚线框里的「建议」和 F13 下的排查清单尚未最终确认。</p>
+<div class="fx-part" id="fx-overview">
+  <h3 class="part">总览</h3>
+  <div class="map">
+    <div class="lvl user">
+      <h4>用户级功能</h4>
+      <p class="def">每个用户都有；和在哪家公司无关；切换公司后不变。</p>
+      <ul>
+        <li><a href="#f1"><span class="id">F1</span><span>登录注册流程修改<br><small>登录页、注册页、引导页</small></span></a></li>
+        <li><a href="#f2"><span class="id">F2</span><span>用户个人信息维护<br><small>右上角头像 → My Profile</small></span></a></li>
+        <li><a href="#f3"><span class="id">F3</span><span>切换公司<br><small>顶栏公司切换器</small></span></a></li>
+      </ul>
+    </div>
+    <div class="lvl co">
+      <h4>公司级功能</h4>
+      <p class="def">在当前公司下使用；切换公司后跟着变。</p>
+      <ul>
+        <li><a href="#f4"><span class="id">F4</span><span>Account 详情（我在本公司）<br><small>Company Settings → Account Details</small></span></a></li>
+        <li><a href="#f5"><span class="id">F5</span><span>公司详情管理<br><small>Company Settings → Company Info</small></span></a></li>
+        <li><a href="#f6"><span class="id">F6</span><span>公司角色管理<br><small>Company Settings → Roles &amp; Permissions</small></span></a></li>
+        <li><a href="#f7"><span class="id">F7</span><span>Managed Companies 管理<br><small>侧边栏一级菜单 Managed Companies</small></span></a></li>
+      </ul>
+    </div>
+    <div class="lvl adm">
+      <h4>管理端功能</h4>
+      <p class="def">平台运营人员使用；维护全平台的菜单、公司类型和模板。</p>
+      <ul>
+        <li><a href="#f8"><span class="id">F8</span><span>导航菜单管理<br><small>菜单与权限 → Menus</small></span></a></li>
+        <li><a href="#f9"><span class="id">F9</span><span>公司类型管理<br><small>菜单与权限 → Company Types</small></span></a></li>
+        <li><a href="#f10"><span class="id">F10</span><span>角色模板管理<br><small>菜单与权限 → Role Templates</small></span></a></li>
+        <li><a href="#f11"><span class="id">F11</span><span>管理关系总览<br><small>客户与公司 → Relationships</small></span></a></li>
+        <li><a href="#f12"><span class="id">F12</span><span>审计日志<br><small>系统 → Audit Log</small></span></a></li>
+      </ul>
+    </div>
+  </div>
+  <a class="cross" href="#f13"><span class="id">F13</span><span><b>删除现有权限，按功能菜单层级重做</b><small>贯穿三类：公司类型、角色模板、公司角色都按同一棵菜单树授权</small></span></a>
+</div>
+
+<!-- ================= 一、用户级 ================= -->
+<div class="fx-part" id="fx-user-level">
+  <h3 class="part">一、用户级功能</h3>
+
+  <article class="feat" id="f1">
+    <div class="feat-head"><span class="fid user">F1</span><h4>登录注册流程修改</h4><span class="scope user">用户级</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">登录页</span><span class="crumb">注册页</span><span class="crumb">引导页</span><span class="note">（登录后名下没有 Account 时出现）</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F1.1</span><span>注册只创建「用户」：邮箱 + 密码，用邮箱验证码激活。注册时不强制创建公司。</span></li>
+          <li><span class="k">F1.2</span><span>登录后如果名下没有任何 Account，进入引导页，二选一：创建公司，或接受邀请加入公司。</span></li>
+          <li><span class="k">F1.3</span><span>登录：邮箱 + 密码。只有一个 Account 时直接进入；有多个时进入上次使用的那个。</span></li>
+          <li><span class="k">F1.4</span><span>忘记密码：通过邮箱验证码重置。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S1</span><span>注册时的安全问题是否保留，由你决定。</span></li>
+          <li><span class="k">S2</span><span>被邀请的人从邮件链接注册，注册完自动加入邀请他的公司，不用再走引导页。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t mod">改造</span><span>现有注册流程（填联系方式 → 验证码 → 设置安全问题 → 注册 → 补充联系方式 → onboarding 创建公司）精简为 F1.1。</span></li>
+      <li><span class="t mod">改造</span><span>创建公司从注册流程中拆出来，改到引导页。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f2">
+    <div class="feat-head"><span class="fid user">F2</span><h4>用户个人信息维护</h4><span class="scope user">用户级</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">右上角头像菜单</span><span class="sep">→</span><span class="crumb">My Profile（个人中心）</span><span class="sep">→</span><span class="crumb">Profile</span><span class="crumb">Password</span><span class="crumb">Email</span><span class="crumb">Notifications</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F2.1</span><span>Profile：姓名、手机号、语言。属于用户本人，在所有公司通用。</span></li>
+          <li><span class="k">F2.2</span><span>Password：输入旧密码 + 新密码，修改密码。</span></li>
+          <li><span class="k">F2.3</span><span>Email：输入新邮箱 → 新邮箱收验证码 → 确认后生效。</span></li>
+          <li><span class="k">F2.4</span><span>Notifications：通知设置改为用户层级，每个人自己选择通过邮件、短信、站内消息接收哪些通知。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S3</span><span>修改邮箱时先校验当前密码，并给旧邮箱发一封通知。</span></li>
+          <li><span class="k">S4</span><span>修改密码后，其他设备上的登录自动失效。</span></li>
+          <li><span class="k">S5</span><span>My Profile 不受角色权限控制，所有人都能进。</span></li>
+          <li><span class="k">S6</span><span>Settings 里现有的 Security 占位页签移到 My Profile，用来放登录安全相关的功能。</span></li>
+          <li><span class="k">S7</span><span>Team 成员页里「管理员替成员改密码」改为「管理员给成员发重置密码邮件」，管理员不再接触成员的密码。</span></li>
+          <li><span class="k">S31</span><span>通知设置可以按公司细分：同一个人在 A 公司的新订单收短信，在 B 公司的只收邮件。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t del">删除</span><span>Settings → General 页签。其中姓名、邮箱、电话、语言移到 My Profile；角色、账号类型移到 Account Details（F4）。</span></li>
+      <li><span class="t del">删除</span><span>Security Code：每个成员一个 4 位安全码，每天 0 点自动刷新，目前只在删除成员时让双方输入确认；页面上已经不显示。连同每天刷新安全码的定时任务一起删除。</span></li>
+      <li><span class="t mod">改造</span><span>姓名从「每家公司各存一份」改为用户本人只存一份。</span></li>
+      <li><span class="t mod">改造</span><span>通知设置从 Company Settings → Notifications（按「公司 × 角色」开关邮件 / 短信 / 消息）移到这里，改为每个用户自己配置。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f3">
+    <div class="feat-head"><span class="fid user">F3</span><h4>切换公司</h4><span class="scope user">用户级</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">顶栏公司切换器</span><span class="note">（常驻显示当前公司和当前角色）</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F3.1</span><span>顶栏显示当前所在的公司和我在这家公司的角色。</span></li>
+          <li><span class="k">F3.2</span><span>展开后列出我的全部 Account（公司名、公司类型、角色），点一下就切换。</span></li>
+          <li><span class="k">F3.3</span><span>切换后菜单、按钮、数据整体跟着切换，由后端同步切换。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S8</span><span>列表分成「我的公司」和「派驻的公司」两组，派驻的标明来自哪家公司。</span></li>
+          <li><span class="k">S9</span><span>公司多的时候支持搜索；可以设一个默认公司。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t mod">改造</span><span>侧边栏现有的「切换账号」弹窗移到顶栏。</span></li>
+      <li><span class="t mod">改造</span><span>切换从「只在前端改」改为后端同步切换。</span></li>
+    </ul></div>
+  </article>
+</div>
+
+<!-- ================= 二、公司级 ================= -->
+<div class="fx-part" id="fx-company-level">
+  <h3 class="part">二、公司级功能</h3>
+
+  <article class="feat" id="f4">
+    <div class="feat-head"><span class="fid co">F4</span><h4>Account 详情（我在本公司）</h4><span class="scope co">公司级 · 只看自己</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">侧边栏 Company Settings</span><span class="sep">→</span><span class="crumb">Account Details（Account 详情）</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F4.1</span><span>查看我在本公司的信息：公司名、我的角色（可以有多个）、来源（创建者 / 本公司邀请 / 由某公司派驻）、状态、加入时间。</span></li>
+          <li><span class="k">F4.2</span><span>维护我在本公司的显示名和职位。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S10</span><span>角色只能看，不能自己改。角色由管理员在 Teams 里调整。</span></li>
+          <li><span class="k">S11</span><span>如果我是被派驻来的，显示派驻我的公司和授权上限，并提供「退出这家公司」。</span></li>
+          <li><span class="k">S12</span><span>Account Details 所有成员都能看，不受角色权限控制。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t mod">改造</span><span>原 Settings → General 里的角色、账号类型移到这里。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f5">
+    <div class="feat-head"><span class="fid co">F5</span><h4>公司详情管理</h4><span class="scope co">公司级</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">侧边栏 Company Settings</span><span class="sep">→</span><span class="crumb">Company Info（公司详情）</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F5.1</span><span>公司基本信息：名称、Logo、地址、联系方式，以及联系人、紧急联系人。</span></li>
+          <li><span class="k">F5.2</span><span>制造商类型的公司额外维护厂商主数据。</span></li>
+          <li><span class="k">F5.3</span><span>公司类型只读：创建时选定，之后不能改。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S13</span><span>只有 Owner 或有权限的角色能编辑，每次修改留审计记录。</span></li>
+          <li><span class="k">S14</span><span>确实需要改公司类型时，由平台管理端处理。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t mod">改造</span><span>侧边栏的 Settings 改名为 Company Settings，位置不变，只放公司相关页签：Account Details（F4）、Company Info（本项）、Roles &amp; Permissions（F6）、Billing、Delivery。</span></li>
+      <li><span class="t mod">改造</span><span>原 Company 页签和 Information 页签合并为 Company Info。</span></li>
+      <li><span class="t mod">改造</span><span>Notifications 页签移出，改为用户层级，放到 My Profile（F2.4）。</span></li>
+      <li><span class="t keep">保留</span><span>Billing、Delivery 两个页签内容不变。</span></li>
+      <li><span class="t del">删除</span><span>Signature 占位页签（从未上线）。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f6">
+    <div class="feat-head"><span class="fid co">F6</span><h4>公司角色管理</h4><span class="scope co">公司级</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">侧边栏 Company Settings</span><span class="sep">→</span><span class="crumb">Roles &amp; Permissions（角色与权限）</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F6.1</span><span>角色列表：本公司的全部角色，以及每个角色有多少人。</span></li>
+          <li><span class="k">F6.2</span><span>新建角色、改名、停用。</span></li>
+          <li><span class="k">F6.3</span><span>配置权限：按功能菜单层级（一级菜单 → 二级菜单 → 按钮）勾选，只能在本公司类型开放的范围内勾选（见 F13）。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S15</span><span>新建角色时可以从该类型的预设模板复制。</span></li>
+          <li><span class="k">S16</span><span>还有人在用的角色不能删除；Owner 角色不能删除，也不能改权限。</span></li>
+          <li><span class="k">S17</span><span>权限变更留审计记录。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t del">删除</span><span>原 Settings → Permissions 页签（接口权限矩阵），见 F13。</span></li>
+      <li><span class="t mod">改造</span><span>角色从全平台共用改为每家公司自己的；新公司按类型模板复制一套（见 F10）。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f7">
+    <div class="feat-head"><span class="fid co">F7</span><h4>Managed Companies 管理</h4><span class="scope co">公司级</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">侧边栏一级菜单 Managed Companies</span><span class="sep">→</span><span class="crumb">Companies I Manage</span><span class="crumb">Managed By</span><span class="crumb">Requests &amp; Invitations</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F7.1</span><span>Companies I Manage（我管理的公司）：列表、进入（等于切换到该公司）、查看授权的角色上限、主动退出管理。公司名下的餐厅和门店也在这里维护。</span></li>
+          <li><span class="k">F7.2</span><span>Managed By（管理我的公司）：列表、查看每家管理方派驻过来的人、撤销关系。</span></li>
+          <li><span class="k">F7.3</span><span>Requests &amp; Invitations（申请与邀请）：发起管理申请（搜索公司、写说明、填期望角色）；审批收到的申请（同意时设定授权上限，或拒绝）；主动邀请别的公司来管理；撤回自己发出的申请。</span></li>
+          <li><span class="k">F7.4</span><span>在当前公司下创建新公司，自动形成管理关系。</span></li>
+          <li><span class="k">F7.5</span><span>派驻：管理方把自己的成员派驻到被管理公司，并分配角色（不超过授权上限）。</span></li>
+          <li><span class="k">F7.6</span><span>转交：把我管理的子公司转交给另一家公司管理。</span></li>
+          <li><span class="k">F7.7</span><span>进入被管理的公司后，可以维护这家公司的人员信息（Teams 成员）和权限信息（Roles &amp; Permissions），范围不超过授权上限。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S18</span><span>申请、审批、撤销都发站内通知和邮件。</span></li>
+          <li><span class="k">S19</span><span>被管理方可以随时调低授权上限，已派驻人员超出新上限的角色自动收回。</span></li>
+          <li><span class="k">S32</span><span>转交需要接收方公司同意；转交完成后，原管理方派驻过去的人员自动退出。</span></li>
+          <li><span class="k">S33</span><span>只有自己创建的子公司可以直接转交；通过申请建立的管理关系，转交还要被管理公司同意。</span></li>
+          <li><span class="k">S34</span><span>管理方在被管理公司里修改人员和权限，审计日志里标明来自哪家管理方；不能修改被管理公司的 Owner。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t del">删除</span><span>Settings → My Restaurants、My Stores 两个页签。名下的餐厅和门店改在 Companies I Manage 里维护。</span></li>
+    </ul></div>
+  </article>
+</div>
+
+<!-- ================= 三、管理端 ================= -->
+<div class="fx-part" id="fx-admin-level">
+  <h3 class="part">三、管理端功能</h3>
+  <p class="sub">管理端是平台运营人员用的后台。按上文的管理端菜单整理：新增 F8–F12 五项，现有的 Master Database、Subscribers 等保留。</p>
+
+  <div class="feat" id="admin-nav">
+    <div class="feat-head"><h4>管理端导航</h4><span class="scope adm">管理端</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">管理端侧边栏</span><span class="note">（一级为分组，二级为菜单）</span></p>
+    <div class="navgroups" aria-label="管理端导航层级">
+      <div class="ng"><h5>客户与公司</h5><ul>
+        <li><span>Master Database 主数据库</span><span>保留</span></li>
+        <li><span>Subscribers 订阅客户</span><span>保留</span></li>
+        <li><span>Relationships 管理关系总览</span><span>新增 F11</span></li>
+      </ul></div>
+      <div class="ng"><h5>菜单与权限</h5><ul>
+        <li><span>Menus 导航菜单管理</span><span>新增 F8</span></li>
+        <li><span>Company Types 公司类型管理</span><span>新增 F9</span></li>
+        <li><span>Role Templates 角色模板</span><span>新增 F10</span></li>
+      </ul></div>
+      <div class="ng"><h5>系统</h5><ul>
+        <li><span>Audit Log 审计日志</span><span>新增 F12</span></li>
+        <li><span>Company Category Status</span><span>保留 · 仅内部</span></li>
+        <li><span>Manual Scheduler</span><span>保留 · 仅内部</span></li>
+      </ul></div>
+    </div>
+    <div class="cols one">
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S20</span><span>管理端导航按上面三组划分：客户与公司、菜单与权限、系统。</span></li>
+          <li><span class="k">S21</span><span>Master Database、Subscribers 的「按公司类型筛选」从侧边栏移到页面里，侧边栏只放菜单。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t mod">改造</span><span>管理端侧边栏由菜单树生成（见 F8），新增的 F8–F12 加入导航。</span></li>
+      <li><span class="t keep">保留</span><span>平台自己也是一家「管理端」类型的公司，同样有 Team、Company Settings 和右上角的 My Profile，用法与业务端相同。</span></li>
+    </ul></div>
+  </div>
+
+  <article class="feat" id="f8">
+    <div class="feat-head"><span class="fid">F8</span><h4>导航菜单管理</h4><span class="scope adm">管理端</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">管理端 · 菜单与权限</span><span class="sep">→</span><span class="crumb">Menus</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F8.1</span><span>维护全平台唯一的一棵功能菜单树，分三层：一级菜单 → 二级菜单 → 按钮。业务端和管理端的菜单都在这棵树里。</span></li>
+          <li><span class="k">F8.2</span><span>每个节点维护：名称、编码、路由、图标、排序、启用 / 停用。</span></li>
+          <li><span class="k">F8.3</span><span>新增、编辑、停用节点，调整层级和排序。</span></li>
+          <li><span class="k">F8.4</span><span>业务端和管理端的导航都由这棵菜单树生成。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S22</span><span>节点编码创建后不能修改，前端显隐和后台接口校验都靠它识别。</span></li>
+          <li><span class="k">S23</span><span>停用一个菜单后，所有公司立即看不到，不需要发版。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t del">删除</span><span>前端写死的菜单：业务端按公司类型拼装侧边栏的逻辑，以及管理端单独的一套侧边栏。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f9">
+    <div class="feat-head"><span class="fid">F9</span><h4>公司类型管理</h4><span class="scope adm">管理端</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">管理端 · 菜单与权限</span><span class="sep">→</span><span class="crumb">Company Types</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F9.1</span><span>维护公司类型：名称、所属大类（采购方 / 供应方 / 制造商 / 平台）、启用 / 停用。现有 9 种：Restaurant、Food Vendor、LV、E&amp;S Dealer、Broadliner、Dealer、E&amp;S Manufacturer、Food Manufacturer、管理端。</span></li>
+          <li><span class="k">F9.2</span><span>为每种类型勾选开放的菜单和按钮，也就是上文的「类型 × 菜单」表。只能从 F8 的菜单树里选。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S24</span><span>已有公司在用的类型不能删除，只能停用；停用后不能再创建这种类型的公司。</span></li>
+          <li><span class="k">S25</span><span>给某个类型收回菜单时，先提示会影响多少家公司、多少个角色，确认后统一收回。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t del">删除</span><span>前端按公司类型写死的菜单判断，例如「只有 Food Vendor 能看到 Manufacturers」。</span></li>
+      <li><span class="t mod">改造</span><span>现有公司类型表补上所属大类、启用状态和菜单配置。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f10">
+    <div class="feat-head"><span class="fid">F10</span><h4>角色模板管理</h4><span class="scope adm">管理端</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">管理端 · 菜单与权限</span><span class="sep">→</span><span class="crumb">Role Templates</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F10.1</span><span>为每种公司类型维护一套预设角色和默认权限，例如 Restaurant：Owner、店长、采购员。</span></li>
+          <li><span class="k">F10.2</span><span>新公司创建时，按它的类型复制这套模板，成为这家公司自己的角色（对应 F6）。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S26</span><span>修改模板只影响之后新建的公司，已有公司的角色不跟着变。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t mod">改造</span><span>现有全平台共用的角色种子数据，转成各公司类型的角色模板。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f11">
+    <div class="feat-head"><span class="fid">F11</span><h4>管理关系总览</h4><span class="scope adm">管理端</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">管理端 · 客户与公司</span><span class="sep">→</span><span class="crumb">Relationships</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F11.1</span><span>查看全平台的管理关系：管理方、被管理方、状态、授权上限、建立时间。</span></li>
+          <li><span class="k">F11.2</span><span>按公司、状态筛选。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S27</span><span>平台只看，不代替客户审批或撤销。确需介入时，按上文待确认问题 Q5 的规则处理。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t keep">新增</span><span>全新功能，没有要删除或改造的内容。</span></li>
+    </ul></div>
+  </article>
+
+  <article class="feat" id="f12">
+    <div class="feat-head"><span class="fid">F12</span><h4>审计日志</h4><span class="scope adm">管理端</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="crumb">管理端 · 系统</span><span class="sep">→</span><span class="crumb">Audit Log</span></p>
+    <div class="cols one">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F12.1</span><span>查看菜单、公司类型、角色模板、各公司角色权限、管理关系的变更记录：谁、什么时间、改了什么。</span></li>
+          <li><span class="k">F12.2</span><span>按公司、操作人、时间筛选。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t keep">保留</span><span>Team → Logs 的成员操作日志不变；本项补上菜单、类型、权限、管理关系的变更记录。</span></li>
+    </ul></div>
+  </article>
+</div>
+
+<!-- ================= 四、权限重做 ================= -->
+<div class="fx-part" id="fx-rebuild">
+  <h3 class="part">四、权限重做</h3>
+
+  <article class="feat" id="f13">
+    <div class="feat-head"><span class="fid">F13</span><h4>删除现有权限，按功能菜单层级重做</h4><span class="scope both">贯穿三类</span></div>
+    <p class="entry"><span class="lab">入口</span><span class="note">没有单独菜单，体现在三处勾选：</span><span class="crumb">Company Types（F9.2）</span><span class="crumb">Role Templates（F10.1）</span><span class="crumb">Roles &amp; Permissions（F6.3）</span></p>
+    <div class="cols">
+      <div class="col">
+        <div class="col-label">功能点</div>
+        <ol class="pts">
+          <li><span class="k">F13.1</span><span>权限按功能菜单层级授权：一级菜单 → 二级菜单 → 按钮，树形勾选。</span></li>
+          <li><span class="k">F13.2</span><span>公司类型开放范围、角色模板、公司角色权限，三处都用 F8 的同一棵菜单树勾选。</span></li>
+          <li><span class="k">F13.3</span><span>菜单树只管功能权限：能看到哪个菜单、能点哪个按钮。数据范围和按角色写死的业务规则不在菜单树里，按下方清单同步改造。</span></li>
+        </ol>
+      </div>
+      <div class="col sugbox">
+        <div class="col-label">建议 · 待确认</div>
+        <ol class="sugs">
+          <li><span class="k">S28</span><span>勾选父节点时自动勾选全部子节点；子节点只勾了一部分时，父节点显示半选。</span></li>
+          <li><span class="k">S29</span><span>每个按钮登记它调用的后台接口，后端按按钮权限校验。菜单隐藏的同时接口也拒绝，直接输入网址也进不去。</span></li>
+          <li><span class="k">S30</span><span>上线前把现有角色的权限映射到新菜单树，在 test / uat 核对，避免老用户上线后突然看不到菜单。</span></li>
+          <li><span class="k">S35</span><span>分两步上线：先改完下方清单的 ①④⑤（买卖方判断、Owner 标记、数据范围），再删除旧权限，避免中间出现买卖方流程走错的情况。</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="chg"><ul>
+      <li><span class="t del">删除</span><span>后台接口权限矩阵（增 / 查 / 改 / 删 × 12 个业务实体），以及配置它的 Settings → Permissions 页签。</span></li>
+      <li><span class="t del">删除</span><span>前端写死的 26 个权限点。</span></li>
+      <li><span class="t ok">已确认</span><span>删除的是上面两套旧权限，不删除角色本身。现有角色保留，权限改成按菜单树重新勾选。</span></li>
+    </ul></div>
+
+    <h5 class="impact-title">需要同步修改的数据与业务逻辑</h5>
+    <p class="impact-sub">按 test 分支前后端代码排查。这些逻辑现在依赖「角色名」「旧权限点」或「一人一家公司」的假设，菜单树接管功能权限后不会自动变对，需要单独改。</p>
+    <div class="impact">
+      <table>
+        <thead><tr><th>类别</th><th>现在怎么做</th><th>要改成</th><th>规模</th></tr></thead>
+        <tbody>
+          <tr><td>① 买卖方判断</td><td>前端用 4 个「供应方」权限点（如 CREATE_VENDOR_ORDER）判断「我是卖方还是买方」，决定下单向导、订单页、商品页用哪套界面和接口。</td><td>改成按公司类型判断买卖方，功能权限只决定能不能操作。删除旧权限点之前必须先改。</td><td>前端约 15 处</td></tr>
+          <tr><td>② 按角色名写死的流程</td><td>装箱单和配送按 Packer、Driver、Manager、Shipping Manager 角色名判断：司机只看自己的装箱单、打包员只能选已打包的、经理可跳过审批、登录后打包员和司机直接进装箱单页等。</td><td>角色改成每家公司自有、可以改名后，按名字判断会失效。改成按钮权限码（如「确认送达」「跳过经理审批」）。</td><td>前端约 50 处，后端约 10 处</td></tr>
+          <tr><td>③ 通知收件人</td><td>订单通知发给 Manager / Shipping Manager，餐厅月结邮件发给 Manager，报价通知发给门店 Manager；通知开关按「公司 × 角色」存。</td><td>按用户自己的通知设置（F2.4）加功能权限决定收件人。</td><td>后端约 8 处</td></tr>
+          <tr><td>④ CEO 特殊规则</td><td>CEO 跳过全部权限检查；不能改、不能删；团队必须有一个 CEO；分类管理、报损、邀请客户对 CEO 放行。都是按角色名「CEO」或名字含 ceo 识别。</td><td>改成 Owner 标记（公司唯一、不可删），不再看角色名。</td><td>前后端约 15 处</td></tr>
+          <tr><td>⑤ 数据范围</td><td>靠 4 张成员表判断「是不是这家公司或门店的成员」；公司层成员能看全部门店，门店成员只看自己；父子公司只有公司订单会向下查。</td><td>统一按「当前 Account + 管理关系」判断能看哪些数据。这是功能权限之外最大的一块。</td><td>后端约 60 处，前端约 150 处</td></tr>
+          <tr><td>⑥ 一人一家公司</td><td>后端取用户的公司只取一条；Teams 加成员总是新建用户，已有用户加不进第二家公司；改成员信息会改到用户本人的邮箱电话；改密码会把用户踢出所有公司；登录令牌里没有当前 Account；打开报价单链接会自动切换账号。</td><td>配合 Account 模型和 F3 切换公司一起改。</td><td>前后端多处</td></tr>
+          <tr><td>⑦ 历史数据</td><td>订单、发票、装箱单历史、通知配置里存的是全平台共用的角色 id。</td><td>角色改为每家公司自有后，历史记录做一次迁移映射。</td><td>数据迁移</td></tr>
+          <tr><td>⑧ 删除成员的安全码</td><td>删除成员时要求本人安全码 + 经理安全码（管理类角色可跳过），安全码每天 0 点刷新。</td><td>随 F2 删除 Security Code，改为有「删除成员」按钮权限即可删除。</td><td>前后端约 6 处</td></tr>
+          <tr><td>⑨ 现存漏洞</td><td>查询权限矩阵的接口没有任何权限检查；司机、打包员、经理名单接口不限公司；两处「只能操作本公司订单」的检查被注释掉了。</td><td>随旧权限删除或在改造中补上。</td><td>后端约 6 处</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</div>
+</section>
+
+<!-- ================= 技术附录 ================= -->
+<section id="appendix">
+  <div class="kicker">技术附录</div>
+  <h2>数据结构与现有系统的衔接</h2>
+  <details>
+    <summary>展开数据表清单（供技术人员参考）</summary>
+    <div class="tech-wrap">
+      <table class="tech">
+        <thead><tr><th>表</th><th>含义与关键字段</th></tr></thead>
+        <tbody>
+          <tr><td>user</td><td>用户：邮箱、密码哈希、状态。只负责登录。</td></tr>
+          <tr><td>company</td><td>公司：名称、<code>type_id</code>、状态。</td></tr>
+          <tr><td>company_type</td><td>九种公司类型。</td></tr>
+          <tr><td>menu</td><td>菜单与按钮目录：<code>code</code>、<code>parent_id</code>、<code>kind = menu | button</code>、路径、排序。</td></tr>
+          <tr><td>company_type_menu</td><td>类型 × 菜单：这一类公司开放哪些菜单和按钮。</td></tr>
+          <tr><td>role_template</td><td>每种类型的预设角色及其默认权限，建公司时复制。</td></tr>
+          <tr><td>role</td><td>公司自有角色：<code>company_id</code>、名称、<code>is_owner</code>。</td></tr>
+          <tr><td>role_permission</td><td>角色 × 菜单/按钮。写入时校验不超出 <code>company_type_menu</code>。</td></tr>
+          <tr><td>account</td><td><code>user_id</code>、<code>company_id</code>、<code>source = self | invite | managed</code>、<code>management_id</code>、状态；<code>UNIQUE(user_id, company_id)</code>。</td></tr>
+          <tr><td>account_role</td><td>Account × 角色，多对多。</td></tr>
+          <tr><td>company_management</td><td>管理关系：<code>manager_company_id</code>、<code>managed_company_id</code>、<code>source = created | applied | invited</code>、<code>status</code>、可授予角色上限、审批人与时间。</td></tr>
+          <tr><td>invitation</td><td>Teams 邀请：公司、邮箱、预选角色、状态、过期时间。</td></tr>
+          <tr><td>audit_log</td><td>角色、权限、成员、管理关系的变更记录。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin:14px 0 12px">与现有系统的衔接：现有的公司成员关系直接转成 Account；现有的全局角色按公司复制一份，成为各公司自有角色，权限保持不变；用户的登录方式和密码不变。迁移先在 test / uat 演练，核对一致后再上线。</p>
+  </details>
+</section>
+
+<footer>Chain Serve · 组织与权限模型 · 方案草案 v1.2 · 2026-10-16。示例中的人名和公司名均为虚构。</footer>
+</div>
+
+<script>
+(function () {
+  // 菜单 × 类型矩阵。每行：[层级, 英文名, 中文说明, 现状标签, 九列取值, 变化]
+  // 取值：1 = 默认开放，2 = 可开放待确认，0 = 不开放
+  // 列顺序：Restaurant, Food Vendor, LV, E&S Dealer, Broadliner, Dealer, E&S Mfr, Food Mfr, 管理端
+  // 现状标签：soon 即将上线 / hidden 已隐藏 / plan 规划中 / int 仅内部
+  // 变化：keep 现有 / new 新增 / ren 改名 / movein 移入 / move 移出 / merge 并入 / del 删除
+  var ALL = [1,1,1,1,1,1,1,1,1];
+  var ALL_BIZ = [1,1,1,1,1,1,1,1,0];
+  var ADMIN_ONLY = [0,0,0,0,0,0,0,0,1];
+  var SUPPLIER = [0,1,2,2,2,2,0,0,0];
+  var rows = [
+    { sec: '业务菜单（业务端侧边栏与制造商导航）' },
+    [1, 'Dashboard', '首页看板', '', ALL_BIZ, 'keep'],
+    [1, 'Quotations', '报价', '', [1,1,1,1,1,1,2,2,0], 'keep'],
+    [2, 'To F&B Client', '发给餐饮客户的报价', '', [0,1,1,1,1,1,0,0,0], 'keep'],
+    [2, 'From Manufacturer', '制造商发来的报价', 'soon', SUPPLIER, 'keep'],
+    [2, 'RFQ to MFR', '向制造商询价', 'soon', SUPPLIER, 'keep'],
+    [2, 'RFQ from F&B Client', '餐饮客户发来的询价', 'soon', SUPPLIER, 'keep'],
+    [1, 'Chats', '消息', '', ALL_BIZ, 'keep'],
+    [1, 'Orders', '订单', '', [1,1,1,1,1,1,2,2,0], 'keep'],
+    [1, 'Products', '商品目录（各类型名称不同，见注）', '', ALL_BIZ, 'keep'],
+    [1, 'Catalog', '目录', 'hidden', [2,2,2,2,2,2,2,2,0], 'keep'],
+    [1, 'Manufacturers', '制造商', '', SUPPLIER, 'keep'],
+    [2, 'MFR Contact', '制造商联系人', '', SUPPLIER, 'keep'],
+    [2, 'MFR Catalog', '制造商商品目录', '', SUPPLIER, 'keep'],
+    [1, 'Packing Slips', '装箱单', '', [0,1,1,1,1,1,2,2,0], 'keep'],
+    [1, 'Clients', '我的客户（制造商叫 MFR Customers）', '', [0,1,1,1,1,1,2,2,0], 'keep'],
+    [1, 'Vendors', '我的供应商', '', [1,0,0,0,0,0,0,0,0], 'keep'],
+    [1, 'Invoices', '发票', '', [1,1,1,1,1,1,2,2,0], 'keep'],
+    [2, 'Issued Invoices', '发票列表', '', [1,1,1,1,1,1,2,2,0], 'keep'],
+    [2, 'Master Invoices', '主发票', '', SUPPLIER, 'keep'],
+    [2, 'Invoice Template', '发票模板', '', SUPPLIER, 'keep'],
+    [1, 'Reports', '报表', 'plan', [2,2,2,2,2,2,2,2,0], 'keep'],
+    [1, 'Finance', '财务', 'plan', [2,2,2,2,2,2,2,2,0], 'keep'],
+    [1, 'Team', '团队（Teams 模块）', '', ALL, 'keep'],
+    [2, 'Members', '成员与角色分配', '', ALL, 'keep'],
+    [2, 'Logs', '成员操作日志', '', ALL, 'keep'],
+    [1, 'Managed Companies', '管理关系（功能单 F7）', '', ALL_BIZ, 'new'],
+    [2, 'Companies I Manage', '我管理的公司，含名下餐厅和门店', '', ALL_BIZ, 'new'],
+    [2, 'Managed By', '管理我的公司', '', ALL_BIZ, 'new'],
+    [2, 'Requests & Invitations', '申请与邀请', '', ALL_BIZ, 'new'],
+    [1, 'Company Settings', '公司设置（原 Settings）', '', ALL, 'ren'],
+    [2, 'Account Details', 'Account 详情：我在本公司（F4）', '', ALL, 'new'],
+    [2, 'Company Info', '公司详情，由原 Company、Information 合并（F5）', '', ALL_BIZ, 'new'],
+    [2, 'Roles & Permissions', '角色与权限，取代原 Permissions（F6）', '', ALL, 'new'],
+    [2, 'Billing', '账单', '', [1,1,1,1,1,1,2,2,0], 'keep'],
+    [2, 'Delivery', '配送设置', '', [0,1,1,1,1,1,0,0,0], 'keep'],
+    [2, 'General', '通用 → 拆到 My Profile 和 Account Details', '', ALL, 'del'],
+    [2, 'Company', '公司信息 → 并入 Company Info', '', ALL_BIZ, 'merge'],
+    [2, 'Information', '厂商主数据 → 并入 Company Info', '', [0,0,0,0,0,0,1,1,0], 'merge'],
+    [2, 'My Restaurants', '我的餐厅 → 移到 Managed Companies', '', [1,0,0,0,0,0,0,0,0], 'move'],
+    [2, 'My Stores', '我的门店 → 移到 Managed Companies', '', [0,1,1,1,1,1,2,2,0], 'move'],
+    [2, 'Permissions', '旧权限矩阵 → 删除（F13）', '', ALL, 'del'],
+    [2, 'Notifications', '通知设置 → 移到 My Profile，改为用户级', '', ALL_BIZ, 'move'],
+    { sec: '个人菜单（右上角头像菜单 · 用户级，不受公司类型和角色控制）' },
+    [1, 'My Profile', '个人中心（功能单 F2）', '', ALL, 'new'],
+    [2, 'Profile', '姓名、手机号、语言', '', ALL, 'new'],
+    [2, 'Password', '修改密码', '', ALL, 'new'],
+    [2, 'Email', '修改邮箱', '', ALL, 'new'],
+    [2, 'Notifications', '通知设置（原 Company Settings → Notifications）', '', ALL, 'movein'],
+    { sec: '管理端专属菜单（平台运营）' },
+    [1, 'Master Database', '主数据库', '', ADMIN_ONLY, 'keep'],
+    [2, '按类型筛选', 'All / Manufacturer（E&S、F&B）/ Vendor（E&S、F&B、Broadliner）/ F&B Client', '', ADMIN_ONLY, 'keep'],
+    [1, 'Subscribers', '订阅客户', '', ADMIN_ONLY, 'keep'],
+    [2, '按类型筛选', '同上', '', ADMIN_ONLY, 'keep'],
+    [1, 'Company Category Status', '公司分类状态', 'int', ADMIN_ONLY, 'keep'],
+    [1, 'Manual Scheduler', '手动调度任务', 'int', ADMIN_ONLY, 'keep'],
+    [1, 'Menus', '导航菜单管理（F8）', '', ADMIN_ONLY, 'new'],
+    [1, 'Company Types', '公司类型管理，含每种类型开放的菜单（F9）', '', ADMIN_ONLY, 'new'],
+    [1, 'Role Templates', '角色模板（F10）', '', ADMIN_ONLY, 'new'],
+    [1, 'Relationships', '管理关系总览（F11）', '', ADMIN_ONLY, 'new'],
+    [1, 'Audit Log', '审计日志（F12）', '', ADMIN_ONLY, 'new']
+  ];
+  var TAGS = { soon: '即将上线', hidden: '已隐藏', plan: '规划中', int: '仅内部' };
+  var CHANGES = { keep: '现有', new: '新增', ren: '改名', movein: '移入', move: '移出', merge: '并入', del: '删除' };
+  var GONE = { move: true, merge: true, del: true };
+  var groupStart = { 0: true, 1: true, 6: true, 8: true };
+  var marks = [
+    { cls: 'c-off', ch: '—', label: '不开放' },
+    { cls: 'c-on',  ch: '●', label: '默认开放' },
+    { cls: 'c-opt', ch: '○', label: '可开放，待确认' }
+  ];
+  var tbody = document.getElementById('matrix-body');
+  if (!tbody) return;
+  var counts = { l1: 0, l2: 0, added: 0, gone: 0 };
+  rows.forEach(function (r) {
+    var tr = document.createElement('tr');
+    var th = document.createElement('th');
+    if (r.sec) {
+      tr.className = 'sec';
+      th.colSpan = 11;
+      th.scope = 'rowgroup';
+      var label = document.createElement('span');
+      label.textContent = r.sec;
+      th.appendChild(label);
+      tr.appendChild(th);
+      tbody.appendChild(tr);
+      return;
+    }
+    var level = r[0];
+    var change = r[5];
+    if (GONE[change]) {
+      counts.gone += 1;
+    } else {
+      counts[level === 1 ? 'l1' : 'l2'] += 1;
+      if (change === 'new') counts.added += 1;
+    }
+    tr.className = (level === 1 ? 'l1' : 'l2') + (GONE[change] ? ' gone' : '');
+    th.scope = 'row';
+    if (level === 2) {
+      var tree = document.createElement('span');
+      tree.className = 'tree';
+      tree.textContent = '└';
+      th.appendChild(tree);
+    }
+    th.appendChild(document.createTextNode(r[1]));
+    if (r[3]) {
+      var tag = document.createElement('span');
+      tag.className = 'tag ' + r[3];
+      tag.textContent = TAGS[r[3]];
+      th.appendChild(tag);
+    }
+    var small = document.createElement('small');
+    small.textContent = r[2];
+    th.appendChild(small);
+    tr.appendChild(th);
+
+    var cxCell = document.createElement('td');
+    cxCell.className = 'cxcell';
+    var cx = document.createElement('span');
+    cx.className = 'cx cx-' + change;
+    cx.textContent = CHANGES[change];
+    cxCell.appendChild(cx);
+    tr.appendChild(cxCell);
+
+    r[4].forEach(function (v, i) {
+      var td = document.createElement('td');
+      if (groupStart[i]) td.className = 'gsep';
+      var m = marks[v];
+      var span = document.createElement('span');
+      span.className = m.cls;
+      span.textContent = m.ch;
+      span.setAttribute('aria-label', m.label);
+      span.title = m.label;
+      td.appendChild(span);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  var countEl = document.getElementById('menu-count');
+  if (countEl) {
+    countEl.textContent = '修改后共 ' + counts.l1 + ' 个一级菜单、' + counts.l2 + ' 个二级菜单，其中 ' + counts.added +
+      ' 个新增；另有 ' + counts.gone + ' 项现有菜单将移出、并入或删除，仍保留在表中';
+  }
+})();
+</script>
