@@ -6,7 +6,7 @@
 #   但"客户机内部还剩多少磁盘 / 多少内存"看不见，那是操作系统内部的事。
 #   结果：test 机 50GB 根卷被 docker 镜像撑到 98%，CI 的 migrate 死在
 #   `no space left on device`，而**当时一条告警都没有**——最典型的"本可提前发现"的故障。
-#   装完 Agent，css-terraform 的 monitoring stack 才能开 ec2-disk-high(>80%) / ec2-mem-high(>85%)。
+#   装完 Agent，css-terraform 的 monitoring stack 才能开 ec2-disk-high(>80%) / ec2-mem-high(>85%；test/uat 为连续 30 分钟 >90%)。
 #
 # 上报什么（刻意只挑这两个，不贪）：
 #   · disk_used_percent（挂载点 /，即根卷）→ 撑满会让部署失败、容器写不了日志
@@ -80,4 +80,4 @@ echo "  aws cloudwatch list-metrics --namespace CWAgent --query 'Metrics[?Metric
 echo
 echo "然后在 css-terraform 打开告警（默认关着，因为它依赖本脚本先跑）："
 echo "  css-non-prod/$ENV_NAME/monitoring 里给 module 传 enable_agent_alarms = true 再 apply"
-echo "  → 生成 css-$ENV_NAME-ec2-disk-high（>80%）与 css-$ENV_NAME-ec2-mem-high（>85%）"
+echo "  → 生成 css-$ENV_NAME-ec2-disk-high（>80%）与 css-$ENV_NAME-ec2-mem-high（>85%；test/uat 为连续 30 分钟 >90%）"

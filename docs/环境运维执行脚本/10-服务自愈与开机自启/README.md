@@ -45,7 +45,7 @@ bash docs/环境运维执行脚本/09-远程执行与手动部署/run.sh test 's
 上报两个指标（刻意不贪）：`disk_used_percent`（挂载点 `/`）与 `mem_used_percent`，间隔 60s，
 成本约 $0.6/月/机。装完约 5 分钟指标出现在命名空间 `CWAgent`，然后 css-terraform 的
 `<env>/monitoring` 传 `enable_agent_alarms = true` 才会生成 `css-<env>-ec2-disk-high`（>80%）与
-`css-<env>-ec2-mem-high`（>85%）——**test/uat 已装已开（2026-08-05）**，prod 代码已开、建机后要跑本脚本。
+`css-<env>-ec2-mem-high`（>85%；**test/uat 自 2026-11-02 为连续 30 分钟 >90%**）——**test/uat 已装已开（2026-08-05）**，prod 代码已开、建机后要跑本脚本。
 
 ⚠️ **换机/重建实例后必须重跑**，否则那两条告警停在 INSUFFICIENT_DATA（不误报，但等于没有防线）。
 ⚠️ 配置里的 `drop_device: true` 不是可选优化：默认 disk 指标带 4 个维度
