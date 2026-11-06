@@ -1,0 +1,809 @@
+<meta charset="utf-8">
+<title>电商平台商品设计调研</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a research dossier. One reading column (~70ch) for prose; screenshots and
+     comparison tables break out to the full 1100px frame. Each platform is colour-coded
+     by its own house colour (Amazon navy, JD red, Alibaba orange); suggestions sit in
+     amber dashed boxes numbered S1… so the team can pick by number. */
+  :root {
+    --paper: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #eceff3;
+    --ink: #18212f;
+    --muted: #535e70;
+    --faint: #848ea0;
+    --line: #d9dee6;
+    --line-strong: #bcc4d0;
+    --accent: #1c5d8c;
+    --accent-soft: #e2edf6;
+    --amz: #232f3e;   --amz-soft: #e5e8ec;
+    --jd: #b7232a;    --jd-soft: #f7e4e4;
+    --ali: #c9530f;   --ali-soft: #fbeadf;
+    --css: #2d6a4f;   --css-soft: #e1f0e7;
+    --suggest: #8f5a00; --suggest-line: #d6a040; --suggest-bg: #fcf5e6;
+    --code-bg: #eceff3;
+    --shot-frame: #ffffff;
+    --f-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #11151b; --surface: #181e27; --surface-2: #212935;
+      --ink: #e4e8ef; --muted: #a3adbd; --faint: #7c8798;
+      --line: #2a3340; --line-strong: #3b4656;
+      --accent: #6cb0e0; --accent-soft: #1b2f40;
+      --amz: #9fb3cc; --amz-soft: #222c39;
+      --jd: #ee8a8d; --jd-soft: #3a1e20;
+      --ali: #f0a070; --ali-soft: #3a2618;
+      --css: #7fcca4; --css-soft: #17321f;
+      --suggest: #e8bd6a; --suggest-line: #9c7428; --suggest-bg: #2c2414;
+      --code-bg: #232b37;
+      --shot-frame: #e9ecf0;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #11151b; --surface: #181e27; --surface-2: #212935;
+    --ink: #e4e8ef; --muted: #a3adbd; --faint: #7c8798;
+    --line: #2a3340; --line-strong: #3b4656;
+    --accent: #6cb0e0; --accent-soft: #1b2f40;
+    --amz: #9fb3cc; --amz-soft: #222c39;
+    --jd: #ee8a8d; --jd-soft: #3a1e20;
+    --ali: #f0a070; --ali-soft: #3a2618;
+    --css: #7fcca4; --css-soft: #17321f;
+    --suggest: #e8bd6a; --suggest-line: #9c7428; --suggest-bg: #2c2414;
+    --code-bg: #232b37;
+    --shot-frame: #e9ecf0;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15.5px;
+    line-height: 1.75;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .frame { max-width: 1100px; margin: 0 auto; padding-block: 40px 80px; }
+  .prose { max-width: 72ch; }
+  h1, h2, h3 { text-wrap: balance; color: var(--ink); }
+  h1 { font-family: var(--f-display); font-weight: 900; font-size: clamp(2rem, 1.3rem + 2.6vw, 3.1rem); line-height: 1.2; margin: 0; letter-spacing: 0.01em; }
+  h2 { font-family: var(--f-display); font-weight: 900; font-size: clamp(1.45rem, 1.1rem + 1.1vw, 1.9rem); line-height: 1.3; margin: 0; }
+  h3 { font-size: 1.08rem; font-weight: 700; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  code, .mono { font-family: var(--f-mono); font-size: 0.86em; background: var(--code-bg); padding: 0.05em 0.38em; border-radius: 4px; word-break: break-word; }
+  .eyebrow { font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); font-weight: 500; }
+
+  /* header */
+  .masthead { display: grid; gap: 18px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .masthead .lede { font-size: 1.08rem; color: var(--muted); max-width: 64ch; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.86rem; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .toc a { text-decoration: none; font-size: 0.88rem; color: var(--ink); border: 1px solid var(--line-strong); padding: 4px 12px; border-radius: 999px; background: var(--surface); }
+  .toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  section { display: grid; gap: 22px; padding-top: 56px; }
+  .sec-head { display: grid; gap: 6px; }
+  .sec-head .eyebrow { display: flex; align-items: center; gap: 8px; }
+
+  .pf { display: inline-block; font-size: 0.78em; font-weight: 700; padding: 0.05em 0.55em; border-radius: 4px; letter-spacing: 0.02em; vertical-align: 0.08em; white-space: nowrap; }
+  .pf.amz { background: var(--amz-soft); color: var(--amz); }
+  .pf.jd { background: var(--jd-soft); color: var(--jd); }
+  .pf.ali { background: var(--ali-soft); color: var(--ali); }
+  .pf.css { background: var(--css-soft); color: var(--css); }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .swatch.amz { background: var(--amz); } .swatch.jd { background: var(--jd); } .swatch.ali { background: var(--ali); } .swatch.css { background: var(--css); }
+
+  /* conclusions */
+  .findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .finding { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+  .finding .k { font-family: var(--f-mono); font-size: 0.78rem; color: var(--accent); }
+  .finding p { color: var(--muted); font-size: 0.93rem; }
+
+  /* skeleton diagram */
+  .skeleton { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 10px; overflow-x: auto; }
+  .layer { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: stretch; min-width: 640px; }
+  .layer .lname { font-weight: 700; font-size: 0.92rem; padding: 10px 0; border-right: 2px solid var(--line-strong); padding-right: 12px; }
+  .layer .lname small { display: block; font-weight: 400; color: var(--faint); font-size: 0.78rem; }
+  .layer .cells { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .layer .cells.one { grid-template-columns: 1fr; }
+  .cell { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 0.86rem; background: var(--paper); line-height: 1.55; }
+  .cell .t { font-weight: 700; display: block; margin-bottom: 2px; }
+  .cell.amz { border-left: 3px solid var(--amz); } .cell.jd { border-left: 3px solid var(--jd); } .cell.ali { border-left: 3px solid var(--ali); }
+  .cell.base { background: var(--accent-soft); border-color: transparent; }
+  .arrow { text-align: center; color: var(--faint); font-size: 0.8rem; min-width: 640px; padding-left: 164px; }
+
+  /* tables */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; line-height: 1.6; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  thead th { background: var(--surface-2); font-weight: 700; white-space: nowrap; position: sticky; top: 0; }
+  tbody th { font-weight: 700; white-space: nowrap; color: var(--ink); background: var(--surface); }
+  tr:last-child td, tr:last-child th { border-bottom: 0; }
+  td { min-width: 200px; }
+  .compare td { min-width: 230px; }
+  td .no { color: var(--faint); }
+
+  /* platform sections */
+  .platform { border-top: 4px solid var(--line-strong); margin-top: 56px; padding-top: 28px; }
+  .platform.amz { border-top-color: var(--amz); }
+  .platform.jd { border-top-color: var(--jd); }
+  .platform.ali { border-top-color: var(--ali); }
+  .platform .sec-head .eyebrow { color: var(--muted); }
+
+  figure { margin: 0; display: grid; gap: 10px; }
+  .shot { background: var(--shot-frame); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px; overflow: hidden; }
+  .shot img { display: block; width: 100%; height: auto; border-radius: 5px; }
+  .shot.narrow { max-width: 420px; }
+  .fig-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+  .fig-row.mobile { grid-template-columns: 360px minmax(0, 1fr); }
+  figcaption { display: grid; gap: 8px; font-size: 0.9rem; color: var(--muted); min-width: 0; }
+  figcaption .cap { color: var(--ink); font-weight: 700; font-size: 0.93rem; }
+  figcaption .src { font-size: 0.8rem; color: var(--faint); }
+  .look { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+  .look li::marker { color: var(--faint); }
+
+  .points { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px 28px; }
+  .point { display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .point h3 { font-size: 1rem; }
+  .point ul { margin: 0; padding-left: 1.15em; display: grid; gap: 4px; font-size: 0.92rem; color: var(--muted); }
+  .point ul b { color: var(--ink); font-weight: 500; }
+
+  .note { font-size: 0.86rem; color: var(--muted); background: var(--surface-2); border-radius: 8px; padding: 10px 14px; }
+
+  /* suggestions */
+  .suggests { display: grid; gap: 12px; }
+  .suggest { border: 1.5px dashed var(--suggest-line); background: var(--suggest-bg); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 12px; }
+  .suggest .id { font-family: var(--f-mono); font-weight: 500; color: var(--suggest); font-size: 1rem; grid-row: span 3; }
+  .suggest h3 { font-size: 1rem; }
+  .suggest p { font-size: 0.92rem; color: var(--muted); }
+  .suggest .ref { font-size: 0.82rem; color: var(--faint); }
+
+  .sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px 28px; font-size: 0.86rem; }
+  .sources ul { margin: 6px 0 0; padding-left: 1.1em; display: grid; gap: 3px; }
+  .sources a { word-break: break-all; }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--faint); }
+
+  @media (max-width: 820px) {
+    .fig-row, .fig-row.mobile { grid-template-columns: minmax(0, 1fr); }
+    .shot.narrow { max-width: 360px; }
+    body { font-size: 15px; }
+    .frame { padding-block: 24px 56px; }
+  }
+</style>
+
+<div class="frame">
+
+<header class="masthead">
+  <div class="eyebrow">CSS · 竞品调研 · 2026-11-05</div>
+  <h1>电商平台商品设计调研</h1>
+  <p class="lede">亚马逊、京东、阿里（1688 与 Alibaba.com）的商品详情、价格、库存和商家后台是怎么设计的，以及哪些做法适合搬到 CSS 的 B2B 采购场景里。</p>
+  <div class="meta">
+    <span><span class="pf amz">亚马逊</span> Amazon.com · Amazon Business · Seller Central</span>
+    <span><span class="pf jd">京东</span> 零售 · 京麦 · 慧采 / VOP</span>
+    <span><span class="pf ali">阿里</span> 1688 · Alibaba.com（淘宝作对照）</span>
+  </div>
+  <div class="meta">
+    <span><b>方法</b> 未登录实测 10 张截图 + 官方开放平台 / 帮助中心文档</span>
+    <span><b>截图环境</b> 美国 IP，故 1688 部分价格显示为美元</span>
+  </div>
+  <nav class="toc" aria-label="目录">
+    <a href="#conclusion">结论</a>
+    <a href="#skeleton">通用骨架</a>
+    <a href="#compare">三家对照</a>
+    <a href="#amazon">亚马逊</a>
+    <a href="#jd">京东</a>
+    <a href="#alibaba">阿里</a>
+    <a href="#b2b">B2B 能力</a>
+    <a href="#css">对照 CSS</a>
+    <a href="#sources">资料来源</a>
+  </nav>
+</header>
+
+<!-- ============ 结论 ============ -->
+<section id="conclusion">
+  <div class="sec-head">
+    <div class="eyebrow">先说结论</div>
+    <h2>三家的骨架几乎一样，差别在「一个商品能挂几个卖家」和「价格有几套」</h2>
+  </div>
+  <div class="findings">
+    <div class="finding">
+      <span class="k">商品分层</span>
+      <h3>目录事实和销售条款分开存</h3>
+      <p>标题、图片、属性属于「商品」；价格、库存、配送属于「报价 / SKU」。亚马逊在 Schema 里就把两者拆成 LISTING_PRODUCT_ONLY 和 LISTING_OFFER_ONLY；1688 与国际站共用一套商品底座，只换报价字段。</p>
+    </div>
+    <div class="finding">
+      <span class="k">变体</span>
+      <h3>SKU = 销售属性的组合，不卖的停用而不是删</h3>
+      <p>类目模板规定哪些属性是「销售属性」，颜色 × 尺码自动生成 SKU 矩阵。京东明确：改销售属性维度会删旧 SKU、评价跟着丢，所以给了 45 天找回和「停用」开关。</p>
+    </div>
+    <div class="finding">
+      <span class="k">价格</span>
+      <h3>存的是多套价，展示的是算出来的价</h3>
+      <p>基础价、限时促销价、身份价（会员 / 企业）、数量阶梯价并存；详情页上的「到手价」是实时计算的。划线价三家都有严格规则，亚马逊 2026-04 起要求外部或站内成交佐证。</p>
+    </div>
+    <div class="finding">
+      <span class="k">库存</span>
+      <h3>库存是几个桶，不是一个数</h3>
+      <p>可售、预占（下单未付款）、在途、不可售分开记；按仓或配送区域给出「有货 / 在途 / 可预订」。淘宝和 1688 让卖家选「拍下减」还是「付款减」；京东企业接口是先预占、再确认。</p>
+    </div>
+    <div class="finding">
+      <span class="k">商家后台</span>
+      <h3>核心是一张可批量编辑的 SKU 表</h3>
+      <p>发品向导（类目 → 属性 → SKU 矩阵 → 价格库存 → 详情）、表头批量应用、Excel 导入、单独的「导入价格 / 导入库存」、状态页签（在售 / 下架 / 审核 / 草稿 / 回收站）、问题清单（被抑制、违规）。</p>
+    </div>
+    <div class="finding">
+      <span class="k">B2B</span>
+      <h3>B2B 多出的是数量、身份和流程</h3>
+      <p>起订量、阶梯价、混批、样品价、定制起订量、询价 / RFQ、商品池与协议价、未税价、主子账号审批、账期。CSS 已有客户价档和报价单，缺的主要是数量阶梯和库存预占。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 通用骨架 ============ -->
+<section id="skeleton">
+  <div class="sec-head">
+    <div class="eyebrow">通用骨架</div>
+    <h2>一张图看懂三家共同的商品数据结构</h2>
+  </div>
+  <p class="prose">从上往下是「谁定义 → 卖什么 → 谁卖 → 卖哪个规格 → 多少钱、有没有货」。三家的名字不同，但层次一致；最大的分叉在第三层：亚马逊允许很多卖家挂在同一个商品上，京东和阿里是一店一个商品。</p>
+  <div class="skeleton" role="img" aria-label="商品数据分层示意：类目与属性模板、目录商品、报价、SKU、价格库存履约，最后由订单行引用">
+    <div class="layer">
+      <div class="lname">类目 &amp; 属性模板<small>平台定义</small></div>
+      <div class="cells">
+        <div class="cell amz"><span class="t">Product Type</span>每个类型一份 JSON Schema；属性分组：offer / images / variations / 合规</div>
+        <div class="cell jd"><span class="t">四级类目</span>关键属性、可变属性、销售属性；只有末级类目能查销售属性</div>
+        <div class="cell ali"><span class="t">叶子类目</span><code>is_key_prop</code> 关键 / <code>is_sale_prop</code> 销售 / <code>is_item_prop</code> 商品属性</div>
+      </div>
+    </div>
+    <div class="arrow">↓ 按模板填写</div>
+    <div class="layer">
+      <div class="lname">目录商品<small>标题 · 图片 · 属性</small></div>
+      <div class="cells">
+        <div class="cell amz"><span class="t">ASIN</span>平台级，所有卖家共用；父 ASIN 只聚合，子 ASIN 才能买</div>
+        <div class="cell jd"><span class="t">SPU（商品编码）</span>每店一份；自营走供应商申请，POP 商家自己发</div>
+        <div class="cell ali"><span class="t">SPU → Item / offer</span>淘系有标准产品库（SPU）；1688 offer 区分批发品与询盘品</div>
+      </div>
+    </div>
+    <div class="arrow">↓ 谁来卖</div>
+    <div class="layer">
+      <div class="lname">报价 / Listing<small>卖家 · 成色 · 配送</small></div>
+      <div class="cells">
+        <div class="cell amz"><span class="t">卖家 SKU 挂到 ASIN</span>一个详情页多份报价，平台选一份做 Featured Offer</div>
+        <div class="cell jd"><span class="t">与商品合一</span>店铺即卖家；同款比价靠「同款低价」标签和买贵双倍赔</div>
+        <div class="cell ali"><span class="t">与 offer 合一</span>同一 offer 上可并存批发价、代发价、会员等级价</div>
+      </div>
+    </div>
+    <div class="arrow">↓ 销售属性组合</div>
+    <div class="layer">
+      <div class="lname">SKU<small>颜色 × 尺码 …</small></div>
+      <div class="cells">
+        <div class="cell amz"><span class="t">子 ASIN + 卖家 SKU</span>variation theme 由类目决定（尺码、颜色、尺码-颜色）</div>
+        <div class="cell jd"><span class="t">SKU（前台链接即 SKU）</span>笛卡尔积自动生成，JOS 上限 299 个 / 商品，可停用</div>
+        <div class="cell ali"><span class="t">specId / skuId</span><code>properties</code> 为 pid:vid 组合，每个 SKU 独立价格与库存</div>
+      </div>
+    </div>
+    <div class="arrow">↓ 每个 SKU 挂三类数据</div>
+    <div class="layer">
+      <div class="lname">交易数据<small>随时变化</small></div>
+      <div class="cells">
+        <div class="cell base"><span class="t">价格（多套）</span>基础价 · 限时促销价 · 身份价 · 数量阶梯价 · 上下限护栏 → 实时算出展示价</div>
+        <div class="cell base"><span class="t">库存（多桶）</span>可售 · 预占 · 在途 · 不可售，再按仓 / 配送区域拆分</div>
+        <div class="cell base"><span class="t">履约</span>运费模板 · 发货时效 / 处理时间 · 发货地 · 交期分档</div>
+      </div>
+    </div>
+    <div class="arrow">↓ 下单时</div>
+    <div class="layer">
+      <div class="lname">订单行<small>只认快照</small></div>
+      <div class="cells one">
+        <div class="cell"><span class="t">SKU + 下单时的价格快照 + 预占库存</span>价保、退款、对账都以下单时的价格为基准；未付款或未确认的预占会超时释放。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 三家对照 ============ -->
+<section id="compare">
+  <div class="sec-head">
+    <div class="eyebrow">三家对照</div>
+    <h2>同一件事，三家各怎么做</h2>
+  </div>
+  <div class="tablewrap">
+    <table class="compare">
+      <thead>
+        <tr><th scope="col">维度</th><th scope="col"><span class="swatch amz"></span> 亚马逊</th><th scope="col"><span class="swatch jd"></span> 京东</th><th scope="col"><span class="swatch ali"></span> 阿里（1688 / Alibaba.com）</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">商品主键</th><td>ASIN（平台目录）+ 卖家 SKU（报价）。上架先按 GTIN 匹配已有 ASIN，匹配不到才新建。</td><td>SPU = 京麦「商品编码」；SKU 编码就是前台链接 <code>item.jd.com/{SKU}.html</code> 里的数字。</td><td>淘系：SPU（产品）→ 商品 Item → SKU；1688 用 offerId + specId；国际站 product + SKU。</td></tr>
+        <tr><th scope="row">一品多商</th><td><b>是。</b>多个卖家共享同一详情页，各自出价、成色、配送，竞争 Featured Offer（原 Buy Box）。</td><td>否。一店一个商品；自营与 POP 分开。</td><td>否。一个 offer 属于一个供应商；同款靠搜索与榜单比较。</td></tr>
+        <tr><th scope="row">属性模板</th><td>Product Type Definitions：每个类型一份 JSON Schema，<code>requirements</code> 区分「商品事实 + 销售条款」「仅商品」「仅报价」。</td><td>属性类型：1 关键属性、3 可变属性、4 销售属性；部分品类标准色、标准尺码已结构化。</td><td>类目属性带 <code>is_key_prop</code> / <code>is_sale_prop</code> / <code>is_item_prop</code>、<code>must</code>、<code>multi</code> 标记。</td></tr>
+        <tr><th scope="row">基础价与促销价</th><td><code>our_price</code> 基础价；<code>discounted_price</code> 带起止时间；卖家自设 <code>minimum/maximum_seller_allowed_price</code> 护栏。</td><td>京东价是最终购买依据；规则列出 15 种价格类型（PLUS 价、企业会员价、秒杀价、预售价等）。</td><td>1688 报价方式 <code>quoteType</code> 0–3；淘宝一口价 / 拍卖；国际站下单品价或询盘品 FOB 区间。</td></tr>
+        <tr><th scope="row">展示价</th><td>Featured Offer 的价格；Business 买家另看 Business Price 和阶梯价表。</td><td>「预估到手价」= 京东价或专属价 − 可用优惠，实时计算，按区域可能不同，以结算页为准。</td><td>1688 搜索展示最小起批档价格；L 会员看到身份价；未登录提示「登录查看更多优惠」。</td></tr>
+        <tr><th scope="row">划线价</th><td>List Price 需核验；2026-04-23 起须有外部零售商近期在售或站内作为 Featured Offer 成交过。Typical Price = 90 天非促销成交中位数。</td><td>划线价只是参考价（吊牌价、指导价或曾展示价）；企业 VOP 接口已不允许展示划线价。</td><td>1688 页尾释义「划线价并非原价」；国内受《明码标价和禁止价格欺诈规定》约束。</td></tr>
+        <tr><th scope="row">数量阶梯价</th><td>仅 B2B 报价：<code>quantity_discount_plan</code> 最多 5 档，每档必须比上一档便宜。</td><td>慧采有「多买多优惠」，规则未公开；零售端无。</td><td>核心能力：1688 <code>priceRanges[{startQuantity, price}]</code>；国际站最多 4 档，MOQ 取最低档。</td></tr>
+        <tr><th scope="row">库存状态</th><td>自发货卖家直接写数量；FBA 五类：可售、在途、预留、不可售、核查中。同一 SKU 两种渠道都开时先用 FBA 库存。</td><td>POP 按 SKU 维护总量；企业接口按省市县镇查区域库存，状态码 33 现货 / 39 在途 / 40 可配货 / 36 预订 / 34 无货。</td><td>SKU 级 <code>amountOnSale</code>；淘宝 <code>with_hold_quantity</code> 预扣数量；1688 现货与订货（按数量给出货天数）。</td></tr>
+        <tr><th scope="row">扣减时机</th><td>官方未公开前台规则（未查实）。</td><td>企业接口：下单先预占，调「确认订单」才生产，预占单可取消。零售在线支付 24 小时未付自动取消。</td><td>可选：淘宝 <code>sub_stock</code> 1 拍下减 / 2 付款减；1688 <code>invReduceType</code> 1 下单减 / 2 付款减。</td></tr>
+        <tr><th scope="row">改库存接口</th><td>PATCH <code>merge</code> 只改 quantity，不动处理时间等其他字段。</td><td><code>ware.stock.sku.set</code> 全量设置；增量接口在下线。</td><td>1688 <code>modifyStock</code> 只收增量（+5 / −9），有规格必须按 specId 改。</td></tr>
+        <tr><th scope="row">商家后台</th><td>Seller Central：Add Products、表格批量、Variation Wizard、Automate Pricing、Pricing Health、Listing 问题与抑制。</td><td>京麦：发品向导、SKU 表批量应用、Excel、导入价格 / 导入库存、状态页签、回收站。</td><td>1688 商家工作台（千牛）；国际站 My Alibaba：Schema 发品、星等级（PIS 商品信息分）。</td></tr>
+        <tr><th scope="row">子账号</th><td>按功能类别分 View / View &amp; Edit / Admin 三级。</td><td>主账号建角色再建子账号；京麦与商家后台权限分别配。慧采主账号最多 19 个子账号并审批订单。</td><td>国际站最多 5 个子账号，角色 Administrator / Sales Manager / Sales Representative / Sales Assistant。</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 亚马逊 ============ -->
+<section id="amazon" class="platform amz">
+  <div class="sec-head">
+    <div class="eyebrow"><span class="swatch amz"></span> 平台一 · Amazon.com / Amazon Business / Seller Central</div>
+    <h2>亚马逊：一个详情页，多个卖家的报价</h2>
+  </div>
+
+  <figure>
+    <div class="shot"><img src="shots/amazon-pdp.webp" width="1440" height="1150" loading="lazy" alt="亚马逊 Crocs Classic Clog 商品详情页：颜色色块各带价格，尺码按钮，右侧购买框与其他卖家入口"></div>
+    <figcaption>
+      <span class="cap">图 1 · 商品详情页（Crocs Classic Clog，ASIN B0014C0LSY）</span>
+      <ul class="look">
+        <li><b>变体选择器</b>：每个颜色色块都带自己的价格和划线价，说明每个子 ASIN 有独立报价；父 ASIN 只负责把它们聚到一个页面。虚线框的尺码是该组合当前没有可售报价。</li>
+        <li><b>价格区</b>：−42% $29.00，下方 List Price $49.99 划线。List Price 由卖家或厂商提交、平台核验后才展示。</li>
+        <li><b>右侧购买框</b>：两份报价（One-time purchase $29 / Get it faster $33），每份写明 Ships from 与 Sold by；底部「Other sellers on Amazon：New &amp; Used (17) from $29」。</li>
+        <li><b>中部 Product details / About this item</b>：属于目录数据（五点描述），所有卖家共用。</li>
+      </ul>
+      <span class="src">2026-11-05 未登录抓取，配送地默认 Phoenix 85036。</span>
+    </figcaption>
+  </figure>
+
+  <div class="fig-row">
+    <figure>
+      <div class="shot"><img src="shots/amazon-offers.webp" width="880" height="840" loading="lazy" alt="同一 ASIN 的全部报价侧栏：按价格加配送排序，每条报价有成色、价格、发货方、卖家"></div>
+      <figcaption>
+        <span class="cap">图 2 · 同一 ASIN 的全部报价（All offers 侧栏）</span>
+        <ul class="look">
+          <li>按「价格 + 配送」从低到高排序，可筛选。</li>
+          <li>每条报价独立：成色（Used – Like New / New）、价格、配送承诺、Ships from / Sold by、卖家评分。</li>
+          <li>「See 14 more options」：共 17 份报价挂在同一个详情页上。</li>
+        </ul>
+      </figcaption>
+    </figure>
+    <figure>
+      <div class="shot"><img src="shots/amazon-seller-central.webp" width="1143" height="670" loading="lazy" alt="Seller Central 首页示意图：顶部业务卡片、左侧待办与建议、销售看板"></div>
+      <figcaption>
+        <span class="cap">图 3 · Seller Central 首页（官方博客里的界面示意图）</span>
+        <ul class="look">
+          <li>顶部卡片：Products 544 / 1144（在售 / 全部）、Inventory 显示 IPI 库存绩效 753 / 1000、Orders、Payments。</li>
+          <li>左侧 Actions：「Fix search suppressed listings」标 CRITICAL，被抑制的 listing 是一等待办。</li>
+          <li>Recommendations：「Match competitive external price」，平台主动给改价建议。</li>
+          <li>快捷入口：Manage products / Create products / Create variations。</li>
+        </ul>
+        <span class="src">来源 sell.amazon.com/blog/amazon-seller-dashboard，非真实账号数据。</span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="points">
+    <div class="point">
+      <h3>商品模型</h3>
+      <ul>
+        <li><b>ASIN 是商品，SKU 是报价。</b>Listings Items API 按卖家 SKU 定位，Catalog Items API 按 ASIN 定位；可用 <code>merchant_suggested_asin</code> 指定挂靠哪个 ASIN。</li>
+        <li><b>父子变体</b>：<code>parentage_level</code>、<code>child_parent_sku_relationship</code>、<code>variation_theme</code> 三个属性；父子须同类型、同品牌。</li>
+        <li><b>品牌备案</b>（Brand Registry）后才能做 A+ 内容、Project Zero 自助下架侵权 listing。</li>
+        <li>2025-03 起 Feeds API 停收 XML / flat file，统一用 JSON Listings Feed 或 Listings Items API。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>价格</h3>
+      <ul>
+        <li><b>字段分层</b>：<code>our_price</code>、<code>discounted_price</code>（带有效期）、上下限护栏、<code>quantity_discount_plan</code>、<code>audience</code>（ALL 或 B2B，同一 SKU 可挂多份报价）。</li>
+        <li><b>Automate Pricing</b>：对标 Featured Offer / 站内最低 / 站外最低，或按销量调价；必须设最低价，约 15 分钟生效。</li>
+        <li><b>合理定价政策</b>：价格远高于近期、多件装单价更高、运费虚高会被拿掉 Featured Offer 或下架；Pricing Health 页列出被停用的报价。</li>
+        <li>2026-07 起取消 Featured Offer 的资格门槛，所有报价都参与竞争。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>库存</h3>
+      <ul>
+        <li>自发货渠道码 <code>DEFAULT</code> 直接写数量；FBA 渠道 <code>AMAZON_NA</code> 等不能写，数量由入仓实收决定。</li>
+        <li>FBA 五类状态，报表里再细分：入库分 working / shipped / receiving，预留分客户订单 / 配送中心处理 / 暂存。</li>
+        <li>处理时间（handling time）可在账户级设默认值，SKU 级覆盖。</li>
+        <li>容量限制按 IPI、销量预测、仓容核定，可竞价买额外容量。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>商家后台</h3>
+      <ul>
+        <li>Add Products：先搜 GTIN，有就「Sell this product」，没有才「Create a new listing」；另有 AI 建品（文字、图片、网址）。</li>
+        <li>表格模板分三类：匹配已有、新建、仅更新价格 / 数量。</li>
+        <li>每个 listing 自带 <code>issues</code>（问题和处置建议），提交时可用 <code>VALIDATION_PREVIEW</code> 只校验不落库。</li>
+        <li>Amazon Business：Business Price 只对企业买家可见；单 SKU 超过 $10,000 或 999 件可发 RFQ 询价。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 京东 ============ -->
+<section id="jd" class="platform jd">
+  <div class="sec-head">
+    <div class="eyebrow"><span class="swatch jd"></span> 平台二 · 京东零售 / 京麦 / 慧采与 VOP</div>
+    <h2>京东：按 SKU 卖，价格要「算」出来，库存按区域给状态</h2>
+  </div>
+
+  <div class="fig-row mobile">
+    <figure>
+      <div class="shot narrow"><img src="shots/jd-item-mobile.webp" width="800" height="2120" loading="lazy" alt="京东移动端 MacBook Air 商品页：国家补贴到手价、打码的基础价、已选规格、送至地址与京东物流时效、服务标签"></div>
+    </figure>
+    <figcaption>
+      <span class="cap">图 4 · 京东移动端商品页（MacBook Air 13 M5，SKU 100321991516）</span>
+      <ul class="look">
+        <li><b>价格区是三层叠加</b>：「国家补贴到手价 7819.2 元起」「限时直降 800 元」「至高补贴 800 元」。这些都是算出来的展示价。</li>
+        <li><b>基础价被打码</b>为 ¥9??9，浮层提示「登录后可查看商品到手价」。PC 端商品页未登录会直接跳登录页。</li>
+        <li><b>「自营」标</b>：说明这是京东采购后自己销售的商品，而非 POP 商家。</li>
+        <li><b>已选</b>：银色，16G+512G（10 核 CPU+8 核 GPU）就是当前 SKU；链接里的数字即 SKU 编码。</li>
+        <li><b>送至</b>：北京朝阳区三环到四环之间，「京东物流 现货 23:10 前付款，预计明天送达」。库存和时效按配送地址判断。</li>
+        <li><b>服务</b>：59 元免基础运费、价保、一年质保、211 限时达。价保需要商家先开通，价差由商家承担。</li>
+      </ul>
+      <span class="src">2026-11-05 未登录，以普通浏览器打开 item.m.jd.com 后按手机宽度截图。</span>
+    </figcaption>
+  </div>
+
+  <figure>
+    <div class="shot"><img src="shots/jd-backend-list.webp" width="1850" height="920" loading="lazy" alt="京麦商品列表：全部商品、售卖中、已下架、商品审核、草稿箱页签，批量上架下架改价导入价格库存按钮，SPU 行展开 SKU 行"></div>
+    <figcaption>
+      <span class="cap">图 5 · 京麦商品列表（京东商家帮助中心公开教程中的后台截图）</span>
+      <ul class="look">
+        <li><b>状态页签</b>：全部商品 / 售卖中 / 已下架 / 商品审核 / 草稿箱，右上角回收站（待售商品 90 天无操作进回收站，再 30 天物理删除）。</li>
+        <li><b>批量操作</b>：批量上架、下架、删除、设置限购地区、设置短标题、修改价格；价格和库存各有单独的「导入」按钮。</li>
+        <li><b>SPU 展开 SKU</b>：商品编码（SPU）行下展开每个 SKU 的 SKU 编码、商家 SKU 编码、到手价；SPU 行价格显示区间 ¥280.00 – ¥300.00，库存与价格可行内编辑。</li>
+      </ul>
+      <span class="src">来源 helpcenter.jd.com/vender/issue/44442.html。</span>
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="shot"><img src="shots/jd-backend-sku.webp" width="1850" height="875" loading="lazy" alt="京东发品页 SKU 详情表：颜色乘尺码自动生成行，每行京东价、库存、短标题、条形码、搜索推荐图、启用状态，表头批量应用"></div>
+    <figcaption>
+      <span class="cap">图 6 · 发品页的 SKU 详情表</span>
+      <ul class="look">
+        <li>颜色 × 尺码自动生成行；每行填京东价（吊牌价）、库存、短标题（可 AI 生成）、商品条形码、搜索推荐图，最右是启用状态开关。</li>
+        <li>表头「批量设置 → 批量应用」一次给所有 SKU 填价格和库存；红框是还没填的组合。</li>
+        <li>不卖的组合点「停用」；每个 SPU 至少保留 1 个启用 SKU，SKU 启停用不影响 SPU 上下架。</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <div class="points">
+    <div class="point">
+      <h3>商品模型</h3>
+      <ul>
+        <li>商品字段（JOS <code>findWareById</code>）：类目、品牌、属性、按颜色分组的图片、PC 与移动端详情、京东价 / 市场价 / 成本价、<code>outerId</code>、条码、运费模板 <code>transportId</code>、时效模板 <code>promiseId</code>。</li>
+        <li>「商家 SKU」（<code>outerId</code>）用来对接商家 ERP。</li>
+        <li>状态码：1 从未上架、2 自主下架、4 系统下架、8 上架；513 / 514 / 516 / 520 为对应的待审。</li>
+        <li>页面架构（2015 年分享）：商品、属性、店铺维度静态化；价格、促销、「配送至」、预售异步加载。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>价格</h3>
+      <ul>
+        <li>「单品到手价」只算买 1 件就能用的普适优惠（满减、满折、东券），不含 PLUS、学生、企业等身份价和个人权益。</li>
+        <li>价格标签：同款低价、x 天最低价、低于同款均价 x%；「同款」= 品牌、型号、规格一致。</li>
+        <li>价保金额 = 下单时基准价 − 申请时基准价 − 已返还；基准价 = 京东价 − 促销金额。</li>
+        <li>违规：提价促销、低价高邮、价格引流（在一个 SPU 里塞极低价 SKU）等，违约金 50 元到 100 万元。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>库存</h3>
+      <ul>
+        <li>合作模式：FBP（京东负责销售、仓储、配送）、SOP（京东负责销售，商家发货）、工业品订单另有类型。</li>
+        <li>区域库存按省 / 市 / 县 / 镇和购买数量查询；剩余数量只在需求小于 50 时返回真实值。</li>
+        <li>京东物流的预占实现（2023 分享）：Redis + Lua 扣减、防重 key、回滚，再异步写 MySQL；对账口径：数据库可用量 = Redis 可用量 + Redis 预占量。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>B2B：慧采与 VOP</h3>
+      <ul>
+        <li><b>商品池</b>：企业只能查、买自己池内的商品，池外商品要提交入池申请。</li>
+        <li><b>三层价格</b>：<code>jdPrice</code> 仅供参考、<code>salePrice</code> 为实际下单价、<code>nakedPrice</code> 未税价；可按企业员工设一口价并限购。</li>
+        <li><b>询价</b>：单供应商议价和多供应商竞价；需求行含数量、期望价、参考型号、是否可替换、期望到货时间、预算。</li>
+        <li>下单可传企业 PO 号；支付方式含预存款、公司转账、金采（先采后付）、账期。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 阿里 ============ -->
+<section id="alibaba" class="platform ali">
+  <div class="sec-head">
+    <div class="eyebrow"><span class="swatch ali"></span> 平台三 · 1688 / Alibaba.com（淘宝作对照）</div>
+    <h2>阿里：B2B 的价格是「按数量」报的</h2>
+  </div>
+
+  <figure>
+    <div class="shot"><img src="shots/alibaba-tiered-price.webp" width="1680" height="1150" loading="lazy" alt="Alibaba.com 40oz 保温杯商品页：四档阶梯价、样品价、按颜色逐行输入数量、供应商卡与交易保障"></div>
+    <figcaption>
+      <span class="cap">图 7 · Alibaba.com 商品页（40oz 保温杯，Everich Commerce Group，杭州）</span>
+      <ul class="look">
+        <li><b>四档阶梯价</b>：US$3.15（2–999 件）、US$2.98（1,000–29,999）、US$2.25（30,000–999,999）、US$1.86（≥1,000,000）。</li>
+        <li><b>样品价</b> US$20，旁边「获取样品」按钮，样品是独立的购买路径。</li>
+        <li><b>按颜色逐行填数量</b>：每个颜色 SKU 一行，各自加减，一单可以混多个 SKU。</li>
+        <li><b>供应商卡</b>：Verified、9 年、实力工厂、线上营收 $10M–$50M、≤4h 响应、93.1% 准时发货率、4.5 / 5 店铺评分。</li>
+        <li><b>右侧</b>：海运运费估算（承运商、起价、运输时间）、交易保障说明、「发送询盘」和「联系商家」两个入口。</li>
+      </ul>
+      <span class="src">2026-11-05 抓取。首次打开出现滑块验证，未代为操作；之后在同一浏览器里可以正常打开。</span>
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="shot"><img src="shots/alibaba-customization.webp" width="1680" height="930" loading="lazy" alt="Alibaba.com 20oz 保温杯商品页：两档价格与最小起订、定制选项各自的最小订单量、供应商定制能力、核心行业属性"></div>
+    <figcaption>
+      <span class="cap">图 8 · Alibaba.com 商品页（20oz 保温杯）：起订量与定制</span>
+      <ul class="look">
+        <li>两档价：US$2.78（25–499 件）、US$2.60（≥500）；最小起订量取最低档的 25 件，右侧小计直接按 25 件算出 US$69.50。</li>
+        <li><b>定制选项</b>：LOGO 定制、外包装定制、图案定制，各自的最小订单都是 3,000 件，与现货起订量分开。</li>
+        <li><b>供应商定制能力</b>（轻定制、来图定制、来样定制）和<b>核心行业属性</b>（保温性能 6–12 小时、真空等）都是结构化字段。</li>
+      </ul>
+    </figcaption>
+  </figure>
+
+  <div class="fig-row">
+    <figure>
+      <div class="shot"><img src="shots/1688-sku-stock.webp" width="1398" height="751" loading="lazy" alt="1688 划船机商品页：供应商履约指标、价格与登录查看更多优惠、发货地与预计发货时间、按颜色显示库存"></div>
+      <figcaption>
+        <span class="cap">图 9 · 1688 商品页（划船机）：SKU 级库存</span>
+        <ul class="look">
+          <li>供应商卡：实力商家、入驻 9 年、品质达标率 100%、综合履约率 99.7%、店铺回头率 41.5%。</li>
+          <li>价格 ¥680，旁边「登录查看更多优惠」：会员等级价、专享价要登录后才显示。</li>
+          <li>发货地浙江金华、「预计 3 小时发货」、运费 ¥490 起；服务 7 天无理由、晚发必赔。</li>
+          <li><b>每个颜色直接显示库存</b>（白色 27 台、黑色 90 台）并可就地填数量；「登录查看全部规格」。</li>
+        </ul>
+      </figcaption>
+    </figure>
+    <figure>
+      <div class="shot"><img src="shots/1688-dropship.webp" width="1398" height="658" loading="lazy" alt="1688 自营纸箱商品页：规格尺寸列表、起价、分销代发面板含一件价格、铺货按钮和代发数据"></div>
+      <figcaption>
+        <span class="cap">图 10 · 1688 自营商品（快递纸箱）：分销代发</span>
+        <ul class="look">
+          <li>规格按尺寸列出（12 号 130×80×90mm …），每个规格再分材质硬度，组合成 SKU。</li>
+          <li>价格「US$0.02 起」（美国 IP 访问显示美元）。</li>
+          <li><b>分销代发卡</b>：1 件价格、立即铺货 / 加铺货单 / 代发下单，代发商家榜排名、近 30 天代发量、48h 揽收率、铺货分销商数。同一个 offer 同时有批发价和代发价。</li>
+        </ul>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="points">
+    <div class="point">
+      <h3>商品模型</h3>
+      <ul>
+        <li>1688 offer（<code>alibaba.product.get</code>）：<code>productType</code> 批发 / 询盘；<code>skuInfos[]</code> 每个 SKU 有 <code>price</code>、<code>amountOnSale</code>、<code>consignPrice</code>（代发价）、<code>takeSamplePrice</code>（拿样价）。</li>
+        <li><code>saleInfo</code> 集中放报价方式、起批量、阶梯价、混批、减库存方式；<code>reserveInfo</code> 放订货（按数量区间给出货天数）。</li>
+        <li>接口带 <code>webSite=1688/alibaba</code> 参数：1688 和国际站共用一套商品底座。</li>
+        <li>国际站发品走 Schema：叶子类目 → 取 XML 规则 → 填值 → 上传图片 → 提交；<code>market</code> 区分下单品与询盘品。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>价格</h3>
+      <ul>
+        <li>1688 <code>quoteType</code>：0 商品级阶梯价、1 按规格报价、2 / 3 规格 × 区间报价，可以既按 SKU 又按数量定价。</li>
+        <li>起批 <code>minOrderQuantity</code> 1–99999；可「按手卖」（1 手 = 12 件）；<code>mixWholeSale</code> 混批开关。</li>
+        <li>同一 offer 上的价格：批发价、代发价、会员等级价（普通 / 高级 / VIP …）、价格私密。</li>
+        <li>国际站「每个商品只能填写一种价格信息」：下单品用阶梯价或 SKU 价，询盘品可只填 FOB 区间 + 港口 + 付款方式。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>库存</h3>
+      <ul>
+        <li>淘宝 <code>sub_stock</code>：1 拍下减、2 付款减（集市卖家默认拍下减，商城默认付款减）；<code>with_hold_quantity</code> 是付款减模式下被未付款订单占住的数量。</li>
+        <li>1688 <code>invReduceType</code> 下单减 / 付款减；<code>modifyStock</code> 只收增量，传 0 报错。</li>
+        <li>国际站 Ready to Ship：下单品 + 明确运费模板 + MOQ 对应交期 ≤ 15 天；定制品可议价、交期按数量分档（最多 3 档）。</li>
+        <li>热点库存：同一商品库存是数据库里的同一行，2013 年起在 AliSQL 里做了排队与并发控制。</li>
+      </ul>
+    </div>
+    <div class="point">
+      <h3>商家后台</h3>
+      <ul>
+        <li>1688 公开的商品 API 只有 9 个（查询、编辑、增量修改、改库存、下架、删除），没有公开的发品和单独改价接口。</li>
+        <li>国际站星等级（2026-07 版）：按商品 / 营销 / 服务维度打分，取最低维度为最终星级；商品维度看 PIS 商品信息分达标数量。</li>
+        <li>国际站子账号最多 5 个，商品与询盘按归属人分配。</li>
+        <li>B2B 流程：询盘 → 卖家起草订单 → 买家付首付与尾款；RFQ 每条最多 10 家报价。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B2B 能力 ============ -->
+<section id="b2b">
+  <div class="sec-head">
+    <div class="eyebrow">B2B 能力清单</div>
+    <h2>和 CSS 最相关的部分：B2B 在 B2C 之上多了什么</h2>
+  </div>
+  <p class="prose">CSS 是餐厅（买家）、分销商（供应商 / 门店）、厂商三方的采购平台，最该对照的是 Amazon Business、京东慧采 / VOP、1688 和 Alibaba.com 这几条 B2B 线。下表最后一列是 CSS 当前 main 分支的情况。</p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th scope="col">能力</th><th scope="col">亚马逊 Business</th><th scope="col">京东 慧采 / VOP</th><th scope="col">1688 / Alibaba.com</th><th scope="col"><span class="swatch css"></span> CSS 现状</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">客户专属价</th><td>Business Price，仅企业买家可见</td><td>企业专享价；VOP 按员工设一口价</td><td>1688 会员等级价、渠道专享价</td><td><b>已有</b>：门店级 <code>price_tier</code> 价档，客户挂 <code>price_tier_id</code>，价档价格带版本记录（操作人、变更类型）</td></tr>
+        <tr><th scope="row">数量阶梯价</th><td>最多 5 档，每档必须更低</td><td>「多买多优惠」，规则未公开</td><td>1688 商品级或规格级阶梯；国际站最多 4 档</td><td class="no">没有。只有 <code>min_sell_unit_qty</code>（最小销售单位）</td></tr>
+        <tr><th scope="row">起订量 MOQ</th><td>—</td><td>VOP <code>lowestBuy</code> 最低起购量</td><td>核心字段：起批量、按手卖、定制起订量</td><td class="no">没有独立字段</td></tr>
+        <tr><th scope="row">未税价 / 税</th><td>按企业税务信息开票</td><td><code>nakedPrice</code> 未税价 + 税率</td><td>国际站按贸易术语报价</td><td><b>已有</b>税率字段（分销商线 <code>tax</code>、厂商线 <code>tax_percent</code>）</td></tr>
+        <tr><th scope="row">询价 / 报价</th><td>RFQ（$10,000 或 999 件以上），可接电子寻源系统</td><td>单供应商议价、多供应商竞价</td><td>询盘、RFQ（每条最多 10 家报价）、卖家起草订单</td><td><b>已有</b>报价单模块（quotation），供应商把商品加进草稿报价单</td></tr>
+        <tr><th scope="row">商品池 / 采购目录</th><td>采购清单、Guided Buying</td><td>商品池，池外需申请；工业品「一物一码」映射客户物料编码</td><td>—</td><td><b>已有雏形</b>：<code>restaurant_product</code> 是餐厅自己的采购清单，可关联多个供应商</td></tr>
+        <tr><th scope="row">库存预占</th><td>未公开</td><td>先预占、再确认，可取消</td><td>拍下减 / 付款减可选</td><td class="no">没有独立预占桶。库存流水 <code>store_product_stock_movement</code> 在下单时直接扣减，取消时回补</td></tr>
+        <tr><th scope="row">审批与账期</th><td>审批流、按发票付款</td><td>主子账号审批、金采先采后付、账期</td><td>1688 先采后付；国际站首付 + 尾款</td><td>—（不在本次调研范围）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 对照 CSS ============ -->
+<section id="css">
+  <div class="sec-head">
+    <div class="eyebrow"><span class="swatch css"></span> 对照 CSS</div>
+    <h2>CSS 三条商品线对应平台的哪一层</h2>
+  </div>
+  <p class="prose">CSS 的 <code>/products</code> 底下是三套实体：厂商的 <code>manufacturer_product</code>、分销商的 <code>vendor_product</code> → <code>store_product</code>、餐厅的 <code>restaurant_product</code>。放到上面的骨架里看：</p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th scope="col">平台的层</th><th scope="col">CSS 对应</th><th scope="col">已经做到的</th><th scope="col">和平台比还差的</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">类目与属性模板</th><td><code>product_category</code>、<code>product_attribute</code>（厂商专属）</td><td>厂商可自定义属性和取值（含颜色色值）</td><td>分销商和餐厅商品没有属性能力；属性不区分「关键 / 销售 / 普通」</td></tr>
+        <tr><th scope="row">目录商品（SPU / ASIN）</th><td><code>manufacturer_product</code></td><td>型号唯一、技术参数 JSONB、变体轴 + 变体、软删</td><td>只有厂商线有；分销商线的 <code>product</code> 只是全局名字字典</td></tr>
+        <tr><th scope="row">报价 / Listing</th><td><code>vendor_product</code>（可挂 <code>manufacturer_product_id</code>）→ <code>store_product</code></td><td>结构上已经是「供应商报价挂到厂商目录商品」，类似亚马逊卖家 SKU 挂到 ASIN</td><td>买家侧没有「同一厂商商品、多家供应商报价」的对比视图（亚马逊图 2 那种）</td></tr>
+        <tr><th scope="row">SKU</th><td><code>store_product</code> 一行即一个 SKU；厂商线 variation</td><td>厂商线有变体；分部可覆盖库存和价格</td><td>分销商线没有销售属性，规格靠名称区分；没有 SKU 级启停用</td></tr>
+        <tr><th scope="row">价格</th><td><code>product_price</code>（只追加）+ <code>price_tier</code> / <code>price_tier_version</code></td><td>价格历史完整；有客户价档；当前价取默认价档的最新一条</td><td>没有数量阶梯、促销价有效期、价格上下限护栏；8 月规格记录了「无价格记录时显示 0，和真免费分不开」</td></tr>
+        <tr><th scope="row">库存</th><td><code>store_product.in_stock</code> + 库存流水</td><td>每次变动有原因（入库、下单、改单、取消、打包调整、核销）和余额</td><td>没有预占、在途、不可售之分；没有按仓或区域的库存状态</td></tr>
+        <tr><th scope="row">上下架与状态</th><td><code>is_published</code> 布尔</td><td>厂商线默认未发布</td><td>没有草稿 / 待审 / 在售 / 下架状态机；8 月规格记录分销商线无法下架</td></tr>
+        <tr><th scope="row">商家后台</th><td>UploadProducts、Catalog OCR 导入、厂商批量编辑</td><td>批量导入新商品、OCR 识别目录</td><td>没有「导入价格 / 导入库存」、增量改库存接口、问题清单</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">「8 月规格」指仓库里的 <code>docs/products业务规格-2026-08-21.html</code>，基于当时 support-demo 分支代码逆向整理；其中列出的缺陷落地前需按当前代码复核。价档、库存流水、阶梯价缺失这三点已在 2026-11-05 的 main / test / uat 三个分支上核对过。</p>
+
+  <div class="sec-head" style="margin-top:12px">
+    <div class="eyebrow">建议（供取舍，按编号选）</div>
+    <h3 style="font-size:1.2rem">可以借鉴的 8 项做法</h3>
+  </div>
+  <div class="suggests">
+    <div class="suggest">
+      <span class="id">S1</span>
+      <h3>用状态机替换 <code>is_published</code> 布尔</h3>
+      <p>商品状态：草稿 → 待审（可选）→ 在售 → 下架 → 已删除（软删）；SKU 单独有启用 / 停用。列表页按状态分页签，加回收站。</p>
+      <span class="ref">参考：京东状态码与页签（图 5）、亚马逊 BUYABLE / DISCOVERABLE。</span>
+    </div>
+    <div class="suggest">
+      <span class="id">S2</span>
+      <h3>按数量的阶梯价 + 起订量</h3>
+      <p>给 <code>store_product</code> 加一张阶梯表（起始数量、单价），和现有客户价档叠加；校验「每档单价必须低于上一档」。起订量单独成字段，下单时校验。</p>
+      <span class="ref">参考：Alibaba.com 四档价（图 7、图 8）、1688 <code>quoteType</code> 2 / 3、亚马逊 <code>quantity_discount_plan</code>。</span>
+    </div>
+    <div class="suggest">
+      <span class="id">S3</span>
+      <h3>价格分层并带有效期</h3>
+      <p>拆成基础价、限时促销价（起止时间）、客户价档价、合同价；展示价由规则实时算出，订单行保存下单时的快照。供应商自设价格上下限，防止手误改成 0 或多打一个 0。</p>
+      <span class="ref">参考：亚马逊 <code>our_price</code> / <code>discounted_price</code> / min-max 护栏；京东 VOP <code>salePrice</code> / <code>nakedPrice</code>。</span>
+    </div>
+    <div class="suggest">
+      <span class="id">S4</span>
+      <h3>库存加「预占」一桶</h3>
+      <p>可售 = 在库 − 预占。下单先预占，供应商确认或发货时扣减，取消或超时释放。现有库存流水已记录原因和余额，可在流水上加预占维度，不必推翻重来。</p>
+      <span class="ref">参考：淘宝 <code>with_hold_quantity</code>、1688 <code>invReduceType</code>、京东 VOP 先预占后确认。</span>
+    </div>
+    <div class="suggest">
+      <span class="id">S5</span>
+      <h3>批量改价、导入库存和增量改库存接口</h3>
+      <p>列表页给「导入价格」「导入库存」两个独立入口（Excel），SKU 表头「批量应用」；对外接口只接受增量（+5 / −3）并按 SKU 改，避免全量覆盖把别的字段清空。</p>
+      <span class="ref">参考：京麦（图 5、图 6）、1688 <code>modifyStock</code>、亚马逊 PATCH <code>merge</code>。</span>
+    </div>
+    <div class="suggest">
+      <span class="id">S6</span>
+      <h3>同一厂商商品，多家供应商报价对比</h3>
+      <p>CSS 已有 <code>vendor_product.manufacturer_product_id</code>，可以给餐厅做一个「这件厂商商品，哪几家分销商在卖、各自什么价、什么时候能到」的视图，类似亚马逊的 All offers。</p>
+      <span class="ref">参考：亚马逊图 1 右侧购买框、图 2 全部报价。</span>
+    </div>
+    <div class="suggest">
+      <span class="id">S7</span>
+      <h3>按门店 / 仓给出库存状态和交期</h3>
+      <p>厂商线已有分部级库存覆盖，可以推广为「现货 / 在途 / 可预订 / 缺货」状态加预计到货日，在商品详情和下单页显示，而不是只显示一个数字。</p>
+      <span class="ref">参考：京东区域库存状态码 33 / 39 / 40 / 36 / 34、图 4「现货，预计明天送达」。</span>
+    </div>
+    <div class="suggest">
+      <span class="id">S8</span>
+      <h3>「待完善商品」问题清单</h3>
+      <p>给供应商和厂商一个问题列表：缺图片、缺分类、价格为 0、库存为 0、长期无销量，每条附处理入口；首页待办里显示数量。</p>
+      <span class="ref">参考：Seller Central「Fix search suppressed listings」（图 3）、Listing <code>issues</code>、国际站 PIS 商品信息分。</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 资料来源 ============ -->
+<section id="sources">
+  <div class="sec-head">
+    <div class="eyebrow">资料来源与限制</div>
+    <h2>来源、截图清单和没能看到的部分</h2>
+  </div>
+  <div class="note">
+    <b>没能看到的部分：</b>三家的商家后台都要商家账号登录，所以图 3、图 5、图 6 用的是官方博客和帮助中心公开的界面图。Amazon Business 的阶梯价表要企业账户登录才显示；京东 PC 商品页未登录跳登录页，移动端价格打码；京东工业品（mro.jd.com）触发风控验证，未截图；1688 部分规格和会员价要登录。遇到滑块验证时没有代为操作。亚马逊前台的库存扣减时机、京东价格中心架构等官方未公开，文中标为未查实或未写入。
+  </div>
+  <div class="sources">
+    <div>
+      <h3><span class="pf amz">亚马逊</span></h3>
+      <ul>
+        <li><a href="https://developer-docs.amazon/sp-api/docs/manage-product-listings-guide">SP-API：管理商品 listing</a></li>
+        <li><a href="https://developer-docs.amazon/sp-api/docs/manage-purchasable-offer">SP-API：purchasable_offer 价格字段</a></li>
+        <li><a href="https://developer-docs.amazon/sp-api/docs/manage-advanced-multiple-offer-multiple-fulfillment-use-cases">SP-API：多报价 / 多履约渠道</a></li>
+        <li><a href="https://developer-docs.amazon/sp-api/docs/fba-inventory-api">SP-API：FBA Inventory</a></li>
+        <li><a href="https://sell.amazon.com/blog/amazon-variation-listing">变体 listing 讲解</a></li>
+        <li><a href="https://sell.amazon.com/blog/amazon-b2b-prices">B2B 价格与阶梯价</a></li>
+        <li><a href="https://sell.amazon.com/blog/amazon-list-price">List Price 规则</a></li>
+        <li><a href="https://sell.amazon.com/tools/automate-pricing">Automate Pricing</a></li>
+        <li><a href="https://sell.amazon.com/blog/amazon-seller-dashboard">Seller Central 看板（图 3 出处）</a></li>
+        <li><a href="https://sellercentral.amazon.com/seller-forums/discussions/t/f48a1fe5-aa8e-4806-b687-2d9aeec5c351">2026 参考价规则调整公告</a></li>
+        <li><a href="https://sellercentral.amazon.com/seller-forums/discussions/t/7336583f-09ac-41de-99d1-667017a88db2">2026 Featured Offer 资格调整公告</a></li>
+        <li><a href="https://business.amazon.com/en/solutions/bulk-buying">Amazon Business 批量采购与 RFQ</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="pf jd">京东</span></h3>
+      <ul>
+        <li><a href="https://helpcenter.jd.com/vender/issue/44442.html">京麦销售属性与 SKU 手册（图 5、图 6 出处）</a></li>
+        <li><a href="https://helpcenter.jd.com/vender/issue/968-4271.html">价保开通与计算</a></li>
+        <li><a href="https://jos.jd.com/apilist?apiGroupId=21&amp;apiId=13420&amp;apiName=jingdong.ware.write.add">JOS：发布商品 ware.write.add</a></li>
+        <li><a href="https://jos.jd.com/apilist?apiGroupId=21&amp;apiId=13568&amp;apiName=jingdong.ware.read.searchWare4Valid">JOS：商品状态码</a></li>
+        <li><a href="https://rule.m.jd.com/detail/1090450620420329472">商品管理规则（15 种价格类型）</a></li>
+        <li><a href="https://help.jd.com/user/issue/37-4324.html">到手价与价格标签说明</a></li>
+        <li><a href="https://vop.jd.com/doc/api?id=5847">VOP：三层价格</a></li>
+        <li><a href="https://vop.jd.com/doc/api?id=5834">VOP：区域库存状态码</a></li>
+        <li><a href="https://vop.jd.com/doc/api?id=8835">VOP：商品池</a></li>
+        <li><a href="https://vop.jd.com/doc/api?id=9684">VOP：询价与竞价</a></li>
+        <li><a href="https://juejin.cn/post/7270117041524965417">京东物流库存预占实践（2023）</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="pf ali">阿里</span></h3>
+      <ul>
+        <li><a href="https://open.1688.com/api/apidocdetail.htm?aopApiCategory=product_new&amp;id=com.alibaba.product:alibaba.product.get-1">1688：alibaba.product.get（offer 模型）</a></li>
+        <li><a href="https://open.1688.com/api/apidocdetail.htm?aopApiCategory=product_new&amp;id=com.alibaba.product:alibaba.product.modifyStock-1">1688：modifyStock 增量改库存</a></li>
+        <li><a href="https://developer.alibaba.com/docs/doc.htm?treeId=456&amp;articleId=119213&amp;docType=1">Alibaba.com：Schema 发品字段</a></li>
+        <li><a href="https://activity.alibaba.com/page/resources/ready-to-ship-vs-customized-products.html">Alibaba.com：现货直发与定制品</a></li>
+        <li><a href="https://seller.alibaba.com/kr/usage-guidelines/star-ratings-2026-july-update">Alibaba.com：星等级 2026-07 版</a></li>
+        <li><a href="https://open.taobao.com/api.htm?docId=24625&amp;docType=2">淘宝：taobao.item.seller.get（减库存方式）</a></li>
+        <li><a href="https://open.taobao.com/api.htm?docId=121&amp;docType=2">淘宝：类目属性标记</a></li>
+        <li><a href="https://www.huxiu.com/article/270730.html">阿里热点库存回顾（2018）</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>截图清单</h3>
+      <ul>
+        <li>图 1–2：amazon.com/dp/B0014C0LSY，未登录</li>
+        <li>图 3：sell.amazon.com 官方博客界面图</li>
+        <li>图 4：item.m.jd.com/product/100321991516.html，未登录</li>
+        <li>图 5–6：helpcenter.jd.com 公开教程图</li>
+        <li>图 7：alibaba.com 商品 11000014383575</li>
+        <li>图 8：alibaba.com 商品 1601040462805</li>
+        <li>图 9：detail.1688.com/offer/696162070595.html</li>
+        <li>图 10：detail.1688.com/offer/858107734967.html</li>
+        <li>全部为 2026-11-05 抓取，页面内容会随时变化。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  CSS（Chain Serve）内部调研 · 2026-11-05 · 本地底稿：docs/电商平台商品设计调研-2026-11-05/
+</footer>
+
+</div>
