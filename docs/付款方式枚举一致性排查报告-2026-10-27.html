@@ -1,0 +1,269 @@
+<meta charset="utf-8">
+<title>付款方式枚举一致性排查</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* 布局：单栏阅读页，左侧细线标出章节；严重程度用色条而不是卡片。 */
+:root {
+  --bg: #F5F6F3;
+  --surface: #FFFFFF;
+  --surface-2: #ECEEE9;
+  --ink: #1E2421;
+  --ink-soft: #566059;
+  --ink-faint: #8C958F;
+  --line: #D8DCD6;
+  --accent: #1F6B5A;
+  --accent-soft: #DCEDE6;
+  --high: #B23A3A;
+  --high-soft: #F6E1E1;
+  --mid: #B5761B;
+  --mid-soft: #F8EBD3;
+  --low: #4C6B8A;
+  --low-soft: #DEE7EF;
+  --code-bg: #EEF1EC;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161A18; --surface: #1E2422; --surface-2: #262D2A; --ink: #E6EAE6; --ink-soft: #A9B2AC;
+    --ink-faint: #74807A; --line: #343C38; --accent: #6FBFA6; --accent-soft: #1F3A32;
+    --high: #E07A7A; --high-soft: #3A2222; --mid: #E0A94E; --mid-soft: #3A2F1C; --low: #8DB0D0; --low-soft: #1F2C38;
+    --code-bg: #232A27; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161A18; --surface: #1E2422; --surface-2: #262D2A; --ink: #E6EAE6; --ink-soft: #A9B2AC;
+  --ink-faint: #74807A; --line: #343C38; --accent: #6FBFA6; --accent-soft: #1F3A32;
+  --high: #E07A7A; --high-soft: #3A2222; --mid: #E0A94E; --mid-soft: #3A2F1C; --low: #8DB0D0; --low-soft: #1F2C38;
+  --code-bg: #232A27; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.7;
+  padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 860px; margin: 0 auto; }
+h1 { font-size: clamp(26px, 2.2vw + 16px, 36px); line-height: 1.25; margin: 0 0 8px; font-weight: 700; text-wrap: balance; letter-spacing: -0.01em; }
+.meta { color: var(--ink-soft); font-size: 13px; margin: 0 0 28px; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.meta a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
+.lede { font-size: 16px; line-height: 1.8; margin: 0 0 14px; }
+.lede strong { font-weight: 700; }
+h2 { font-size: 20px; margin: 48px 0 14px; padding-left: 14px; border-left: 3px solid var(--accent); line-height: 1.3; }
+h3 { font-size: 15px; margin: 28px 0 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+p { margin: 0 0 12px; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+pre { font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; margin: 10px 0 14px; }
+pre code { background: none; padding: 0; font-size: inherit; }
+.tbl { overflow-x: auto; margin: 10px 0 18px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { background: var(--surface-2); font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num, th.num { font-variant-numeric: tabular-nums; text-align: right; }
+.sources td:nth-child(3) { font-family: var(--font-mono); font-size: 12.5px; }
+.finding { display: grid; grid-template-columns: 56px 1fr; gap: 0 14px; margin: 0 0 18px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; border-left-width: 4px; }
+.finding.high { border-left-color: var(--high); }
+.finding.mid { border-left-color: var(--mid); }
+.finding.low { border-left-color: var(--low); }
+.finding .id { font-family: var(--font-mono); font-size: 12px; font-weight: 500; padding-top: 4px; }
+.finding.high .id { color: var(--high); }
+.finding.mid .id { color: var(--mid); }
+.finding.low .id { color: var(--low); }
+.finding h4 { margin: 0 0 6px; font-size: 15px; font-weight: 700; line-height: 1.4; }
+.finding p { font-size: 14px; color: var(--ink); margin: 0 0 6px; }
+.finding p:last-child { margin: 0; }
+.chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 2px; font-weight: 500; }
+.chip.high { background: var(--high-soft); color: var(--high); }
+.chip.mid { background: var(--mid-soft); color: var(--mid); }
+.chip.low { background: var(--low-soft); color: var(--low); }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 18px 0 8px; }
+.summary div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
+.summary .k { font-size: 12px; color: var(--ink-soft); letter-spacing: 0.04em; }
+.summary .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
+.summary .v small { font-size: 12px; font-weight: 400; color: var(--ink-soft); margin-left: 4px; }
+.summary .v.warn { color: var(--high); }
+.note { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 14px; }
+.lbl { color: var(--ink-faint); }
+@media (max-width: 560px) {
+  .finding { grid-template-columns: 1fr; gap: 4px; }
+  body { font-size: 14.5px; }
+}
+@media (prefers-reduced-motion: no-preference) { a { transition: border-color 150ms; } }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<main>
+<h1>付款方式枚举一致性排查报告（2026-10-27）</h1>
+<p class="meta"><span>排查范围：后端 origin/main · 前端 origin/main · test / uat RDS 实测</span><span>本地底稿：<code>docs/付款方式枚举一致性排查报告-2026-10-27.md</code></span><span>在线版：<a href="https://claude.ai/artifact/2e3dDPvz5pYNFeMc255S1R">claude.ai/artifact/2e3dDPvz5pYNFeMc255S1R</a></span></p>
+
+<p class="lede">付款方式（payment method）在这套系统里有四份"事实源"：后端代码枚举、PostgreSQL 枚举类型 <code>paymentmethod</code>、数据表 <code>payment_method</code>、前端 TypeScript 枚举。四份里<strong>后端代码枚举、表的 <code>code</code> 列、前端主枚举三者目前是一致的</strong>（13 个 code，表 12 行，只给退款用的 STORE_CREDIT 不建行），但 <strong>PG 枚举类型多出一个 2024 年遗留的 <code>INVOICES</code></strong>，前端还残留两份 2024 年的 3 值旧枚举，另有报价单、OCR、AI 助手三条"自由文本写进枚举列"的路径，以及月结单 PDF 直接打印机器码的问题。</p>
+<p class="lede">代码一律以 <code>origin/main</code> 为准（origin/test、origin/uat、origin/main 在付款方式相关文件上内容相同）。本机两个检出停在 <code>test</code> 分支、落后远程约 100 个提交，排查时没有用。数据库实测了 test、uat 两个 RDS 库（alembic 均为 <code>32e15648b82e</code>）；<strong>prod 库因自动模式拦截生产读取没有实测</strong>，核查方法见第六节。</p>
+
+<div class="summary">
+  <div><div class="k">后端代码枚举</div><div class="v">13</div></div>
+  <div><div class="k">PG 枚举类型</div><div class="v warn">14<small>多 INVOICES</small></div></div>
+  <div><div class="k">表 payment_method 系统行</div><div class="v">12</div></div>
+  <div><div class="k">不一致项</div><div class="v">17<small>高 5 · 中 6 · 低 6</small></div></div>
+</div>
+
+<h2>一、四份事实源现状</h2>
+<div class="tbl"><table class="sources">
+<thead><tr><th>事实源</th><th>位置</th><th>取值</th><th class="num">数量</th></tr></thead>
+<tbody>
+<tr><td>后端代码枚举 <code>PaymentMethod</code></td><td>CSS_backend-main/core_app/src/app/internal/core/payments/domains.py</td><td>CREDIT_CARD, CHECK, ACH, CASH, PAYPAL, STRIPE, WIRE, ZELLE, APPLE_PAY, GOOGLE_PAY, MONEY_ORDER, OTHER, STORE_CREDIT</td><td class="num">13</td></tr>
+<tr><td>PG 枚举类型 <code>paymentmethod</code></td><td>test / uat RDS 实测</td><td>CASH, CREDIT_CARD, <strong>INVOICES</strong>, CHECK, ACH, PAYPAL, STRIPE, WIRE, ZELLE, APPLE_PAY, GOOGLE_PAY, OTHER, MONEY_ORDER, STORE_CREDIT</td><td class="num">14</td></tr>
+<tr><td>表 <code>payment_method</code>（系统行 code）</td><td>test / uat RDS 实测</td><td>CREDIT_CARD, CHECK, CASH, ACH, PAYPAL, STRIPE, WIRE, ZELLE, APPLE_PAY, GOOGLE_PAY, MONEY_ORDER, OTHER（sort_order 1–12）</td><td class="num">12</td></tr>
+<tr><td>前端主枚举 <code>PaymentMethods</code></td><td>CSS_frontend-main/src/models/clients/entities.ts</td><td>与后端 13 个相同</td><td class="num">13</td></tr>
+<tr><td>前端旧枚举 <code>PaymentMethodDTO</code></td><td>CSS_frontend-main/src/models/common/api.ts</td><td>CASH, CREDIT_CARD, INVOICES</td><td class="num">3</td></tr>
+<tr><td>前端旧枚举 <code>PaymentMethods</code></td><td>CSS_frontend-main/src/models/vendors/entity.ts</td><td>CREDIT_CARD, CASH, INVOICES</td><td class="num">3</td></tr>
+</tbody></table></div>
+<p>从 2026-10-16 的 <code>a4f1c7e92b58</code> 迁移起，枚举的 value 与 name 相同（<code>CASH = 'CASH'</code>），数据库列、接口、前端传的都是这个 code；给人看的名字另有来源（见 M3）。</p>
+<div class="note"><strong>INVOICES 的来历。</strong>2024-05-22（<code>d3224430</code>）代码枚举是 Cash / Credit card / Invoices 三个，同日迁移 <code>4c181a88e9ee</code> 把 INVOICES 加进 PG 枚举。2024-11-19（<code>114b16cc</code>，CSS-2903）代码里删掉 INVOICES、加了 CHECK 等 8 个，同日迁移 <code>c05cc43fa061</code> 只往 PG 枚举里加了 8 个标签，没有删 INVOICES（PostgreSQL 不支持直接删除枚举值）。此后它一直留在库里。test / uat 没有任何一行数据用到它。</div>
+
+<h2>二、谁在用哪种存储</h2>
+<div class="tbl"><table>
+<thead><tr><th>表.列</th><th>类型</th><th>写入方</th></tr></thead>
+<tbody>
+<tr><td><code>client_finances.payment_methods</code></td><td><code>paymentmethod[]</code></td><td>客户财务页（选项来自接口 <code>GET /payment-methods</code>，即表的 code 非空行）</td></tr>
+<tr><td><code>order.payment_method</code></td><td><code>paymentmethod</code></td><td>下单流程、订单信息编辑、报价单转订单、OCR 识别建单、AI 助手</td></tr>
+<tr><td><code>order_payment.payment_method</code></td><td><code>paymentmethod</code></td><td>发票页 Record A Payment（付款 / 退款 / 调整）</td></tr>
+<tr><td><code>order_packing_slip.received_payment_method</code></td><td><code>paymentmethod</code></td><td>送达确认（单个 / 批量）</td></tr>
+<tr><td><code>order_invoice_payment_record.paymentmethod</code></td><td><code>paymentmethod</code></td><td>旧的付款记录表（列名少个下划线，沿用）</td></tr>
+<tr><td><code>order_invoice_transaction.payment_method</code></td><td><code>paymentmethod</code></td><td>旧的退款记录（test / uat 里只有 OTHER）</td></tr>
+<tr><td><code>quotation.payment_method</code></td><td><code>varchar(255)</code> 自由文本</td><td>报价单页硬编码 4 个英文标签 + "Add new" 自定义</td></tr>
+<tr><td><code>company_subscription.payment_method_id</code></td><td><code>uuid</code> → <code>payment_method.id</code></td><td>主数据库订阅页（可选表里任何一行，含管理员自建的无 code 行）</td></tr>
+</tbody></table></div>
+
+<h2>三、test / uat 实测</h2>
+<div class="tbl"><table>
+<thead><tr><th>项</th><th>test（css-test-main）</th><th>uat（css-uat-main）</th></tr></thead>
+<tbody>
+<tr><td>alembic</td><td><code>32e15648b82e</code></td><td><code>32e15648b82e</code></td></tr>
+<tr><td>PG 枚举标签</td><td>14（含 INVOICES、STORE_CREDIT）</td><td>14（同）</td></tr>
+<tr><td><code>payment_method</code> 系统行</td><td>12</td><td>12</td></tr>
+<tr><td><code>payment_method</code> 自定义行</td><td>1（"Eric payment method 1"，code 为空，被 1 条订阅引用）</td><td>0</td></tr>
+<tr><td>用到 INVOICES 的数据</td><td>无</td><td>无</td></tr>
+<tr><td><code>order_payment</code> 里的 STORE_CREDIT</td><td>7 行</td><td>2 行</td></tr>
+<tr><td><code>quotation.payment_method</code> 取值</td><td>Cash 8、ACH 5、Paypal 1、My method 1、信用卡 1</td><td>无数据</td></tr>
+</tbody></table></div>
+<p>两个库里 Google Pay / Money Order / Other 三行的 <code>id</code> 不同（迁移用 <code>gen_random_uuid()</code> 生成），前 9 行是 uuid5 固定值。代码没有硬编码这三个 id，不影响运行，只是 prod 也会是另一组。本机本地库 <code>css-test-main</code>（容器 <code>postgres-latest-5432</code>）停在 alembic <code>f7ed76a8a09b</code>，还没有 STORE_CREDIT 标签，与 test RDS 不同步。</p>
+
+<h2>四、不一致清单</h2>
+
+<h3>高</h3>
+<div class="finding high"><div class="id">H1</div><div>
+<h4>PG 枚举多一个 INVOICES，代码枚举没有</h4>
+<p>库 14 个标签，代码 13 个。现在没有数据用它，所以不报错；但只要有一行写进 INVOICES（SQL 直灌、老数据恢复），SQLAlchemy 把它读成 <code>PaymentMethod</code> 时会抛 <code>LookupError</code>，整条查询失败。这是"数据库枚举与代码枚举不一致"的根问题。</p></div></div>
+
+<div class="finding high"><div class="id">H2</div><div>
+<h4>月结单 PDF 打印机器码而不是名字</h4>
+<p>四个供应商月结单模板 <code>core_app/src/templates/monthly_statement_{kabona,kens,four_seasons,international_wholesale}.html</code> 直接渲染 <code>invoice.payment_method</code>；餐厅月结单 <code>restaurant_monthly_statement.html</code> 渲染的 <code>description</code> 在 <code>orders/services.py:2991,3014</code> 被赋成 <code>dto.order.payment_method</code>。2026-10-16 枚举改成 value==name 之后，这些 PDF 从打印 "Credit Card" 退化成打印 <code>CREDIT_CARD</code>、<code>MONEY_ORDER</code>。同一系统的发票 PDF（<code>invoice_render.py:247</code> 用 <code>.label</code>）和前端页面显示的是名字。test / uat 的订单里已有 CREDIT_CARD、MONEY_ORDER、GOOGLE_PAY 数据，会实际出现在月结单上。</p></div></div>
+
+<div class="finding high"><div class="id">H3</div><div>
+<h4>AI 助手复制订单硬编码旧标签 "Cash"</h4>
+<p><code>ai_assistant/server.js:544</code> 复制订单时固定发 <code>payment_method: "Cash"</code>，<code>:120</code>、<code>:537</code> 的提示文案也写 "Cash"；创建订单工具的参数描述（<code>:80</code>）举例 <code>"Cash", "CREDIT_CARD"</code>。后端 <code>restaurants/transport/requests.py:193</code> 的 <code>payment_method: PaymentMethod</code> 只接受 code，"Cash" 会被 pydantic 拒绝（422）。复制订单功能在枚举改 code 之后必然失败。</p></div></div>
+
+<div class="finding high"><div class="id">H4</div><div>
+<h4>餐厅端查看供应商财务页只画 3 个旧选项</h4>
+<p><code>src/ui/pages/Vendor/ui/Finance/constants.ts</code> 用 <code>vendors/entity.ts</code> 的 3 值旧枚举渲染 Credit Card / Cash / Invoices 三个禁用复选框。接口 <code>GET /restaurants/{r}/vendors/{v}/finances</code> 返回的是供应商设置的全部 code，所以供应商设了 CHECK、ACH、ZELLE 等，餐厅这边一个都看不到；"Invoices" 则永远不会被勾上。</p></div></div>
+
+<div class="finding high"><div class="id">H5</div><div>
+<h4>STORE_CREDIT "仅退款可用" 只靠前端</h4>
+<p>代码注释和前端（<code>useRecordPayment.ts:155-162</code> 只在退款方式列表里追加 STORE_CREDIT）都把它限定为退款方式，表里也不建行。但后端所有接受 <code>PaymentMethod</code> 的请求模型（下单、订单编辑、客户财务、记录付款、送达收款）都没有排除它。直接调接口就能把 STORE_CREDIT 存成 <code>order.payment_method</code>、<code>client_finances.payment_methods</code> 或 <code>type=PAYMENT</code> 的 <code>order_payment</code>，收款汇总会把它当成真实收款，且不会给客户加余额。</p></div></div>
+
+<h3>中</h3>
+<div class="finding mid"><div class="id">M1</div><div>
+<h4>报价单付款方式是第五套取值，且是自由文本</h4>
+<p><code>src/ui/pages/Quotation/ui/QuotationInfo/EditInfoModal.tsx:48</code> 硬编码 <code>['Cash', 'ACH', 'Paypal', 'Stripe']</code>（"Paypal" 拼写与表里的 "PayPal" 不同）再加 "Add new" 自定义，原样写进 <code>quotation.payment_method</code> varchar。转订单时 <code>parse_payment_method</code> 按 code 或英文标签不区分大小写匹配，匹配不到一律归 OTHER。test 库已经有 "My method"、"信用卡" 两条，转订单后都会变成 OTHER，用户不会得到提示。</p></div></div>
+
+<div class="finding mid"><div class="id">M2</div><div>
+<h4>OCR 识别建单是第二条自由文本路径</h4>
+<p>Eden AI 识别出的 <code>payment_method</code> 是任意字符串，用户还能在识别结果表单里改成任意字符串，<code>invoices/services.py:1568</code> 用同一个 <code>parse_payment_method</code> 转换：票面写 "Visa"、"Net 30" 变 OTHER，票面没写<strong>默认变 CASH</strong>（<code>payments/domains.py:44-45</code>），而不是 OTHER 或报错。订单付款方式与原始发票不一致且无提示。</p></div></div>
+
+<div class="finding mid"><div class="id">M3</div><div>
+<h4>给人看的名字有四套来源，管理端还能改其中一套</h4>
+<p>后端 <code>PAYMENT_METHOD_LABELS</code>（PDF 用）、表 <code>payment_method.name</code>（选择器用）、前端 <code>public/locales/{en,zh}/common.json</code> 的 <code>paymentMethods</code>（列表 / 详情用，经 <code>utils/paymentMethods.ts</code> 按 code 映射）、前端 <code>vendors.json</code>（餐厅端供应商财务页用，"Credit card" 小写 c 与其他三套不同）。四套现在碰巧一致。管理端 <code>PATCH /admin/payment-methods/{id}</code> 允许给系统行改名（服务层只在删除时检查 <code>is_system</code>），把 "Cash" 改成别的名字后，选择器显示新名字，PDF 和其他页面仍显示旧名字。</p></div></div>
+
+<div class="finding mid"><div class="id">M4</div><div>
+<h4>新增一个付款方式要改五处，管理端"新增"却是死胡同</h4>
+<p>一个新方法要同步：后端枚举 + <code>PAYMENT_METHOD_LABELS</code>；新迁移 <code>ADD VALUE</code> + <code>INSERT payment_method</code>；前端 <code>EditOrderInfoModal.tsx</code> 的 12 项 <code>FALLBACK_PAYMENT_METHODS</code>；前端 <code>LABEL_KEYS</code> + en/zh 两份 i18n。没有单一事实源。而管理端 <code>POST /admin/payment-methods</code> 只收 <code>name</code>，新建的行 <code>code</code> 永远为空，<code>GET /payment-methods</code> 按 <code>code IS NOT NULL</code> 过滤，所以它不会出现在任何付款方式选择器里（test 库的 "Eric payment method 1" 就是例子），只能在主数据库订阅页按 id 选中。</p></div></div>
+
+<div class="finding mid"><div class="id">M5</div><div>
+<h4>表的 <code>code</code> 列没有数据库级约束</h4>
+<p><code>payment_method.code</code> 是 <code>varchar(64)</code>，不是 <code>paymentmethod</code> 枚举类型，没有 CHECK 或外键。表与枚举之间只有迁移脚本手工对齐这一层约定。如果有人用 SQL 把 code 填成枚举外的值或不同大小写（如 "Cash"），接口会原样下发给前端，前端提交后后端 422。</p></div></div>
+
+<div class="finding mid"><div class="id">M6</div><div>
+<h4>后端测试还在发旧标签，且没有测试守护三方一致</h4>
+<p><code>main_app/restaurants/tests/add_restaurant_order/tools.py:35</code> 仍是 <code>payment_method='Cash'</code>，该目录 3 个成功用例 + 5 个错误用例在 pydantic 这一层就会 422，一个都过不了；CI 目前不跑 pytest（<code>cicd.yml</code> 里是 TODO），所以没暴露。全库没有任何测试断言"代码枚举 = PG 枚举标签 = 表系统行 code"，H1 这类漂移测试发现不了。</p></div></div>
+
+<h3>低</h3>
+<div class="finding low"><div class="id">L1</div><div>
+<h4>前端旧类型 <code>PaymentMethodDTO</code> 仍在用</h4>
+<p><code>src/models/vendors/api.ts:199</code> 的 <code>paymentMethods: PaymentMethodDTO[]</code>（3 值）是下单、客户信息步骤、订单编辑、记录付款四个选择器的实际取值源，运行时拿到的是 13 个 code；<code>src/models/orders/api.ts:142,499</code> 同样。开发者只能用 <code>String()</code> / <code>string[]</code> 绕开类型检查。</p></div></div>
+
+<div class="finding low"><div class="id">L2</div><div>
+<h4>客户财务页残留"自定义付款方式"死代码</h4>
+<p><code>src/ui/pages/Client/ui/Finance/types.ts:12</code> 的 <code>customPaymentMethod</code> 与 <code>Finance.tsx</code> 里的输入框从未进入提交数据；<code>client_finances.payment_methods</code> 是枚举数组，本来也存不了自由文本。</p></div></div>
+
+<div class="finding low"><div class="id">L3</div><div>
+<h4><code>paymentTerm</code> 字段里装的是付款方式</h4>
+<p><code>orders/services.py:3801</code> 把 <code>packing_slip.order.payment_method</code> 赋给 <code>payment_term</code>，前端 <code>ConfirmModal.tsx:122</code> 用 <code>billTo.paymentTerm === PaymentMethods.CASH</code> 判断现金单。值是一致的，但名字把"付款条件"（cash_on_delivery / net_30）和"付款方式"混在一起，容易被后人按字面改错。</p></div></div>
+
+<div class="finding low"><div class="id">L4</div><div>
+<h4><code>SYSTEM_PAYMENT_METHOD_NAMES</code> 只有 9 个</h4>
+<p><code>core/payment_methods/domains.py</code> 列的是 2026-05 首次种子的 9 个名字，表里系统行是 12 个。只有测试在用，注释也说明了是原始种子，但名字容易让人以为是完整集合。</p></div></div>
+
+<div class="finding low"><div class="id">L5</div><div>
+<h4>文档过时</h4>
+<p><code>docs/orders业务规格-2026-08-21.html</code> 把 <code>order.payment_method</code> 记为 "Enum(11 值)"；<code>docs/ocean-island/</code> 下多份方案要求新表"照抄 payment_method 范式（name unique / created_by_user_id / 删除 409）"，而 <code>created_by_user_id</code> 列已在 <code>b8e4c17d2f93</code> 删除，<code>code</code> / <code>sort_order</code> 两列文档没提。</p></div></div>
+
+<div class="finding low"><div class="id">L6</div><div>
+<h4>本机本地库落后</h4>
+<p>本地 <code>css-test-main</code> 停在 alembic <code>f7ed76a8a09b</code>，缺 STORE_CREDIT 标签与后续四个迁移，需要按 backup-env-db.sh 同链路重拉。</p></div></div>
+
+<h2>五、对齐方案（建议）</h2>
+<div class="note"><strong>原则：</strong>三个机器码集合必须相等——PG 枚举标签 = 后端 <code>PaymentMethod</code> = 表 <code>payment_method</code> 的系统行 <code>code</code>（STORE_CREDIT 作为唯一例外，只在前两者里）；给人看的名字只保留一个来源。</div>
+<div class="tbl"><table>
+<thead><tr><th class="num">步骤</th><th>做什么</th><th>对应</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td>处理 INVOICES。推荐从 PG 枚举里去掉：PostgreSQL 不能 <code>DROP VALUE</code>，要新建类型、6 个枚举列逐个 <code>ALTER COLUMN ... TYPE</code> 后删旧类型，期间锁表，放在低峰或停机窗口做；先确认 prod 没有数据用它。不推荐把 INVOICES 加回代码，它没有业务含义。</td><td>H1</td></tr>
+<tr><td class="num">2</td><td>五个月结单模板改成渲染 <code>.label</code>（或表 name），<code>services.py:2991,3014</code> 的 <code>description</code> 同改。</td><td>H2</td></tr>
+<tr><td class="num">3</td><td><code>ai_assistant/server.js</code> 复制订单改为透传原单的 <code>payment_method</code> code（找不到才用 <code>"CASH"</code>），三处文案与参数描述同改。</td><td>H3</td></tr>
+<tr><td class="num">4</td><td>餐厅端供应商财务页改用 <code>models/clients/entities.PaymentMethods</code> 渲染全部 13 个（或按接口返回动态渲染），用 <code>formatPaymentMethod</code> 取 common i18n；删除 <code>vendors/entity.ts</code> 与 <code>common/api.ts</code> 的两份旧枚举，<code>vendors/api.ts</code>、<code>orders/api.ts</code> 的类型改为主枚举；<code>vendors.json</code> 的四个付款方式键删掉。</td><td>H4、L1、M3</td></tr>
+<tr><td class="num">5</td><td>后端在接受 <code>PaymentMethod</code> 的请求模型上加校验：只有退款允许 STORE_CREDIT。</td><td>H5</td></tr>
+<tr><td class="num">6</td><td>报价单选择器改调 <code>GET /payment-methods</code>，<code>quotation.payment_method</code> 改存 code（迁移回填：按标签匹配，匹配不到的归 OTHER 并记日志）。OCR 路径把"空值默认 CASH"改为 OTHER 或要求用户确认。</td><td>M1、M2</td></tr>
+<tr><td class="num">7</td><td>显示名统一：以表 <code>payment_method.name</code> 为唯一来源，前端选择器与列表都从接口取；PDF 从表取；删除 <code>PAYMENT_METHOD_LABELS</code> 和前端 <code>LABEL_KEYS</code>（需要中文翻译时保留 zh 一套）。管理端改名接口禁止改 <code>is_system</code> 行。</td><td>M3</td></tr>
+<tr><td class="num">8</td><td>表 <code>code</code> 列改为 <code>paymentmethod</code> 枚举类型（或加 CHECK），管理端新增方法要么同时要求 <code>code</code>、要么下线"新增"。删掉前端 <code>FALLBACK_PAYMENT_METHODS</code>，没拿到接口数据就显示空。</td><td>M4、M5</td></tr>
+<tr><td class="num">9</td><td>加一条测试：<code>set(PaymentMethod) - {STORE_CREDIT}</code> == 表系统行 code 集合 == PG 枚举标签集合 - {STORE_CREDIT}；把 <code>tools.py:35</code> 的 <code>'Cash'</code> 改为 <code>PaymentMethod.CASH</code>；CI 接上 pytest。</td><td>M6</td></tr>
+<tr><td class="num">10</td><td>删 <code>customPaymentMethod</code> 死代码；<code>payment_term</code> 改名为 <code>payment_method</code>；更新两处文档；重拉本地库。</td><td>L2–L6</td></tr>
+</tbody></table></div>
+
+<h2>六、未完成的部分</h2>
+<p><strong>prod 库没有实测。</strong>自动模式拦截了对生产环境的读取。核查 SQL 已存为 <code>docs/环境运维执行脚本/05-数据库运维/check-payment-methods.sql</code>（与 test / uat 用的是同一份），在 prod 堡垒机上执行：</p>
+<pre><code>ssh -i deploy-env/ssh/css-prod-bastion ec2-user@34.225.237.45 \
+  'PGPASSWORD="&lt;css_ops 密码，见 deploy-env/密码.local.md&gt;" psql \
+   -h css-prod.cw9qimi6uo6c.us-east-1.rds.amazonaws.com -U css_ops -d css-prod-main -f -' \
+  &lt; docs/环境运维执行脚本/05-数据库运维/check-payment-methods.sql</code></pre>
+<p>重点看三项：<code>paymentmethod</code> 枚举是否也是 14 个标签；<code>payment_method</code> 表是否 12 条系统行且 code 齐全；各列有没有 INVOICES 取值（决定步骤 1 能否直接做）。</p>
+
+<h2>附录：test / uat 各列取值分布</h2>
+<div class="tbl"><table>
+<thead><tr><th>列</th><th>test</th><th>uat</th></tr></thead>
+<tbody>
+<tr><td><code>client_finances.payment_methods</code></td><td>CASH 451, CHECK 15, CREDIT_CARD 12, ACH 10, MONEY_ORDER 7, PAYPAL 6, WIRE 5, STRIPE 4, GOOGLE_PAY 3, APPLE_PAY 3, ZELLE 2, OTHER 2</td><td>CASH 3086, CHECK 14, CREDIT_CARD 4, MONEY_ORDER 3, OTHER 2, ZELLE 2, WIRE 2, APPLE_PAY 2, GOOGLE_PAY 1</td></tr>
+<tr><td><code>order.payment_method</code></td><td>CASH 1733, CHECK 95, CREDIT_CARD 70, MONEY_ORDER 15, STRIPE 15, ACH 10, PAYPAL 7, WIRE 7, OTHER 4, GOOGLE_PAY 3, ZELLE 1</td><td>CASH 822, CHECK 366, CREDIT_CARD 24, ZELLE 5, MONEY_ORDER 5, STRIPE 2, OTHER 1</td></tr>
+<tr><td><code>order_payment.payment_method</code></td><td>CASH 74, <span class="lbl">空</span> 71, CHECK 60, MONEY_ORDER 8, STORE_CREDIT 7, OTHER 6, CREDIT_CARD 5, WIRE 2, ACH 1, ZELLE 1, PAYPAL 1</td><td>CHECK 50, CASH 48, <span class="lbl">空</span> 27, OTHER 6, MONEY_ORDER 4, WIRE 3, STORE_CREDIT 2</td></tr>
+<tr><td><code>order_packing_slip.received_payment_method</code></td><td><span class="lbl">空</span> 923, CHECK 47, CASH 16, MONEY_ORDER 4, WIRE 2, ACH 1, CREDIT_CARD 1</td><td><span class="lbl">空</span> 539, CHECK 7, CASH 6, MONEY_ORDER 3</td></tr>
+<tr><td><code>order_invoice_payment_record.paymentmethod</code></td><td>CASH 35, CHECK 2, CREDIT_CARD 2, PAYPAL 1</td><td>CHECK 42, CASH 34, WIRE 2</td></tr>
+<tr><td><code>order_invoice_transaction.payment_method</code></td><td>OTHER 6</td><td>OTHER 5</td></tr>
+<tr><td><code>quotation.payment_method</code></td><td><span class="lbl">空</span> 169, Cash 8, ACH 5, Paypal 1, My method 1, 信用卡 1</td><td>无</td></tr>
+<tr><td><code>company_subscription.payment_method_id</code></td><td><span class="lbl">空</span> 155, ACH 4, Apple Pay 2, Check 2, Cash 2, Eric payment method 1 ×1</td><td><span class="lbl">空</span> 51, ACH 1</td></tr>
+</tbody></table></div>
+</main>
