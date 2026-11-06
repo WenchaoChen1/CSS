@@ -4,17 +4,17 @@
 # Secrets Manager（rds! 前缀）——本脚本把 reown-db-objects.sh base64 传到堡垒机，
 # 密码由堡垒机自取（角色有 GetSecretValue），**密码不进本机命令行、不进 SSM 命令文本**。
 # 堡垒机定位与 SSM 执行模式照抄 restore-dump-via-gw.sh（标签对 Environment=css-shared + EnvironmentGroup=<组>）。
-# 用法: ./reown-via-gw.sh <test|uat|support-ref|support-demo|support-sync|prod>
+# 用法: ./reown-via-gw.sh <test|uat|prod>
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 cd "$(dirname "$0")"
 
-ENV_NAME="${1:?用法: reown-via-gw.sh <test|uat|support-ref|support-demo|support-sync|prod>}"
+ENV_NAME="${1:?用法: reown-via-gw.sh <test|uat|prod>}"
 REGION="us-east-1"
 case "$ENV_NAME" in
-  test|uat|support-ref|support-demo|support-sync) GW_GROUP=css-non-prod; RDS_ID=css-non-prod ;;
+  test|uat) GW_GROUP=css-non-prod; RDS_ID=css-non-prod ;;
   prod)                               GW_GROUP=css-prod;     RDS_ID=css-prod ;;
-  *) echo "环境必须是 test|uat|support-ref|support-demo|support-sync|prod"; exit 1 ;;
+  *) echo "环境必须是 test|uat|prod"; exit 1 ;;
 esac
 
 awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }

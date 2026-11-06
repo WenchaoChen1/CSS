@@ -7,7 +7,7 @@
 ### `put-params.sh` — 把工作区 `deploy-env/<env>/{backend,frontend}.env` 整份灌入 SSM Parameter Store（backend 为 SecureString Advanced 层，frontend 为 Standard 层），内置防误覆盖
 
 ```bash
-./put-params.sh <test|uat|support-ref|support-demo|support-sync|prod>                       # 有差异时逐参数确认（输入 yes 才覆盖）
+./put-params.sh <test|uat|prod>                       # 有差异时逐参数确认（输入 yes 才覆盖）
 ./put-params.sh test -y                               # 跳过确认（备份与差异提示照常）
 ```
 
@@ -41,17 +41,14 @@
 
 ## 状态 / 注意
 
-- ✅ **六个 AWS 环境共 12 个参数均已灌入并在用**（2026-08-22 实查）：`test` / `uat` / `prod` / `support-ref` / `support-demo` / `support-sync`，每环境 `backend.env` + `frontend.env`。`dev` 只在本机跑（`deploy/windows/本地dev.ps1` 直接读 `deploy-env/dev/`），**不入 SSM**；
+- ✅ **三个 AWS 环境共 6 个参数均已灌入并在用**（2026-11-06 复核；support-ref/demo/sync 的 6 个参数已随三环境下线删除，壳与值均不存在）：`test` / `uat` / `prod`，每环境 `backend.env` + `frontend.env`。`dev` 只在本机跑（`deploy/windows/本地dev.ps1` 直接读 `deploy-env/dev/`），**不入 SSM**；
 - backend.env 用 **Advanced 层**（早已超过 Standard 4KB 上限，$0.05/参数/月）。⚠️ **Advanced 层上限 8192 字符，实测已很紧**：
 
   | 参数 | 长度（2026-08-22） | 余量 |
   |---|---|---|
   | `/css/test/backend.env` | **8118** | **仅 74** |
   | `/css/uat/backend.env` | 8129 | 63 |
-  | `/css/support-demo/backend.env` | 7938 | 254 |
   | `/css/prod/backend.env` | 7858 | 334 |
-  | `/css/support-ref/backend.env` | 7844 | 348 |
-  | `/css/support-sync/backend.env` | 7661 | 531 |
 
   **加新键前必须先精简注释**（`put-params.sh` 不带 `-y` 可当预检）；能写死进 `infra.yml` 的值别绕 SSM。
   量长度用 `aws ssm get-parameter --name /css/<env>/backend.env --with-decryption --query 'length(Parameter.Value)' --output text`，

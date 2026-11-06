@@ -5,14 +5,14 @@
 #   配合 rewrite-file-urls.sh <env> --old-base <源桶前缀> 完成"数据 + 文件 + URL"三件套。
 # 幂等：aws s3 sync 只复制缺失/更新的对象，重跑零副作用；不带 --delete，绝不删目标桶已有对象。
 # 用法: ./sync-s3-env-bucket.sh <源env> <目标env> [--dry-run]
-#   例: ./sync-s3-env-bucket.sh uat support-ref
+#   例: ./sync-s3-env-bucket.sh uat support-ref   # 2026-08-07 建 support-ref 时的用法（三个 support 环境已于 2026-11-06 下线，仅作示例）
 set -euo pipefail
 
 SRC_ENV="${1:?用法: sync-s3-env-bucket.sh <源env> <目标env> [--dry-run]}"
 DST_ENV="${2:?缺目标环境}"
 DRY="${3:-}"
 for e in "$SRC_ENV" "$DST_ENV"; do
-  case "$e" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "[FAIL] 未知环境 $e（test|uat|support-ref|support-demo|support-sync|prod）"; exit 1 ;; esac
+  case "$e" in test|uat|prod) ;; *) echo "[FAIL] 未知环境 $e（test|uat|prod）"; exit 1 ;; esac
 done
 [ "$SRC_ENV" != "$DST_ENV" ] || { echo "[FAIL] 源与目标相同"; exit 1; }
 [ "$DST_ENV" = "prod" ] && { printf '⚠️  目标是【生产桶】，输入 prod 确认: '; read -r c; [ "$c" = "prod" ] || { echo "已取消"; exit 1; }; }

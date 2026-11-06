@@ -5,18 +5,18 @@
 # 行为：动态遍历 information_schema 里所有 email 类文本列（与 anonymize-db.sh 同一口径），
 #       对值形如 1<前缀>% 的行执行 SET col = substring(col from 2)；先打印命中明细再单事务更新，
 #       完成后写 _css_pii_masked 标记一条修复记录。幂等：重跑命中 0 行。
-# 用法: ./strip-email-prefix1.sh <test|uat|support-ref|support-demo|support-sync> <前缀1>[,前缀2...]
+# 用法: ./strip-email-prefix1.sh <test|uat> <前缀1>[,前缀2...]
 #   例: ./strip-email-prefix1.sh uat swp,spw
 # 不支持 prod（prod 未做 swp 排除脱敏，不存在本误伤场景）。
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
-ENV_NAME="${1:?用法: strip-email-prefix1.sh <test|uat|support-ref|support-demo|support-sync> <前缀1>[,前缀2...]}"
+ENV_NAME="${1:?用法: strip-email-prefix1.sh <test|uat> <前缀1>[,前缀2...]}"
 PREFIX_CSV="${2:?需要至少一个邮箱前缀，逗号分隔，如 swp,spw}"
 REGION="us-east-1"
 case "$ENV_NAME" in
-  test|uat|support-ref|support-demo|support-sync) ;;
-  *) echo "环境必须是 test|uat|support-ref|support-demo|support-sync（不支持 prod）"; exit 1 ;;
+  test|uat) ;;
+  *) echo "环境必须是 test|uat（不支持 prod）"; exit 1 ;;
 esac
 
 # 前缀会拼进 SQL 字面量，只放行安全字符，防注入（与 anonymize-db.sh 同规则）

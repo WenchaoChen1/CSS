@@ -23,7 +23,7 @@
 | 环境 | AWS 账号 | 区域 | 角色 |
 |------|----------|------|------|
 | `staging` / `dev` / `preprod` | **老账号 `021213872872`** | eu-central-1 | 原团队遗留环境（全容器、无 RDS）→ **数据迁移的来源** |
-| `test` / `uat` / `prod` / `support-ref` / `support-demo` / `support-sync` / `dev` | **新账号 larry `582797602427`** | us-east-1 | 我方新建环境（EC2 + ECR + RDS + S3）→ **部署目标**。共 7 个：前三个是主链路；三个 `support-*` 是给支持/演示用的旁路环境；`dev` 只有 S3 桶+IAM 用户供本地开发直传 |
+| `test` / `uat` / `prod` / `dev` | **新账号 larry `582797602427`** | us-east-1 | 我方新建环境（EC2 + ECR + RDS + S3）→ **部署目标**。共 4 个：前三个是主链路；`dev` 只有 S3 桶+IAM 用户供本地开发直传。（三个 `support-*` 旁路环境已于 **2026-11-06 下线**：EC2/ALB/SG/ECR/IAM/SSM/告警/库全删，只保留 S3 桶 `css-support-*-582797602427` 与最终 AMI，记录见 `docs/环境运维执行脚本/support环境下线记录-2026-11-06.md`） |
 
 - **老账号（迁移源，正在退役）**：三台均已开通 SSH——`preprod`(3.74.51.100)、`dev`(3.124.149.172)、`stage`(52.28.87.199)，用 `docs/老aws账号/` 的脚本把 DB / docker env / S3 拉到本机 `备份/`。
   ⚠️ **2026-08-22 已停服**：preprod 的前端/kafka/kafka-ui/rabbitmq 与**两个数据库**；dev 与 stage 的 kafka/kafka-ui/rabbitmq/**两个数据库**。停法与回滚见 `docs/老aws账号/停老环境容器.sh`（容器 `restart=unless-stopped` 防复活，数据卷原地保留；回滚 = `docker update --restart=always` + `docker start`）。**这三个环境的库已不可读**，需要数据请先回滚启库。

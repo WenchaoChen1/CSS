@@ -14,7 +14,7 @@
 ### `db-tunnel.sh` — 一键打开【本机 → RDS】SSH 隧道，供 Navicat/DBeaver/psql 直连（不经过应用代码）
 
 ```bash
-./db-tunnel.sh <test|uat|support-ref|support-demo|support-sync|prod> [本地端口]   # 端口缺省 5433；前台运行，Ctrl+C 关闭
+./db-tunnel.sh <test|uat|prod> [本地端口]   # 端口缺省 5433；前台运行，Ctrl+C 关闭
 ./db-tunnel.sh test                        # 然后客户端连 localhost:5433
 ./db-tunnel.sh uat 5434                    # 同时开两条隧道时用不同端口
 ./db-tunnel.sh test --check                # 只探测链路是否通，不驻留
@@ -28,7 +28,7 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 ### `create-databases.sh` — 在 RDS 实例上按规范创建各环境业务库（ocr 库自动加 pgvector 扩展）
 
 ```bash
-./create-databases.sh <rds主机> '<master密码>' <env...>       # env 可多个：test|uat|support-ref|support-demo|support-sync|prod
+./create-databases.sh <rds主机> '<master密码>' <env...>       # env 可多个：test|uat|prod
 ./create-databases.sh <rds主机> '<master密码>' test uat       # 非生产实例建 test+uat 四个库
 ./create-databases.sh <rds主机> '<master密码>' prod           # 生产实例建 prod 两个库
 ```
@@ -49,7 +49,7 @@ RDS endpoint 由 aws cli 动态查询（实例换了也不会过期）；启动�
 ### `backup-env-db.sh` — 在本机把某环境的 RDS 业务库经堡垒机 pg_dump 备份成本机文件
 
 ```bash
-SRC_PGPASSWORD='<css_ops 密码>' ./backup-env-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [输出目录]
+SRC_PGPASSWORD='<css_ops 密码>' ./backup-env-db.sh <test|uat|prod> [输出目录]
 SRC_PGPASSWORD=... ./backup-env-db.sh test          # 落到 备份/数据库/test/test_{main,ocr}_<时间戳>.dump
 SRC_PGPASSWORD=... ONLY=main ./backup-env-db.sh uat # 只备 main 库
 ```
@@ -61,7 +61,7 @@ SRC_PGPASSWORD=... ONLY=main ./backup-env-db.sh uat # 只备 main 库
 ### `backup-db-in-rds.sh` — 在【同一 RDS 实例内】把某环境业务库复制成 backup_ 前缀留档库（不出实例、不落文件）
 
 ```bash
-./backup-db-in-rds.sh <test|uat|support-ref|support-demo|support-sync|prod> [日期标签YYYYMMDD]
+./backup-db-in-rds.sh <test|uat|prod> [日期标签YYYYMMDD]
 ./backup-db-in-rds.sh test            # css-test-{main,ocr} → backup_<今天>_test_{main,ocr}
 ONLY=main ./backup-db-in-rds.sh uat 20260901
 ```
@@ -69,11 +69,12 @@ ONLY=main ./backup-db-in-rds.sh uat 20260901
 - 与 `backup-env-db.sh`（落本机文件）互补：本脚本产物是**同实例上的库内快照**，重建/灌数前留档用，恢复=直接改连接串或 `rename-db.sh` 换名。
 - 链路：堡垒机上 `pg_dump -Fc | pg_restore` 流式复制；凭证自动从 Secrets Manager 取 master（建库需 CREATEDB 属性，css_ops 虽在 rds_superuser 组但属性不随成员继承，普通账号建不了库）。
 - 目标库已存在则中止（绝不覆盖既有留档）；校验源/目标 public 表数一致。留档库 owner=postgres，css_dev 要读需重跑 `make-css-dev-readonly.sh`。
-- 🚨 **用完必须 `DROP DATABASE`——这是硬要求，不是建议**：`css-non-prod` 是 **test / uat / support-ref / support-demo / support-sync 五个环境共用的一台实例**，
-  留档库堆在里面会吃掉共享磁盘；**实例磁盘塞满 = 这五个环境全部宕机**（PG 写不进去，应用整体不可用）。
+- 🚨 **用完必须 `DROP DATABASE`——这是硬要求，不是建议**：`css-non-prod` 是 **test / uat 两个环境共用的一台实例**（三个 support 环境已于 2026-11-06 下线，见 `support环境下线记录-2026-11-06.md`），
+  留档库堆在里面会吃掉共享磁盘；**实例磁盘塞满 = 这两个环境全部宕机**（PG 写不进去，应用整体不可用）。
   已被更新副本取代的旧 `backup_*` 库要及时清掉，只留最近一份。
   （2026-08-22 实查：分配 20GB、剩余 ≈17.2GB、已开启自动扩容上限 100GB——扩容能救急但会持续计费，且**缩不回去**。）
 - ✅ 2026-08-13 首次执行：`backup_20260813_test_main`（150 表/43MB）+ `backup_20260813_test_ocr`（4 表/8MB），test 重建前留档。
+- ✅ 2026-11-06 support 三环境下线前留档（同链路、用户要求英文名）：`backup_20261106_support_{ref,demo,sync}_{main,ocr}_final` 六库（owner=postgres，css_dev 只读；ref 147 表/40MB、demo 155 表/72MB ⚠️未脱敏老 dev 数据、sync 147 表/40MB）。原 `css-support-*` 六库与 `css_app_support_*` 三角色已 DROP，本机另有 `备份/数据库/css-support-*_final_2026-11-06.dump`。
 
 ### `restore-dump-via-gw.sh` — 在本机把本地 pg_dump 备份经 S3+SSM 由网关机恢复进私网 RDS（无需上机）
 
@@ -86,7 +87,7 @@ ONLY=main ./backup-db-in-rds.sh uat 20260901
 ```
 
 ```bash
-./restore-dump-via-gw.sh <test|uat|support-ref|support-demo|support-sync|prod> <main库dump> <ocr库dump>
+./restore-dump-via-gw.sh <test|uat|prod> <main库dump> <ocr库dump>
 # 例（已执行）：
 ./restore-dump-via-gw.sh test ../../../备份/数据库/preprod/preprod_main_xxx.dump \
                               ../../../备份/数据库/preprod/preprod_ocr_xxx.dump
@@ -98,7 +99,7 @@ ONLY=main ./backup-db-in-rds.sh uat 20260901
 ### `rewrite-file-urls.sh` — 把库中文件 URL 从老账号 S3 桶域名改写成本环境新桶（幂等）
 
 ```bash
-./rewrite-file-urls.sh <test|uat|support-ref|support-demo|support-sync|prod> [--dry-run] [--revert] [--old-host 域名]
+./rewrite-file-urls.sh <test|uat|prod> [--dry-run] [--revert] [--old-host 域名]
 ```
 
 - **为什么需要**：库里 `file_url` 存的是**永久直链**，从老环境导入的数据全部指向老账号桶
@@ -158,8 +159,8 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 > ⚠️ 这六个库**含老环境的真实 PII，未脱敏**。它们不接应用、仅供查数据/比对 schema；
 > 长期留存请考虑 `mask-residual-pii.sh`，或用完即 `DROP DATABASE backup_<日期>_old_<env>_main`。
 >
-> 🚨 **用完必须删，别让留档库在共享实例上堆积**：`css-non-prod` 由 test / uat / support-ref / support-demo /
-> support-sync **五个环境共用一块磁盘**，`backup_*` 库堆满 = 这五个环境**全部宕机**。
+> 🚨 **用完必须删，别让留档库在共享实例上堆积**：`css-non-prod` 由 test / uat **两个环境共用一块磁盘**（三个 support 环境已于 2026-11-06 下线，见 `support环境下线记录-2026-11-06.md`），
+> `backup_*` 库堆满 = 这两个环境**全部宕机**。
 > 每次新建留档前先 `restore-old-env-backup.sh --list` 看看有没有已被更新副本取代的旧库，有就先删。
 
 ### `rename-db.sh` — 重命名非生产 RDS 上的一个库（经 SSM 网关机执行）
@@ -192,7 +193,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 `prod` 只允许 `--emails-phones-only` 受控模式（2026-08-07 用户拍板：email 前缀 1 + phone 后缀 1，**不动口令哈希**——保留 preprod 原口令与原 PASSWORD_SALT，用户原密码可登录；需手输 `prod` 二次确认）；prod 上的整库口令统一（默认模式）永远拒绝。
 
 ```bash
-./anonymize-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [口令] [--emails-phones-only] [--skip-email-prefix P]
+./anonymize-db.sh <test|uat|prod> [口令] [--emails-phones-only] [--skip-email-prefix P]
 ./anonymize-db.sh test                                       # 口令缺省 Test1234!
 ./anonymize-db.sh prod --emails-phones-only                  # prod 专用口径（整库口令统一在 prod 永远被拒）
 ./anonymize-db.sh uat --skip-email-prefix swp                # 保留 swp* 开头的团队邮箱（不加前缀 1，仍可收信）
@@ -213,7 +214,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `strip-email-prefix1.sh` — 修复被误加前缀 `1` 的团队邮箱（anonymize 误伤的反向操作）
 
 ```bash
-./strip-email-prefix1.sh <test|uat|support-ref|support-demo|support-sync> <前缀1>[,前缀2...]
+./strip-email-prefix1.sh <test|uat> <前缀1>[,前缀2...]
 ./strip-email-prefix1.sh uat swp,spw     # 值形如 1swp*/1spw* 的邮箱去掉最前面的 1
 # 已执行（2026-08-24）：./strip-email-prefix1.sh uat swp,spw —— 命中 62 行（company 4 / store 1 / user 57，全部 1spw*），残留 0
 ```
@@ -257,10 +258,10 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 >
 > **`mask-residual-pii.sh` 本体没有任何 `swp` 排除逻辑**（2026-08-22 实查确认，脚本里搜不到 `swp` / `skip`）。
 > 要在 test / uat 上跑，**必须先给它加上与 `anonymize-db.sh --skip-email-prefix` 相同的排除条件**，
-> 否则不要执行。support-ref / support-demo / support-sync 不受此限（未用该参数）。
+> 否则不要执行。
 
 ```bash
-./mask-residual-pii.sh <test|uat|support-ref|support-demo|support-sync>   # 默认 residual 模式：只处理【歧义/未脱敏】的行
+./mask-residual-pii.sh <test|uat>   # 默认 residual 模式：只处理【歧义/未脱敏】的行
 ./mask-residual-pii.sh test --all          # 彻底模式：全部 email/phone 换合成值（⚠️ 测试账号登录名会变）
 ```
 
@@ -286,7 +287,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `add-readonly-db-account.sh` — 给某环境两库追加一个【只读】角色（纯增量，不轮换任何既有密码）
 
 ```bash
-./add-readonly-db-account.sh <rds主机> <master密码> <test|uat|support-ref|support-demo|support-sync|prod> [角色名=css_dev] [--rotate]
+./add-readonly-db-account.sh <rds主机> <master密码> <test|uat|prod> [角色名=css_dev] [--rotate]
 # prod 已执行（2026-08-10，在 css-prod-bastion 上）：建 css_dev 只读，实测 147+4 表可 SELECT、可 INSERT=0
 ```
 
@@ -339,7 +340,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `reown-db-objects.sh` — 把库内 public schema 存量对象的 owner 从 master(postgres) 移交给 css_app_&lt;env&gt;
 
 ```bash
-./reown-db-objects.sh <rds主机> <master密码> <test|uat|support-ref|support-demo|support-sync|prod>
+./reown-db-objects.sh <rds主机> <master密码> <test|uat|prod>
 ./reown-db-objects.sh <rds主机> <master密码> test    # 移交 css-test-main / css-test-ocr 两库的对象 owner
 ```
 
@@ -351,7 +352,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `reown-via-gw.sh` — 上面那个 reown 的**推荐入口**：在堡垒机上跑，master 密码不出 AWS
 
 ```bash
-./reown-via-gw.sh <test|uat|support-ref|support-demo|support-sync|prod>
+./reown-via-gw.sh <test|uat|prod>
 ```
 
 `reown-db-objects.sh` 需要你把 `<rds主机> <master密码>` 敲在命令行上；本脚本把它 base64 传到堡垒机执行，
@@ -364,7 +365,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 ### `drop-env-databases.sh` — 删除某环境的两个业务库（⚠️ 破坏性，"删库重建"流程用）
 
 ```bash
-./drop-env-databases.sh <test|uat|support-ref|support-demo|support-sync|prod>          # 预演：只打印将删什么、各多大
+./drop-env-databases.sh <test|uat|prod>          # 预演：只打印将删什么、各多大
 ./drop-env-databases.sh uat --yes                                                     # 实删（另需手输环境名二次确认）
 ./drop-env-databases.sh prod --yes --allow-prod                                       # ⚠️ 生产（见下）
 ./drop-env-databases.sh uat --yes --no-snapshot                                        # 跳过快照（不建议）
@@ -387,7 +388,7 @@ dump 来自 `../../老aws账号/拉取三环境.sh`，日期后缀缺省从 dump
 
 ```bash
 SRC_PGPASSWORD='<RDS 密码>' TARGET_PGPASSWORD='<目标库密码>' \
-  ./sync-rds-to-intranet.sh <test|uat|support-ref|support-demo|support-sync|prod> <源库名> <目标host:port> <目标新库名> [目标用户]
+  ./sync-rds-to-intranet.sh <test|uat|prod> <源库名> <目标host:port> <目标新库名> [目标用户]
 # 例：把 css-test-main 拉到办公网机器建快照库
 SRC_PGPASSWORD=... TARGET_PGPASSWORD=... \
   ./sync-rds-to-intranet.sh test css-test-main 192.168.1.17:5434 css-test-main-20260807
@@ -408,16 +409,16 @@ RDS ──VPC 内──> 堡垒机: pg_dump | pg_restore ──> 堡垒机 127.0
 
 ```bash
 ./sync-s3-env-bucket.sh <源env> <目标env> [--dry-run]
-./sync-s3-env-bucket.sh uat support-ref            # 2026-08-07 建 support-ref 时的实际用法
+./sync-s3-env-bucket.sh uat support-ref            # 2026-08-07 建 support-ref 时的实际用法（三个 support 环境已于 2026-11-06 下线，仅作示例）
 ```
 
 **典型用途**：新环境的库数据是某源环境的副本时，`file_url` 引用的对象也得有一份——
 配合 `rewrite-file-urls.sh <env> --old-base <源桶前缀>` 完成"数据 + 文件 + URL"三件套。
 
-- 服务端复制，**不经本机流量**；环境白名单 `test|uat|support-ref|support-demo|support-sync|prod`，目标是 prod 需手输 `prod` 确认。
+- 服务端复制，**不经本机流量**；环境白名单 `test|uat|prod`，目标是 prod 需手输 `prod` 确认。
 - 幂等：`aws s3 sync` 只复制缺失/更新的对象，重跑零副作用；**不带 `--delete`**，绝不删目标桶已有对象。
 - 与老账号那侧的分工：老桶 → 新账号走 `../../老aws账号/migrate-s3-to-new.sh`（白名单只有 `test|uat|prod|dev`，
-  **不含三个 support 环境**）；support 环境的桶数据一律用本脚本从新账号内部同步。
+  **不含已下线的三个 support 环境**）；新账号内环境间的桶数据同步一律用本脚本。
 
 ## 可视化页面
 

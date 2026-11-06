@@ -11,7 +11,7 @@
 ### `build-images.sh` — 本地只构建、不推送镜像（产物留在本机 Docker，规格与推送版完全一致）
 
 ```bash
-./build-images.sh <test|uat|support-ref|support-demo|support-sync|prod> [tag] [backend|frontend|all]   # tag 缺省 <env>-local-<后端git sha7>；scope 缺省 backend
+./build-images.sh <test|uat|prod> [tag] [backend|frontend|all]   # tag 缺省 <env>-local-<后端git sha7>；scope 缺省 backend
 ./build-images.sh test                    # 构建 6 个后端镜像（本机验证构建能过）
 ./build-images.sh test '' all             # 后端 + 前端（需同级存在 ../CSS_frontend-main）
 ./build-images.sh uat uat-local1 frontend # 显式 tag，只构建前端
@@ -22,7 +22,7 @@
 ### `push-ecr.sh` — 本机手动构建并推送 7 个镜像到该环境 ECR（渲染配置 → ECR 登录 → 构建 → 双 tag 推送；CI 的备用/首次灌仓通道）
 
 ```bash
-./push-ecr.sh <test|uat|support-ref|support-demo|support-sync|prod> [tag]    # tag 缺省 <env>-manual-<后端git sha7>
+./push-ecr.sh <test|uat|prod> [tag]    # tag 缺省 <env>-manual-<后端git sha7>
 ./push-ecr.sh test                     # CI 挂了应急 / 新环境首次灌镜像
 ./push-ecr.sh uat uat-manual2          # 显式 tag
 ./push-ecr.sh prod                     # 谨慎：正式流程应走 CI 的 main 分支 + 手动 Run workflow
@@ -34,11 +34,11 @@
 或 `<env>-local-<sha7>`（build-images），刻意与 CI 序列分开。push 时同时更新 `<env>` 浮动 tag，
 EC2 的 compose 默认拉浮动 tag。
 
-### `remote-build-push.sh` — 云上应用机构建并推送（本机无 Docker 时的通道；support-ref 无 CI 的正规重建入口）
+### `remote-build-push.sh` — 云上应用机构建并推送（本机无 Docker 时的通道；无 CI 的环境或 CI 不可用时的正规重建入口）
 
 ```bash
-./remote-build-push.sh <test|uat|support-ref|support-demo|support-sync|prod> [tag] [backend|frontend|all]   # tag 缺省 <env>-manual-<sha7>；scope 缺省 all
-./remote-build-push.sh support-ref             # support-ref 全量重建（约 20-60 分钟）
+./remote-build-push.sh <test|uat|prod> [tag] [backend|frontend|all]   # tag 缺省 <env>-manual-<sha7>；scope 缺省 all
+./remote-build-push.sh uat                     # uat 全量重建（约 20-60 分钟）
 ```
 
 流程：本地渲染配置 → 打包前后端源码+`deploy-env/<env>` → 临时 S3 中转（预签名 URL，桶/对象用完即删）→

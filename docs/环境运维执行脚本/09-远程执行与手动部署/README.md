@@ -7,7 +7,7 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ### `setup-ssm.sh` — 把一台 EC2 配置成 SSM Run Command 可达的部署目标（挂实例角色 + 打 Environment 标签 + 验证 Online）
 
 ```bash
-./setup-ssm.sh <test|uat|support-ref|support-demo|support-sync|prod> <instance-id>    # 环境名 + 目标实例 id
+./setup-ssm.sh <test|uat|prod> <instance-id>    # 环境名 + 目标实例 id
 ./setup-ssm.sh test i-0cb9b69b9eb19a9aa         # 给 test 机补配/排查 SSM 可达性
 ```
 
@@ -17,7 +17,7 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ### `run.sh` — 经 SSM Run Command 在目标环境 EC2 上执行任意命令（免 SSH/22/pem），等待完成并回显输出
 
 ```bash
-./run.sh <test|uat|support-ref|support-demo|support-sync|prod> '<shell 命令>'                          # 目标机按标签 Environment=css-<env> 且 SSM Online 定位
+./run.sh <test|uat|prod> '<shell 命令>'                          # 目标机按标签 Environment=css-<env> 且 SSM Online 定位
 ./run.sh test 'docker ps --format "{{.Names}} {{.Status}}"'      # 查看 test 环境三栈容器状态
 ```
 
@@ -26,7 +26,7 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ### `deploy-env.sh` — 手动部署一个环境（CI 之外的兜底/回滚入口；日常部署已由 CI 自动执行）：打包 Backend 仓库 deploy/{compose,config,bin} → 经 SSM 上传到目标机 /opt/css-cicd/ → 执行 deploy.sh
 
 ```bash
-./deploy-env.sh <test|uat|support-ref|support-demo|support-sync|prod> [stack] [image_tag]   # stack: all(默认)|core(=infra+backend)|infra|backend|frontend
+./deploy-env.sh <test|uat|prod> [stack] [image_tag]   # stack: all(默认)|core(=infra+backend)|infra|backend|frontend
 ./deploy-env.sh test                                  # 全量部署 test（缺省用浮动 <env> tag，即最近一次 CI 推送）
 ./deploy-env.sh test backend test-v12                 # 只部署后端并回滚/固定到不可变版本 tag
 ./deploy-env.sh test migrate                          # 数据库迁移（特殊 stack 值，执行 alembic upgrade head）
@@ -37,9 +37,9 @@ SSM Run Command 是 CI/CD 从 GitHub 通向（私网）EC2 的命令通道：**�
 ### `ec2-power.sh` — 停机 / 启动 / 查看某环境的应用 EC2（暂停不常用环境省钱；stopped 实例只计 EBS 费）
 
 ```bash
-./ec2-power.sh <stop|start|status> <env> [env ...]           # env: test|uat|support-ref|support-demo|support-sync|prod
-./ec2-power.sh stop support-ref support-demo support-sync      # 2026-09-04：暂停三台 support 机
-./ec2-power.sh start support-demo                              # 恢复；容器随机自起，三栈约 2 分钟内可用
+./ec2-power.sh <stop|start|status> <env> [env ...]           # env: test|uat|prod
+./ec2-power.sh stop uat                                        # 暂停 uat 机（2026-09-04 首用于三台 support 机，该三环境已于 2026-11-06 下线）
+./ec2-power.sh start uat                                       # 恢复；容器随机自起，三栈约 2 分钟内可用
 ```
 
 - `stop` 先关闭该环境全部 `css-<env>-*` 告警动作（否则 `alb-no-healthy-target`/`ec2-status-check` 翻 ALARM 发邮件）再停机并等待 stopped；`start` 启动、等状态检查通过后再恢复告警动作。
@@ -95,7 +95,7 @@ aws ssm describe-instance-information --filters "Key=tag:Environment,Values=css-
 ### 用法
 
 ```
-/opt/css-cicd/bin/deploy.sh <test|uat|support-ref|support-demo|support-sync|prod> [action] [stack] [image_tag]
+/opt/css-cicd/bin/deploy.sh <test|uat|prod> [action] [stack] [image_tag]
 ```
 
 | 参数 | 取值 |
@@ -182,7 +182,7 @@ EC2 /opt/css-cicd/env/<env>/backend.env         ← 渲染件（chmod 600）
 
 ## 七、常用运维命令速查表
 
-以下命令都在工作区根目录（git-bash）直接执行，`test` 可换成 `uat|prod|support-ref|support-demo|support-sync`（新账号现有 7 个环境，其中 `dev` 只在本机跑、无 EC2）：
+以下命令都在工作区根目录（git-bash）直接执行，`test` 可换成 `uat|prod`（新账号现有 4 个环境，其中 `dev` 只在本机跑、无 EC2）：
 
 | 干什么 | 命令 |
 |--------|------|
@@ -238,5 +238,5 @@ aws secretsmanager get-secret-value --region us-east-1 \
 - `down` infra 栈会丢 kafka 未消费的 2FA 验证码（kafka 不落盘，设计如此）；
 - prod migrate 前 workflow 自动打 RDS 快照，但**人工核对 `alembic_version` 在代码迁移链上**不能省；
 - 回滚入口优先走 `deploy-env.sh <env> <stack> <旧tag>`（可用 tag 看 ECR 或 `.last_good_<env>`）；
-- 状态（2026-08-22）：新账号现有 **7 个环境**——`test` / `uat` / `prod` / `support-ref` / `support-demo` / `support-sync` 六个在 AWS 上跑（各自应用机三栈已部署、SSM Online），`dev` 只在本机跑。**prod 已于 2026-08-07 建成三栈，2026-08-22 完成产品正式切换**（域名 `chain-serve.com`）。角色/标签由 Terraform 管理，无需再跑 setup-ssm。具体实例 ID/地址见 `css-terraform/环境实况/` 与 `../运维访问速查.local.md`。
+- 状态（2026-11-06）：新账号现有 **4 个环境**——`test` / `uat` / `prod` 三个在 AWS 上跑（各自应用机三栈已部署、SSM Online），`dev` 只在本机跑；三个 `support-*` 旁路环境已于 2026-11-06 下线（EC2/ALB/ECR/IAM/SSM/监控全删，只留 S3 桶与 AMI，见 [`support环境下线记录-2026-11-06.md`](../support环境下线记录-2026-11-06.md)）。**prod 已于 2026-08-07 建成三栈，2026-08-22 完成产品正式切换**（域名 `chain-serve.com`）。角色/标签由 Terraform 管理，无需再跑 setup-ssm。具体实例 ID/地址见 `css-terraform/环境实况/` 与 `../运维访问速查.local.md`。
   > 以下为 2026-07-31 时的记录：`css-test-app`（i-0cb9b69b9eb19a9aa）三栈已部署、SSM Online；`css-uat-app`（i-0f90c5c061d640a27）已建机未部署（两台 2026-07-30 由 css-terraform 重建，实例 ID 变更）；prod 应用机等 Paid plan（`enable_prod_compute` 门控）。

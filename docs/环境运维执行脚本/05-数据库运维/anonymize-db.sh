@@ -10,7 +10,7 @@
 # prod：仅允许 --emails-phones-only 模式（2026-08-07 用户拍板：prod 数据源自 preprod，要求邮箱前加 1、
 #       手机号后加 1，但【不动口令哈希】——保留 preprod 原口令 + 原 PASSWORD_SALT，用户仍可原口令登录），
 #       且须手输 prod 二次确认。整库口令统一（默认模式）在 prod 永远拒绝。
-# 用法: ./anonymize-db.sh <test|uat|support-ref|support-demo|support-sync> [口令，默认 Test1234!] [--emails-phones-only]
+# 用法: ./anonymize-db.sh <test|uat> [口令，默认 Test1234!] [--emails-phones-only]
 #       ./anonymize-db.sh prod --emails-phones-only
 #       ./anonymize-db.sh uat --emails-phones-only --skip-email-prefix swp
 #         （--skip-email-prefix P：email 以 P 开头（不区分大小写）的行不加前缀 1——用于保留自有团队邮箱可收信。
@@ -18,7 +18,7 @@
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
-ENV_NAME="${1:?用法: anonymize-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [口令] [--emails-phones-only] [--skip-email-prefix P]}"
+ENV_NAME="${1:?用法: anonymize-db.sh <test|uat|prod> [口令] [--emails-phones-only] [--skip-email-prefix P]}"
 shift || true
 NEW_PASSWORD="Test1234!"
 PII_ONLY=0
@@ -39,7 +39,7 @@ while [ $# -gt 0 ]; do
 done
 REGION="us-east-1"
 case "$ENV_NAME" in
-  test|uat|support-ref|support-demo|support-sync) ;;
+  test|uat) ;;
   prod)
     if [ "$PII_ONLY" != "1" ]; then
       echo "拒绝：prod 只允许 --emails-phones-only 模式（只加邮箱前缀/手机号后缀，不改任何口令）"; exit 1
@@ -49,7 +49,7 @@ case "$ENV_NAME" in
     read -r CONFIRM
     [ "$CONFIRM" = "prod" ] || { echo "已取消"; exit 1; }
     ;;
-  *) echo "环境必须是 test|uat|support-ref|support-demo|support-sync|prod"; exit 1 ;;
+  *) echo "环境必须是 test|uat|prod"; exit 1 ;;
 esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

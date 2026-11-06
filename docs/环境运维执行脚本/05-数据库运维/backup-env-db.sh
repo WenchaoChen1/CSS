@@ -5,7 +5,7 @@
 # 本机不需要装 pg 客户端（pg_dump 用堡垒机上的 16.x，与 RDS PG16 匹配）。
 #
 # 用法:
-#   SRC_PGPASSWORD='<账号密码>' ./backup-env-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [输出目录]
+#   SRC_PGPASSWORD='<账号密码>' ./backup-env-db.sh <test|uat|prod> [输出目录]
 # 例:
 #   SRC_PGPASSWORD=... ./backup-env-db.sh test        # 落到 备份/数据库/test/test_{main,ocr}_<时间戳>.dump
 #   SRC_PGPASSWORD=... ONLY=main ./backup-env-db.sh uat /d/dumps
@@ -21,8 +21,8 @@
 set -uo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"  # git-bash: 防参数被误转成 Windows 路径
 
-ENV_NAME="${1:?用法: SRC_PGPASSWORD=... backup-env-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [输出目录]}"
-case "$ENV_NAME" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|support-sync|prod"; exit 1 ;; esac
+ENV_NAME="${1:?用法: SRC_PGPASSWORD=... backup-env-db.sh <test|uat|prod> [输出目录]}"
+case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境必须是 test|uat|prod"; exit 1 ;; esac
 : "${SRC_PGPASSWORD:?缺 SRC_PGPASSWORD（源 RDS 账号密码，见 deploy-env/密码.local.md）}"
 SRC_DB_USER="${SRC_DB_USER:-css_ops}"
 REGION=us-east-1
@@ -34,7 +34,7 @@ TS="$(date +%Y%m%d_%H%M%S)"
 # ---- 堡垒机 + RDS（按环境组；与 db-tunnel.sh 保持一致）----
 SSH_DIR="$(cd "$SCRIPT_DIR/../../../deploy-env/ssh" && pwd)"
 case "$ENV_NAME" in
-  test|uat|support-ref|support-demo|support-sync) BASTION_IP=3.225.148.166; KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
+  test|uat) BASTION_IP=3.225.148.166; KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
   prod)                                           BASTION_IP=34.225.237.45; KEY="$SSH_DIR/css-prod-bastion";    RDS_ID=css-prod ;;
 esac
 KEY="${DEV_KEY:-$KEY}"

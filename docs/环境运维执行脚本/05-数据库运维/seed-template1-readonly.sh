@@ -22,7 +22,7 @@ RDS_ID="$TARGET"; GW_GROUP="$TARGET"
 if [ "$TARGET" = "css-prod" ]; then
   OWNER_ROLES="css_app_prod"
 else
-  OWNER_ROLES="css_app_test css_app_uat css_app_support_ref css_app_support_demo css_app_support_sync"
+  OWNER_ROLES="css_app_test css_app_uat"
 fi
 
 awsq() { aws --region "$REGION" --output text "$@" | tr -d '\r'; }

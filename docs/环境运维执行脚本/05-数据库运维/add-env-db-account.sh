@@ -6,15 +6,15 @@
 # 一并轮换掉导致全环境掉线。本脚本只做增量：建 css_app_<env> + 授权到 css-<env>-main/ocr，
 # 并给 css_dev 补上对新库的只读授权（角色须已存在，即 create-db-accounts.sh 已跑过的实例）。
 #
-# 角色名：PG 角色名不允许连字符，环境名里的 - 统一转 _（support-ref → css_app_support_ref）。
+# 角色名：PG 角色名不允许连字符，环境名里的 - 统一转 _（历史例：support-ref → css_app_support_ref；现有 test/uat/prod 无连字符）。
 # 前置：库已由 create-databases.sh 建好。授权口径与 create-db-accounts.sh 完全一致。
 # ⚠️ 在 VPC 内机器（应用机/网关机隧道)上执行；psql 用 docker postgres:16 提供。
-# 用法: ./add-env-db-account.sh <rds主机> <master密码> <env>   例: ./add-env-db-account.sh xxx.rds.amazonaws.com 'pw' support-ref
+# 用法: ./add-env-db-account.sh <rds主机> <master密码> <env>   例: ./add-env-db-account.sh xxx.rds.amazonaws.com 'pw' uat
 set -euo pipefail
 
 HOST="${1:?用法: add-env-db-account.sh <rds主机> <master密码> <env>}"
 PASS="${2:?缺 master 密码}"
-ENV_NAME="${3:?缺环境名，例: support-ref}"
+ENV_NAME="${3:?缺环境名，例: uat}"
 case "$ENV_NAME" in
   test|uat) echo "[FATAL] $ENV_NAME 的账号由 create-db-accounts.sh 管理（含轮换语义），不要在这里重建"; exit 1 ;;
   prod) echo "[FATAL] prod 在独立 RDS 实例，走 create-db-accounts.sh 的 prod 流程"; exit 1 ;;

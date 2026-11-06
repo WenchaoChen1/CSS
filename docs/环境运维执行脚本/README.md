@@ -48,7 +48,7 @@ SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命�
 | 08 | [`08-github-actions-cicd/`](08-github-actions-cicd/README.md) | `setup-github-actions.sh` | GitHub Actions 配置与使用手册（Variables/Environments 一键配置） |
 | 09 | [`09-远程执行与手动部署/`](09-远程执行与手动部署/README.md) | `setup-ssm.sh`、`run.sh <env> '<命令>'`、`deploy-env.sh <env> [stack] [tag]` | SSM 命令通道：远程执行、手动部署/回滚（CI 之外的兜底入口） |
 | 10 | [`10-服务自愈与开机自启/`](10-服务自愈与开机自启/README.md) | `setup-autodeploy.sh <env>`、`setup-cw-agent.sh`（装 CloudWatch Agent 采磁盘/内存）、`prune-docker-images.sh`（清 docker 历史镜像） | 已部署服务的开机自启 + 冒烟自愈（**非发版工具**）+ 机器侧监控与磁盘回收。`setup-autodeploy.sh` **⏸ 暂不使用**：安装需负责人确认（脚本内置 CONFIRM 闸）；TF 重建机器后会丢，需重装 |
-| 11 | [`11-parameter-store/`](11-parameter-store/README.md) | `put-params.sh <env>` | 把工作区根 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（运行时配置唯一事实源）。**六个 AWS 环境共 12 个参数均已灌入并在用**（test/uat/prod/support-ref/support-demo/support-sync；2026-08-22 实查。dev 只在本机跑，不入 SSM） |
+| 11 | [`11-parameter-store/`](11-parameter-store/README.md) | `put-params.sh <env>` | 把工作区根 `deploy-env/<env>/` 底稿灌入 `/css/<env>/*`（运行时配置唯一事实源）。**三个 AWS 环境共 6 个参数均已灌入并在用**（test/uat/prod；2026-11-06 复核——support-ref/demo/sync 的 6 个参数已随三环境下线删除。dev 只在本机跑，不入 SSM） |
 | 12 | [`12-成本账单/`](12-成本账单/README.md) | `activate-cost-tags.sh`、`backfill-resource-tags.sh`（给存量资源补打标签） | 成本分摊标签激活（✅ 07-31 两键已激活，幂等）；账单侧脚本归口 |
 | — | 根目录 | [`职责划分.md`](职责划分.md) | 本目录脚本管什么/不管什么 + 部署分工 + 快速索引（Terraform 侧职责见 css-terraform CLAUDE.md §一） |
 
@@ -81,10 +81,10 @@ SSM + deploy.sh（→ [09](09-远程执行与手动部署/README.md)）管"命�
 - **网络三铁律**：① SSH 只经堡垒机（仅白名单 IP）；② 系统 Web 只经本环境 ALB（kafka-ui 只走开发入口 ALB
   `css-non-prod-entry`，白名单）；③ RDS 只能内网访问。
 - **非生产数据必须脱敏**：从 preprod/生产导入真实数据后跑
-  `05-数据库运维/anonymize-db.sh <test|uat|support-ref|support-demo|support-sync|prod> [--emails-phones-only] [--skip-email-prefix P]`
+  `05-数据库运维/anonymize-db.sh <test|uat|prod> [--emails-phones-only] [--skip-email-prefix P]`
   （email 前缀 `1`、phone 后缀 `1`、口令统一测试值）。
   - `--skip-email-prefix swp`：保留 `swp*` 开头的团队邮箱不加前缀，让它们仍能真实收信——**test / uat 现在都是这个口径**。
     ⚠️ 因此这两库**不可直接跑 `mask-residual-pii.sh`**（它会把这些邮箱当残留抹掉，本体无 `swp` 排除逻辑）。
   - `prod` **不再被直接拒绝**：允许 `--emails-phones-only` 受控模式（只加邮箱前缀/手机号后缀、**不动口令哈希**，
     需手输 `prod` 二次确认）；整库口令统一在 prod 永远被拒。
-  - **两个刻意不脱敏的例外**：`prod`（2026-08-22 产品切换后=真实生产数据）与 `support-demo`（老 dev 数据原样）。
+  - **刻意不脱敏的例外**：`prod`（2026-08-22 产品切换后=真实生产数据）。（历史：`support-demo` 曾是第二个例外——老 dev 数据原样；该环境已于 2026-11-06 下线。）

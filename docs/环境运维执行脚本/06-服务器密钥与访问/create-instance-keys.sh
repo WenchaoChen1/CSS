@@ -27,10 +27,10 @@ PERSONAL_LINE="$(tr -d '\r\n' < "$PERSONAL_PUB")"
 PERSONAL_NAME="$(basename "$PERSONAL_PUB" .pub)"
 
 # 实例名:key pair 名
-# support-ref（2026-08-07 加）：实例由 css-terraform 以 key_name=css-support-ref 新建——建机前先跑本脚本
+# 历史：support-ref（2026-08-07）曾以 key_name=css-support-ref 由 css-terraform 建机——建机前先跑本脚本预注册钥（三个 support 环境已于 2026-11-06 下线，key pair 已删）
 # 生成 key pair（实例还不存在时本脚本只建钥、跳过 authorized_keys 写入，新机 cloud-init 会自动装公钥）。
-# prod（2026-08-07 加）：css-prod/prod/ec2 以 key_name=css-prod-app 建机，同 support-ref 模式先预注册钥。
-PAIRS="css-test-app:css-test css-uat-app:css-uat css-support-ref-app:css-support-ref css-support-demo-app:css-support-demo css-support-sync-app:css-support-sync css-prod-app:css-prod-app css-non-prod-bastion:css-non-prod-gw"
+# prod（2026-08-07 加）：css-prod/prod/ec2 以 key_name=css-prod-app 建机，同样先预注册钥。
+PAIRS="css-test-app:css-test css-uat-app:css-uat css-prod-app:css-prod-app css-non-prod-bastion:css-non-prod-gw"
 
 for entry in $PAIRS; do
   INST_NAME="${entry%%:*}"; KEYNAME="${entry##*:}"

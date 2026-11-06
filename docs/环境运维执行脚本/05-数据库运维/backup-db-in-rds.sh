@@ -10,7 +10,7 @@
 #       建库需要 CREATEDB 属性，css_ops 虽在 rds_superuser 组但属性不随成员继承，普通账号建不了库。
 #
 # 用法:
-#   ./backup-db-in-rds.sh <test|uat|support-ref|support-demo|support-sync|prod> [日期标签YYYYMMDD]
+#   ./backup-db-in-rds.sh <test|uat|prod> [日期标签YYYYMMDD]
 # 例:
 #   ./backup-db-in-rds.sh test            # 建 backup_<今天>_test_main / _ocr
 #   ONLY=main ./backup-db-in-rds.sh uat 20260901
@@ -26,16 +26,16 @@
 set -uo pipefail
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*"
 
-ENV_NAME="${1:?用法: backup-db-in-rds.sh <test|uat|support-ref|support-demo|support-sync|prod> [YYYYMMDD]}"
-case "$ENV_NAME" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "环境必须是 test|uat|support-ref|support-demo|support-sync|prod"; exit 1 ;; esac
+ENV_NAME="${1:?用法: backup-db-in-rds.sh <test|uat|prod> [YYYYMMDD]}"
+case "$ENV_NAME" in test|uat|prod) ;; *) echo "环境必须是 test|uat|prod"; exit 1 ;; esac
 DATE_TAG="${2:-$(date +%Y%m%d)}"
 REGION=us-east-1
-ENV_TAG="${ENV_NAME//-/_}"   # 库名里环境连字符换下划线（backup_20260813_support_ref_main）
+ENV_TAG="${ENV_NAME//-/_}"   # 库名里环境连字符换下划线（backup_20260813_test_main）
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SSH_DIR="$(cd "$SCRIPT_DIR/../../../deploy-env/ssh" && pwd)"
 case "$ENV_NAME" in
-  test|uat|support-ref|support-demo|support-sync) BASTION_IP=3.225.148.166; KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
+  test|uat) BASTION_IP=3.225.148.166; KEY="$SSH_DIR/css-non-prod-gw.pem"; RDS_ID=css-non-prod ;;
   prod)                                           BASTION_IP=34.225.237.45; KEY="$SSH_DIR/css-prod-bastion";    RDS_ID=css-prod ;;
 esac
 KEY="${DEV_KEY:-$KEY}"

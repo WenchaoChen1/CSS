@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # 停机 / 启动 / 查看某环境的应用 EC2（css-<env>-app），用于暂停不常用环境省钱（stopped 实例只计 EBS 费）。
-# 用法: ./ec2-power.sh <stop|start|status> <env> [env ...]     env ∈ test|uat|support-ref|support-demo|support-sync|prod
-#   ./ec2-power.sh stop support-ref support-demo support-sync   # 2026-09-04 首用：暂停三台 support 机
-#   ./ec2-power.sh start support-demo                            # 恢复（容器 restart=always/unless-stopped 随机自起，三栈约 2 分钟内可用）
-#   ./ec2-power.sh status support-ref support-demo support-sync  # 只读查看
+# 用法: ./ec2-power.sh <stop|start|status> <env> [env ...]     env ∈ test|uat|prod
+#   ./ec2-power.sh stop uat            # 暂停 uat 机（2026-09-04 首用于三台 support 机；三个 support 环境已于 2026-11-06 下线）
+#   ./ec2-power.sh start uat           # 恢复（容器 restart=always/unless-stopped 随机自起，三栈约 2 分钟内可用）
+#   ./ec2-power.sh status test uat     # 只读查看
 # 行为：
 #   stop  = 先 disable-alarm-actions 该环境全部 css-<env>-* 告警（否则 alb-no-healthy-target / ec2-status-check 会翻 ALARM 发 SNS 邮件），再 stop-instances 并等待 stopped
 #   start = start-instances 并等待 running + 状态检查通过，再 enable-alarm-actions 恢复告警
@@ -19,7 +19,7 @@ REGION="${AWS_REGION:-us-east-1}"
 case "$ACTION" in stop|start|status) ;; *) echo "未知动作 $ACTION（stop|start|status）"; exit 1;; esac
 
 for e in "$@"; do
-  case "$e" in test|uat|support-ref|support-demo|support-sync|prod) ;; *) echo "未知环境 $e"; exit 1;; esac
+  case "$e" in test|uat|prod) ;; *) echo "未知环境 $e"; exit 1;; esac
 done
 if [ "$ACTION" != "status" ] && printf '%s\n' "$@" | grep -qx prod; then
   read -r -p "将对【prod】执行 $ACTION，请输入 prod 确认: " ans; [ "$ans" = "prod" ] || { echo "已取消"; exit 1; }

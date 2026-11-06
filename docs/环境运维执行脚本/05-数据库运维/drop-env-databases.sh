@@ -15,8 +15,8 @@
 #   ④ 删前自动打整实例快照 pre-drop-<env>-<时间戳>（删错还能恢复；手动快照不会自动过期，用完记得删）
 #
 # 用法:
-#   ./drop-env-databases.sh <test|uat|support-ref|support-demo|support-sync>                 # 预演
-#   ./drop-env-databases.sh <test|uat|support-ref|support-demo|support-sync> --yes           # 实删
+#   ./drop-env-databases.sh <test|uat>                 # 预演
+#   ./drop-env-databases.sh <test|uat> --yes           # 实删
 #   ./drop-env-databases.sh uat --yes --no-snapshot                             # 跳过快照（不建议）
 #   ./drop-env-databases.sh prod --yes --allow-prod                             # ⚠️ 生产（2026-08-22 产品切换解锁）：
 #       必须显式 --allow-prod + 手输 prod 二次确认；强制打快照（--no-snapshot 对 prod 拒绝）；经 prod 堡垒机执行
@@ -29,9 +29,9 @@ cd "$(dirname "$0")"
 ENV_NAME="${1:-}"; shift || true
 IS_PROD=0
 case "$ENV_NAME" in
-  test|uat|support-ref|support-demo|support-sync) ;;
+  test|uat) ;;
   prod) IS_PROD=1 ;;
-  *) echo "用法: $0 <test|uat|support-ref|support-demo|support-sync|prod> [--yes] [--no-snapshot] [--allow-prod]"; exit 1 ;;
+  *) echo "用法: $0 <test|uat|prod> [--yes] [--no-snapshot] [--allow-prod]"; exit 1 ;;
 esac
 
 GO=0; SNAP=1; ALLOW_PROD=0

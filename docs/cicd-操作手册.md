@@ -54,7 +54,7 @@ Actions → 对应仓库的 `cicd` workflow → Run workflow → 选环境 + 填
 | deploy.sh 增强版 | `deploy/bin/deploy.sh`：Parameter Store 渲染 env / 镜像 tag 覆盖 / 冒烟 / prune / .last_good |
 | SSM 执行器 | `deploy/aws/ssm-run.sh`（按 **`Environment`** 标签定位实例——2026-07-30 由旧 `CssEnv` 键切换，轮询回显结果） |
 | CI 用 IAM | OIDC 提供方 + `css-deploy-{test,uat,prod}` 角色 = `css-terraform` 的 `css-github` stack（角色名/ARN 未变） |
-| 参数 | `/css/<env>/{backend,frontend}.env` **六个 AWS 环境共 12 个参数均已灌入并在用**（test/uat/prod/support-ref/support-demo/support-sync；2026-08-22 实查。dev 只在本机跑，不入 SSM）。改值走 `put-params.sh <env>` |
+| 参数 | `/css/<env>/{backend,frontend}.env` **三个 AWS 环境共 6 个参数均已灌入并在用**（test/uat/prod；2026-11-06 复核——support-ref/demo/sync 的 6 个参数已随三环境下线删除。dev 只在本机跑，不入 SSM）。改值走 `put-params.sh <env>` |
 
 ## 6. 一次性 GitHub 配置（两仓库都要，未配置前 workflow 会在 AWS 凭证步失败）
 
