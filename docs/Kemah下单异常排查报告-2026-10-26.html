@@ -1,0 +1,491 @@
+<meta charset="utf-8">
+<title>Kemah 下单异常排查报告（2026-10-26）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #F4F5F2;
+  --surface: #FFFFFF;
+  --ink: #1F2420;
+  --ink-soft: #545C56;
+  --rule: #DADFD9;
+  --rule-soft: #ECEFEA;
+  --accent: #2F6B4F;
+  --code-bg: #EEF1EC;
+  --lead-bg: #E8F0EA;
+  --callout-bg: #FBF1DD;
+  --callout-rule: #C98A1B;
+  --high-bg: #F8E1DE; --high-ink: #A12D22;
+  --mid-bg: #FBEBCF; --mid-ink: #8A5A0B;
+  --low-bg: #E6E9E5; --low-ink: #4E5751;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151816; --surface: #1D211E; --ink: #E4E8E3; --ink-soft: #A3ACA5;
+    --rule: #343A35; --rule-soft: #282D29; --accent: #7FC3A0; --code-bg: #262B27;
+    --lead-bg: #1F2D25; --callout-bg: #2E2717; --callout-rule: #D9A441;
+    --high-bg: #3A1F1C; --high-ink: #F0A097; --mid-bg: #3A2E15; --mid-ink: #EBC27A;
+    --low-bg: #2A2F2B; --low-ink: #B7C0B9;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151816; --surface: #1D211E; --ink: #E4E8E3; --ink-soft: #A3ACA5;
+  --rule: #343A35; --rule-soft: #282D29; --accent: #7FC3A0; --code-bg: #262B27;
+  --lead-bg: #1F2D25; --callout-bg: #2E2717; --callout-rule: #D9A441;
+  --high-bg: #3A1F1C; --high-ink: #F0A097; --mid-bg: #3A2E15; --mid-ink: #EBC27A;
+  --low-bg: #2A2F2B; --low-ink: #B7C0B9;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.75 "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.page { max-width: 1040px; margin: 0 auto; padding: 48px 16px 72px; }
+header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 28px; }
+.kicker { font-size: 13px; letter-spacing: .12em; color: var(--accent); font-weight: 700; margin: 0 0 8px; }
+h1 { font-size: clamp(26px, 2.2vw + 16px, 36px); line-height: 1.25; margin: 0 0 12px; font-weight: 700; }
+.byline { color: var(--ink-soft); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; }
+.byline .dot { opacity: .5; }
+a { color: var(--accent); text-underline-offset: 3px; }
+.lead {
+  background: var(--lead-bg); border-left: 4px solid var(--accent);
+  padding: 18px 22px; border-radius: 0 10px 10px 0; font-size: 16px; margin: 0 0 40px;
+}
+.lead p { margin: 0; }
+h2 {
+  font-size: 22px; margin: 48px 0 12px; padding-top: 4px;
+  display: flex; align-items: baseline; gap: 10px;
+}
+h2::before { content: ""; width: 10px; height: 10px; border-radius: 2px; background: var(--accent); flex: none; transform: translateY(-2px); }
+h2.risk::before { background: var(--high-ink); }
+h3 { font-size: 16px; margin: 28px 0 8px; color: var(--ink); }
+p { margin: 10px 0; }
+ol, ul { padding-left: 1.4em; }
+li { margin: 6px 0; }
+code {
+  font-family: "JetBrains Mono", Consolas, monospace; font-size: .86em;
+  background: var(--code-bg); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere;
+}
+.table-wrap {
+  overflow-x: auto; margin: 14px 0 6px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: 10px;
+}
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.6; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule-soft); }
+th { font-weight: 700; font-size: 13px; color: var(--ink-soft); background: var(--rule-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--lead-bg); }
+td:first-child { white-space: nowrap; }
+td.sid { font-weight: 700; color: var(--accent); }
+.pri { display: inline-block; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.pri-high { background: var(--high-bg); color: var(--high-ink); }
+.pri-mid { background: var(--mid-bg); color: var(--mid-ink); }
+.pri-low { background: var(--low-bg); color: var(--low-ink); }
+.callout {
+  background: var(--callout-bg); border: 1px dashed var(--callout-rule);
+  padding: 12px 16px; border-radius: 10px; margin: 16px 0;
+}
+@media (max-width: 640px) {
+  .page { padding-top: 28px; }
+  body { font-size: 14px; }
+}
+@media print {
+  body { background: #fff; }
+  .page { max-width: none; padding: 0; }
+  .table-wrap { overflow: visible; border-color: #ccc; }
+  tr, .callout, .lead { break-inside: avoid; }
+}
+</style>
+<div class="page">
+<header>
+<p class="kicker">故障排查报告</p>
+<h1>Kemah 下单异常排查报告（2026-10-26）</h1>
+<div class="byline"><span>2026-10-27</span><span class="dot">·</span><a href="https://claude.ai/artifact/JHgs9jk3EeBBNxmscVsR1z">在线版</a><span class="dot">·</span><span>本地底稿，与在线版同步维护</span></div>
+</header>
+<div class="lead"><p>2026-10-26，Chef Jordy（Spicy Banda-Kemah 门店的 Head Chef）在 iPhone 的 Google App 内置浏览器里给 Kabona 下单时，遇到两个问题。粉色报错框的原因是：她打开了同公司 Pearland 门店的旧订单 #809，她没有那家门店的权限，后端返回 403。页面一直刷新、选的东西丢失的原因是：内置浏览器反复整页重载，而已选商品只存在内存里，一重载就清空。她最终在 14:31 CDT 成功提交了订单 #1300；页面顶部的酒牌横幅是另一件事：Kemah 在唯一关联的酒类供应商 Ocean Island 那里一直没有录入酒牌，14:10 CDT 才由对方补录，它不影响向 Kabona 下单。</p></div>
+<h2>时间线</h2>
+<p>从第一次打开链接到下单成功用了 1 个小时，其中设备 A 整页加载了 16 次。时间为当地时间 CDT（UTC-5）。设备 A 是下单账号所用的 iPhone，用的是 Google App 内置浏览器（IP 98.201.207.3）；设备 B 是另一台 iPhone 上的 Safari（经 iCloud 私有中继）；Ocean Island 是 Kemah 关联的酒类供应商，用的是一台 Mac 上的 Chrome。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>当地时间（CDT）</th>
+<th>UTC</th>
+<th>设备</th>
+<th>发生了什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13:31</td>
+<td>18:31</td>
+<td>同一网络</td>
+<td>同一网络下的 Safari 和 iMessage 链接预览先后访问了 Kabona 目录页链接</td>
+</tr>
+<tr>
+<td>13:31</td>
+<td>18:31</td>
+<td>A</td>
+<td>Google App 打开同一链接；内置浏览器没有登录态（接口 401），跳到登录页</td>
+</tr>
+<tr>
+<td>13:33–13:34</td>
+<td>18:33–18:34</td>
+<td>A</td>
+<td>登录失败 3 次（每次点击自动重试 3 次，共 9 个 400），第 4 次用验证码登录成功</td>
+</tr>
+<tr>
+<td>13:36</td>
+<td>18:36</td>
+<td>A</td>
+<td><code>/vendors</code> 15 秒内整页加载 3 次，每次先闪一下 404 页</td>
+</tr>
+<tr>
+<td>13:37–13:44</td>
+<td>18:37–18:44</td>
+<td>A</td>
+<td>在 Kabona 目录页搜索、挑货，约 76 次搜索</td>
+</tr>
+<tr>
+<td>13:44</td>
+<td>18:44</td>
+<td>A</td>
+<td>目录页整页重载，已选商品清空</td>
+</tr>
+<tr>
+<td>13:50–13:54</td>
+<td>18:50–18:54</td>
+<td>A 和同网 Safari</td>
+<td>反复打开 dashboard 和首页</td>
+</tr>
+<tr>
+<td>13:58</td>
+<td>18:58</td>
+<td>A</td>
+<td>从外部链接打开 <code>/orders/809?restaurant=a5e6ae8c…</code>（Pearland 门店的订单），后端 403，出现粉色报错框</td>
+</tr>
+<tr>
+<td>14:07</td>
+<td>19:07</td>
+<td>A</td>
+<td>再次打开同一链接，仍是 403；客户截图就拍于此时</td>
+</tr>
+<tr>
+<td>14:08</td>
+<td>19:08</td>
+<td>A</td>
+<td>第三次打开，仍是 403</td>
+</tr>
+<tr>
+<td>14:08</td>
+<td>19:08</td>
+<td>Ocean Island</td>
+<td>供应商账号打开 Kemah 的酒牌页，当时没有任何酒牌记录</td>
+</tr>
+<tr>
+<td>14:10</td>
+<td>19:10</td>
+<td>Ocean Island</td>
+<td>新录入 Kemah 的酒牌并直接审核通过（VERIFIED，2027-11-03 到期）</td>
+</tr>
+<tr>
+<td>14:14</td>
+<td>19:14</td>
+<td>A</td>
+<td>酒牌横幅不再出现</td>
+</tr>
+<tr>
+<td>14:16</td>
+<td>19:16</td>
+<td>A</td>
+<td><code>/vendors</code> 36 秒内整页加载 4 次，每次先闪 404</td>
+</tr>
+<tr>
+<td>14:19–14:22</td>
+<td>19:19–19:22</td>
+<td>B</td>
+<td>登录后浏览订单和供应商页；打开目录页时同样先闪 404；没有下单</td>
+</tr>
+<tr>
+<td>14:20–14:31</td>
+<td>19:20–19:31</td>
+<td>A</td>
+<td>留在 Kabona 目录页挑货，约 125 次搜索，期间没有再重载</td>
+</tr>
+<tr>
+<td>14:31</td>
+<td>19:31</td>
+<td>A</td>
+<td>提交订单 #1300 成功（POST 200），订单详情正常打开</td>
+</tr>
+</tbody>
+</table></div>
+<h2>根因一：粉色报错框——打开了别家门店的订单</h2>
+<p>粉色框是订单详情页拿到 403 后显示的报错，和给 Kabona 下单无关。后端拒绝是正确的权限行为，问题出在前端的处理和提示上。</p>
+<ol>
+<li>她打开的地址是 <code>/orders/809?restaurant=a5e6ae8c-122f-47da-9b51-3ea75a5c82e6&amp;order-page=order</code>。订单 #809 是 Spicy Banda-Pearland 在 2026-03-02 向 Ken's Produce 下的单（状态 ARRIVED），下单人是另一个账号。</li>
+<li>她只是 Kemah 一家门店的成员（Head Chef），不是公司成员，没有 Pearland 的权限。</li>
+<li>前端从 <code>041fbfe6</code>（2026-07-28，fix css-653）起不再读取 <code>restaurant</code> 参数，改用当前激活门店 Kemah 去请求 <code>GET /api/restaurants/0759df28…/orders/809</code>。</li>
+<li>后端在 <code>restaurants/orders/services.py:106</code> 发现订单不属于 Kemah，返回 403 <code>you_have_no_rights_to_work_with_this_resource</code>。</li>
+<li>前端 <code>useOrder.ts</code> 把它翻译成 "You do not have permission to perform this action"。订单页只渲染这一个报错框，没有页头，也没有返回入口。</li>
+</ol>
+<p>即使前端读取了 <code>restaurant</code> 参数，她不是 Pearland 的成员，照样会 403。但对同时挂了多家门店的用户来说，<code>041fbfe6</code> 会让本来能看的这类链接也变成 403。</p>
+<p class="callout"><strong>待确认：</strong> 这个链接从哪里来。URL 里的 <code>order-page=order</code> 是前端自己加的参数，后端通知不会生成这种链接，所以它是某个浏览器里访问过的完整地址：可能是同事分享的，也可能是浏览器历史或恢复的标签页。#809 早于 8-22 上线，是随 preprod 数据迁移过来的。需要问客户。</p>
+<h2>根因二：页面一直刷新、选的东西丢失</h2>
+<p>页面是被 Google App 内置浏览器整页重载的，不是我们的代码触发的。但我们的应用有三个地方，让每次重载的代价变得很大。</p>
+<h3>重载本身：不是我们的代码触发的</h3>
+<ul>
+<li>1 小时内设备 A 整页加载 16 次。每次都是没有 referer 的页面请求，静态资源 0 次失败，加载后接口数据全部返回 200，也没有跳到登录页。</li>
+<li>代码里唯一会自动整页重载的是 <code>preloadErrorRecovery.ts</code>，它只在静态资源加载失败时触发。这次没有任何资源失败，可以排除。</li>
+<li>更可能是 iOS 在切换 App 时回收了内置浏览器的网页进程，或者用户下拉刷新了页面。服务器日志区分不了这两种。</li>
+</ul>
+<h3>我们的应用放大了重载的影响</h3>
+<ol>
+<li><strong>已选商品只存在内存里。</strong> 前端只有 <code>userStore</code> 做了持久化，目录页的选择没有存到 sessionStorage，重载一次就全部清空。这就是客户说的 "loses everything I've selected"。</li>
+<li><strong>每次加载先闪一下 404 页。</strong> 路由守卫在权限数据返回之前，就按“无权限”渲染了 NotFound。设备 A 的 16 次加载里有 9 次请求了 <code>/images/404.webp</code>，设备 B 也有 1 次。</li>
+<li><strong>紧接着整页换成 Loader。</strong> <code>AccessControlProvider</code> 在权限查询进行中时，会把整个路由树换成 Loader。而 <code>/settings/companies/{id}/entities</code> 对门店成员必定 403，还会自动重试 2 次，每次加载因此多出约 0.6 秒的 Loader。</li>
+</ol>
+<p>用户看到的就是：页面闪一下 404，转圈，内容出来，接着又重载，选好的商品没了。</p>
+<h2>酒牌横幅：Kemah 在 Ocean Island 没有录入酒牌</h2>
+<p>横幅出现，是因为 Kemah 在唯一关联的酒类供应商 Ocean Island 那里从来没有录入过酒牌。Ocean Island 在 14:10 CDT 补录并审核后，横幅在 14:14 消失。它不影响向 Kabona 这类食品供应商下单。</p>
+<p><strong>显示规则：</strong> 前端 <code>LiquorLicenseAlert</code> 挂在所有私有页面的公共布局里，请求 <code>/restaurants/{门店}/clients/liquor-license-eligibility</code>。后端找出门店所有双方都确认过的 Liquor Vendor 客户关系，每段关系只看最新的一张酒牌。状态是“缺失”、<code>UNVERIFIED</code> 或 <code>EXPIRED</code> 时，<code>has_alert</code> 为 true，横幅出现。这同时也是向该酒类供应商下单时的拦截规则。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>当地时间（CDT）</th>
+<th>发生了什么</th>
+<th>证据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>13:34–14:08</td>
+<td>横幅一直显示</td>
+<td>eligibility 接口 14 次都返回 200 字节（<code>verification_status</code> 为空，<code>has_alert</code> 为 true）</td>
+</tr>
+<tr>
+<td>14:08</td>
+<td>Ocean Island 账号打开 Kemah 的酒牌页</td>
+<td><code>GET …/vendors/clients/126/liquor-license</code> 只返回 2 字节，没有酒牌</td>
+</tr>
+<tr>
+<td>14:10</td>
+<td>同一账号新录入酒牌并直接审核通过</td>
+<td><code>POST …/clients/126/liquor-license</code> 返回 200；<code>client_liquor_license</code> 里只有这一条记录，创建于 19:10:44 UTC，审核人 oceanisland@yopmail.com</td>
+</tr>
+<tr>
+<td>14:14 起</td>
+<td>横幅消失</td>
+<td>eligibility 接口改为返回 216 字节；多出的 16 字节正好对应状态从“缺失”变为“已审核”</td>
+</tr>
+</tbody>
+</table></div>
+<p>接口其实已经返回了是哪家供应商、什么状态，但横幅只写 "for some vendors"。客户不知道该找谁，还把它和下单失败联系到了一起（见 S8）。</p>
+<h2 class="risk">安全风险：Ocean Island 账号使用公共临时邮箱</h2>
+<p>审核这张酒牌的 prod 账号邮箱是 oceanisland@yopmail.com。yopmail.com 是公开的临时邮箱，任何人知道地址就能直接打开收件箱，不需要密码。而这是一个正在使用的酒类供应商账号，能看到客户资料，也能审核酒牌。</p>
+<ul>
+<li>我们的登录流程会向联系方式发送验证码（<code>/auth/verify/contact/code</code>）。如果这个账号的登录或重置密码验证码发往该邮箱，任何人都可能借此登录 Ocean Island 的账号。</li>
+<li>这一点没有实际验证，也不应该去试。</li>
+<li>建议先确认这个账号是谁建的、是否正式在用；如果是，尽快换成 Ocean Island 自己控制的邮箱。</li>
+<li>顺带排查 prod 里其他使用 yopmail 的账号：<code>SELECT id, email, created_at FROM "user" WHERE email ILIKE '%@yopmail.com' ORDER BY created_at;</code></li>
+</ul>
+<h2>证据</h2>
+<p>结论来自三类证据：prod 访问日志（CloudWatch 日志组 <code>/css/prod</code> 的 nginx 日志，2026-10-26 18:31–19:31 UTC，共 2229 条）、prod 数据库查询，以及 prod 实际运行的 <code>main</code> 分支代码。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>证据</th>
+<th>来源</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>订单 #809 三次打开都是 403（含自动重试共 9 个请求）</td>
+<td>nginx 日志</td>
+<td>请求路径用的是 Kemah 的 id（0759df28…），页面地址里的 <code>restaurant</code> 却是 Pearland（a5e6ae8c…）</td>
+</tr>
+<tr>
+<td>#809 属于 Spicy Banda-Pearland，2026-03-02 下单，下单人不是她</td>
+<td>prod 库 <code>order</code> 表</td>
+<td>供应商 Ken's Produce，状态 ARRIVED</td>
+</tr>
+<tr>
+<td>她只挂在 Kemah 一家门店下，不是公司成员</td>
+<td>prod 库 <code>restaurant_member</code>、<code>company_member</code></td>
+<td>角色为 Head Chef</td>
+</tr>
+<tr>
+<td>Head Chef 有 <code>view__order</code> 和 <code>create__order</code>，但没有任何 quotation 权限；公司权限最后一次保存是 2026-08-13</td>
+<td>prod 库 <code>company_role_permission</code></td>
+<td>排除“权限缺失或被临时修改”</td>
+</tr>
+<tr>
+<td>设备 A 在 1 小时内整页加载 16 次，静态资源 0 次失败，闪 404 共 9 次</td>
+<td>nginx 日志（前端）</td>
+<td>排除 <code>preloadErrorRecovery</code> 循环重载</td>
+</tr>
+<tr>
+<td><code>/entities</code> 403：设备 A 48 次，设备 B 7 次</td>
+<td>nginx 日志</td>
+<td>每次加载 1 次请求加 2 次重试</td>
+</tr>
+<tr>
+<td><code>quotations/unread-count</code> 403：设备 A 96 次，设备 B 19 次</td>
+<td>nginx 日志</td>
+<td>侧栏每 3 分钟轮询一次，Head Chef 没有 <code>view__quotation</code></td>
+</tr>
+<tr>
+<td>#1300 在 19:31:30 UTC 下单成功</td>
+<td>nginx 日志、prod 库</td>
+<td>Kemah 向 Kabona 最近 3 天只有这一张单，没有重复单</td>
+</tr>
+<tr>
+<td>没有任何下单请求被拒</td>
+<td>nginx 日志</td>
+<td>没有 <code>liquor_license_order_blocked</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3>相关的引入提交</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>提交</th>
+<th>作者</th>
+<th>日期</th>
+<th>改动</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前端 <code>041fbfe6</code>（fix css-653）</td>
+<td>Mihran</td>
+<td>2026-07-28</td>
+<td>订单页不再读取 <code>restaurant</code> 参数，一律用当前激活门店请求</td>
+</tr>
+<tr>
+<td>前端 <code>e9301607</code>（fix css-662）</td>
+<td>Mihran</td>
+<td>2026-07-20</td>
+<td>权限实体列表从全局 <code>/entities</code> 改为公司级接口，并放进每个用户都会执行的 <code>useGetUserData</code></td>
+</tr>
+<tr>
+<td>后端 <code>ac89ed2c8</code>（CSS-662）</td>
+<td>Serafim</td>
+<td>2026-07-20</td>
+<td>新增公司级 <code>/settings/companies/{id}/entities</code>，要求公司成员且有 <code>view__company</code></td>
+</tr>
+<tr>
+<td>前端 <code>1024a63a</code>（first view beta）</td>
+<td>Mihran</td>
+<td>2026-06-26</td>
+<td>侧栏每 3 分钟轮询报价未读数，没有先判断权限</td>
+</tr>
+</tbody>
+</table></div>
+<h3>已排除的假设</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>假设</th>
+<th>排除依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>酒牌校验拦住了向 food vendor 下单</td>
+<td>酒牌横幅只是全局提示；后端的酒牌拦截只对 Liquor Vendor 生效；日志里没有被拒的下单请求</td>
+</tr>
+<tr>
+<td>下单成功后跳详情页时用错了门店</td>
+<td>她只有一家门店；14:07 时并没有建成订单</td>
+</tr>
+<tr>
+<td>Head Chef 缺 <code>view__order</code>，或权限被临时修改</td>
+<td>权限齐全，最后保存于 2026-08-13</td>
+</tr>
+<tr>
+<td><code>/entities</code> 403 在会话中途触发了重新挂载</td>
+<td>日志里它只出现在整页加载时</td>
+</tr>
+<tr>
+<td><code>preloadErrorRecovery</code> 循环重载</td>
+<td>静态资源没有任何失败</td>
+</tr>
+</tbody>
+</table></div>
+<h2>修复建议</h2>
+<p>按对客户的影响排序。S1 和 S2 直接对应这次客户遇到的两个问题，S3–S8 是排查中顺带发现的。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>编号</th>
+<th>优先级</th>
+<th>解决什么</th>
+<th>建议做法</th>
+<th>涉及位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="sid">S1</td>
+<td><span class="pri pri-high">高</span></td>
+<td>重载后已选商品丢失</td>
+<td>把目录页已选商品存到 sessionStorage（按门店和供应商分开存），下单成功或手动清空时再删除</td>
+<td>前端：供应商目录页的已选商品状态</td>
+</tr>
+<tr>
+<td class="sid">S2</td>
+<td><span class="pri pri-high">高</span></td>
+<td>粉色框只有一句笼统的“无权限”</td>
+<td>订单页拿到 403 时明确说明“这张订单属于另一家门店，你没有访问权限”，并给出回到订单列表的按钮</td>
+<td>前端 <code>src/ui/pages/Order/useOrder.ts</code>、<code>Order.tsx</code></td>
+</tr>
+<tr>
+<td class="sid">S3</td>
+<td><span class="pri pri-mid">中</span></td>
+<td>多门店用户打开带 <code>restaurant</code> 参数的链接也 403（<code>041fbfe6</code> 引入的回归）</td>
+<td>订单页恢复读取 <code>restaurant</code> 参数：用户有该门店权限时，切换到该门店再请求</td>
+<td>前端 <code>useOrder.ts</code>；<code>routes.tsx</code> 中订单路由的 <code>validateSearch</code></td>
+</tr>
+<tr>
+<td class="sid">S4</td>
+<td><span class="pri pri-mid">中</span></td>
+<td>每次加载先闪 404 页</td>
+<td>权限数据加载完之前不渲染 NotFound，先显示 Loader</td>
+<td>前端路由守卫（<code>AllowedTo</code>）、<code>AccessControlProvider.tsx</code></td>
+</tr>
+<tr>
+<td class="sid">S5</td>
+<td><span class="pri pri-mid">中</span></td>
+<td>门店成员每次加载 <code>/entities</code> 都 403，并拖长 Loader</td>
+<td>后端允许门店成员读取，或前端只在权限设置页调用；<code>AccessControlProvider</code> 只在首次加载时拦整页（判断条件从 <code>isFetching</code> 改成 <code>isPending</code>）</td>
+<td>后端 <code>settings/transport/handlers.py</code>；前端 <code>useGetUserData.ts</code>、<code>AccessControlProvider.tsx</code></td>
+</tr>
+<tr>
+<td class="sid">S6</td>
+<td><span class="pri pri-low">低</span></td>
+<td>侧栏报价角标每 3 分钟 403 三次</td>
+<td>没有 <code>view__quotation</code> 时不轮询；同时确认门店角色是否应该默认拥有该权限</td>
+<td>前端 <code>src/ui/widgets/Sidebar/Sidebar.tsx</code></td>
+</tr>
+<tr>
+<td class="sid">S7</td>
+<td><span class="pri pri-low">低</span></td>
+<td>登录失败时一次点击发出 3 个请求</td>
+<td>提交类请求遇到 4xx 不再自动重试</td>
+<td>前端 <code>src/app/providers/queryProvider.tsx</code> 的 mutations <code>retry</code></td>
+</tr>
+<tr>
+<td class="sid">S8</td>
+<td><span class="pri pri-mid">中</span></td>
+<td>酒牌横幅只写 "for some vendors"，不说是哪家供应商</td>
+<td>横幅里列出触发的供应商名字和状态（缺失、待审核、已过期），并链接到对应供应商页面；接口已经返回这些字段</td>
+<td>前端 <code>src/ui/widgets/LiquorLicenseAlert/LiquorLicenseAlert.tsx</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>在修复上线之前，可以先让客户直接用 Safari 打开 chain-serve.com 下单，不要从 Gmail 或 Google App 里的链接进入。</p>
+</div>
