@@ -1,0 +1,197 @@
+<meta charset="utf-8">
+<title>功能单实施顺序</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column (max 1120px); one band per stage — stage rail on the left, parallel item cards on the right */
+:root {
+  --bg: #F3F6F5;
+  --surface: #FFFFFF;
+  --ink: #13201B;
+  --muted: #55665F;
+  --line: #D5DED9;
+  --line-strong: #8A9D95;
+  --people: #0B6B5A;       /* B：配套改造 */
+  --people-soft: #E0F0EB;
+  --org: #2E4A8E;          /* F：功能单 */
+  --org-soft: #E3E9F6;
+  --link: #9A5A06;         /* 上线提示 / 补充项 */
+  --link-soft: #F6EBD7;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1412; --surface: #151D1A; --ink: #E3ECE8; --muted: #9AACA5;
+    --line: #27332E; --line-strong: #5A6D65;
+    --people: #5CC9AE; --people-soft: #12302A;
+    --org: #9DB4F2; --org-soft: #1B2440;
+    --link: #E3AA4F; --link-soft: #352812;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1412; --surface: #151D1A; --ink: #E3ECE8; --muted: #9AACA5;
+  --line: #27332E; --line-strong: #5A6D65;
+  --people: #5CC9AE; --people-soft: #12302A;
+  --org: #9DB4F2; --org-soft: #1B2440;
+  --link: #E3AA4F; --link-soft: #352812;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.7;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 72px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+.top { padding-block: 44px 8px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.9rem, 1.3rem + 2.2vw, 2.7rem); line-height: 1.25; margin: .35em 0 .3em; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 70ch; margin: 0; }
+
+.keys { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
+.keys span { display: inline-flex; align-items: center; gap: 6px; }
+
+.path {
+  margin-top: 18px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px;
+}
+.path .lab { font-weight: 700; margin-right: 6px; }
+.path .arrow { color: var(--muted); font-family: var(--font-mono); }
+
+/* stage bands */
+.stages { margin-top: 26px; display: grid; gap: 14px; }
+.stage { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 820px) { .stage { grid-template-columns: 132px 1fr; gap: 16px; } }
+.rail { padding-top: 6px; }
+.rail .num { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; line-height: 1.2; }
+.rail .par { font-size: 13px; color: var(--muted); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; min-width: 0; }
+.card { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 12px; display: grid; gap: 6px; align-content: start; }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.id { font-family: var(--font-mono); font-weight: 500; font-size: 13px; padding: 0 6px; border-radius: 5px; }
+.id.f { color: var(--org); background: var(--org-soft); }
+.id.b { color: var(--people); background: var(--people-soft); }
+.card h3 { margin: 0; font-size: 1rem; line-height: 1.45; }
+.card p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.pre { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.pre b { font-weight: 500; margin-right: 2px; }
+.pre span { font-family: var(--font-mono); font-size: 12px; padding: 0 5px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--ink); }
+.flag { font-size: 11.5px; padding: 0 6px; border-radius: 4px; color: var(--link); background: var(--link-soft); white-space: nowrap; }
+
+.notes { margin-top: 30px; padding: 16px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.notes h2 { font-family: var(--font-display); font-size: 1.15rem; margin: 0 0 8px; }
+.notes ol { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: 14px; }
+footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Chain Serve · 组织与权限改造 · 2026-10-22</div>
+  <h1>功能单实施顺序</h1>
+  <p class="lede">28 项工作分 7 个阶段。同一阶段内的项可以并行开发；每项标出了必须先完成的前置项，前置项全部完成就可以开工，不必等整个上一阶段结束。</p>
+  <div class="keys">
+    <span><span class="id f">F</span> 功能单（《组织与权限模型》F1–F13）</span>
+    <span><span class="id b">B</span> 配套改造（F13 排查清单与本次复核补充）</span>
+    <span><span class="flag">补充</span> 本次复核新增或扩大范围的项</span>
+    <span><span class="flag">同批上线</span> 可以提前开发，但要和指定项一起上线</span>
+  </div>
+  <div class="path" aria-label="最长依赖链">
+    <span class="lab">最长链</span>
+    <span class="id b">B2</span><span class="arrow">→</span><span class="id b">B10</span><span class="arrow">→</span><span class="id b">B1</span><span class="arrow">→</span><span class="id b">B11</span><span class="arrow">→</span><span class="id b">B12</span><span class="arrow">→</span><span class="id f">F13</span><span class="arrow">→</span><span class="id b">B15</span>
+  </div>
+</header>
+
+<main class="stages">
+
+  <section class="stage" aria-label="阶段 1">
+    <div class="rail"><div class="num">阶段 1</div><div class="par">8 项，可并行</div></div>
+    <div class="cards">
+      <article class="card"><div class="card-head"><span class="id f">F2</span><h3>用户个人信息维护</h3></div><p>右上角头像 → My Profile：姓名、手机、语言，修改密码、修改邮箱，用户级通知设置。</p><div class="pre"><b>前置</b>无</div></article>
+      <article class="card"><div class="card-head"><span class="id f">F5</span><h3>公司详情管理</h3></div><p>Settings 改名 Company Settings；Company 与 Information 合并为 Company Info；公司类型只读；删除 Signature。</p><div class="pre"><b>前置</b>无</div></article>
+      <article class="card"><div class="card-head"><span class="id f">F8</span><h3>导航菜单管理</h3></div><p>管理端维护一棵菜单树（一级 → 二级 → 按钮）及编码。导航改由菜单树生成放在 F13。</p><div class="pre"><b>前置</b>无</div></article>
+      <article class="card"><div class="card-head"><span class="id f">F12</span><h3>审计日志</h3></div><p>建审计日志表和查看页；其他各项上线时往里写变更记录。</p><div class="pre"><b>前置</b>无</div></article>
+      <article class="card"><div class="card-head"><span class="id b">B2</span><h3>角色按公司化与 Owner 标记</h3><span class="flag">补充</span></div><p>角色归属公司，CEO 规则改为 Owner 标记；保留原角色 id 供前端兼容；通知配置、权限矩阵中的角色 id 同步迁移。</p><div class="pre"><b>前置</b>无</div></article>
+      <article class="card"><div class="card-head"><span class="id b">B3</span><h3>买卖方判断改为按公司类型</h3></div><p>前端 4 个「供应方」权限点改为按公司类型判断买方还是卖方。</p><div class="pre"><b>前置</b>无</div></article>
+      <article class="card"><div class="card-head"><span class="id b">B8</span><h3>删除成员安全码</h3></div><p>去掉删除成员时的双方安全码和每天刷新安全码的定时任务。</p><div class="pre"><b>前置</b>无</div></article>
+      <article class="card"><div class="card-head"><span class="id b">B9</span><h3>现存漏洞修补</h3></div><p>权限矩阵查询接口补鉴权，人员名单接口限定公司，恢复被注释的本公司订单校验。</p><div class="pre"><b>前置</b>无</div></article>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="阶段 2">
+    <div class="rail"><div class="num">阶段 2</div><div class="par">3 项，可并行</div></div>
+    <div class="cards">
+      <article class="card"><div class="card-head"><span class="id f">F9</span><h3>公司类型管理</h3></div><p>维护 9 种公司类型，为每种类型勾选开放的菜单和按钮。</p><div class="pre"><b>前置</b><span>F8</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B10</span><h3>组织归一</h3><span class="flag">补充</span></div><p>餐厅、门店、制造商分部成为公司；现有父子公司转为管理关系；建管理关系表。先只做加法，旧表保留。</p><div class="pre"><b>前置</b><span>B2</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B7</span><h3>历史记录角色迁移</h3></div><p>订单、发票、装箱单历史里的全局角色 id 映射到公司自有角色。</p><div class="pre"><b>前置</b><span>B2</span></div></article>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="阶段 3">
+    <div class="rail"><div class="num">阶段 3</div><div class="par">3 项，可并行</div></div>
+    <div class="cards">
+      <article class="card"><div class="card-head"><span class="id f">F10</span><h3>角色模板管理</h3><span class="flag">同批上线 F13</span></div><p>每种公司类型的预设角色和默认权限，新公司按模板复制。</p><div class="pre"><b>前置</b><span>F9</span><span>B2</span></div></article>
+      <article class="card"><div class="card-head"><span class="id f">F11</span><h3>管理关系总览</h3></div><p>管理端查看全平台管理关系，只看不改。</p><div class="pre"><b>前置</b><span>B10</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B1</span><h3>Account 模型</h3><span class="flag">补充</span></div><p>成员表归一为 Account，一人可加入多家公司，登录令牌带当前 Account；Teams 不再改用户本人邮箱电话、不再踢出所有公司。先只做加法。</p><div class="pre"><b>前置</b><span>B10</span></div></article>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="阶段 4">
+    <div class="rail"><div class="num">阶段 4</div><div class="par">5 项，可并行</div></div>
+    <div class="cards">
+      <article class="card"><div class="card-head"><span class="id f">F3</span><h3>切换公司</h3></div><p>顶栏切换器列出我的全部 Account，由后端同步切换。</p><div class="pre"><b>前置</b><span>B1</span></div></article>
+      <article class="card"><div class="card-head"><span class="id f">F4</span><h3>Account 详情</h3></div><p>Company Settings → Account Details；上线时删除 General 页签。</p><div class="pre"><b>前置</b><span>B1</span><span>F2</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B11</span><h3>菜单树授权底座</h3><span class="flag">补充</span></div><p>角色 × 菜单/按钮权限，多角色取并集，下发当前 Account 的菜单和按钮码，前后端按码校验。</p><div class="pre"><b>前置</b><span>F8</span><span>F9</span><span>B1</span><span>B2</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B13</span><h3>平台管理端公司化</h3><span class="flag">补充</span></div><p>建平台公司，现有管理员转为这家公司的 Account 和角色。</p><div class="pre"><b>前置</b><span>B1</span><span>B2</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B14</span><h3>Teams 成员邀请</h3><span class="flag">补充</span></div><p>邮件邀请、预选多个角色、过期时间，接受后生成 Account。</p><div class="pre"><b>前置</b><span>B1</span></div></article>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="阶段 5">
+    <div class="rail"><div class="num">阶段 5</div><div class="par">4 项，可并行</div></div>
+    <div class="cards">
+      <article class="card"><div class="card-head"><span class="id f">F1</span><h3>登录注册流程修改</h3></div><p>注册只建用户；没有 Account 时引导创建公司或接受邀请；兼容只有手机号的现有用户（本地测试库 1236 人中 231 人没有邮箱）。</p><div class="pre"><b>前置</b><span>B1</span><span>B14</span></div></article>
+      <article class="card"><div class="card-head"><span class="id f">F6</span><h3>公司角色管理</h3><span class="flag">同批上线 F13</span></div><p>Roles &amp; Permissions：本公司角色新建、改名、停用，按菜单树勾选权限。</p><div class="pre"><b>前置</b><span>B11</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B6</span><h3>数据范围统一</h3></div><p>按当前 Account + 管理关系判断能看哪些数据。</p><div class="pre"><b>前置</b><span>B1</span><span>B10</span><span>F3</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B12</span><h3>存量权限映射</h3><span class="flag">补充</span></div><p>把现有权限矩阵、26 个权限点、按类型写死的菜单换算到菜单树，在 test / uat 核对。</p><div class="pre"><b>前置</b><span>B11</span></div></article>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="阶段 6">
+    <div class="rail"><div class="num">阶段 6</div><div class="par">4 项，可并行</div></div>
+    <div class="cards">
+      <article class="card"><div class="card-head"><span class="id f">F7</span><h3>Managed Companies 管理</h3></div><p>我管理的 / 管理我的 / 申请与邀请；建子公司、派驻、转交、进入后维护人员和权限；名下餐厅、门店在这里维护。</p><div class="pre"><b>前置</b><span>F3</span><span>F6</span><span>B6</span><span>B10</span></div></article>
+      <article class="card"><div class="card-head"><span class="id f">F13</span><h3>切换到菜单树授权</h3></div><p>导航和权限改由菜单树生成；删除旧权限矩阵、Permissions 页签和 26 个写死权限点。</p><div class="pre"><b>前置</b><span>B3</span><span>B6</span><span>F6</span><span>F10</span><span>B12</span><span>B13</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B4</span><h3>按角色名的流程改为按钮权限码</h3></div><p>装箱单、配送、审批、业务员等按角色名的判断改为按钮权限码。</p><div class="pre"><b>前置</b><span>B11</span><span>B12</span></div></article>
+      <article class="card"><div class="card-head"><span class="id b">B5</span><h3>通知收件人改为按用户设置</h3></div><p>收件人按用户自己的通知设置加功能权限选取；删除旧的 Notifications 页签。</p><div class="pre"><b>前置</b><span>F2</span><span>B11</span><span>B12</span></div></article>
+    </div>
+  </section>
+
+  <section class="stage" aria-label="阶段 7">
+    <div class="rail"><div class="num">阶段 7</div><div class="par">1 项，收尾</div></div>
+    <div class="cards">
+      <article class="card"><div class="card-head"><span class="id b">B15</span><h3>旧结构下线清理</h3><span class="flag">补充</span></div><p>删除旧成员表、餐厅门店的独立表和外键、旧通知配置、旧权限表、全局角色和安全码字段。</p><div class="pre"><b>前置</b><span>B4</span><span>B5</span><span>B6</span><span>B7</span><span>F13</span></div></article>
+    </div>
+  </section>
+
+</main>
+
+<section class="notes" aria-labelledby="notes-title">
+  <h2 id="notes-title">上线时要注意</h2>
+  <ol>
+    <li>F6、F10 可以提前开发，但新建的角色要等 F13 切换后才生效，所以和 F13 同批上线，或在此之前先隐藏入口。</li>
+    <li>B1、B10 先只做加法，新旧结构并存；旧表在 B15 统一删除。</li>
+    <li>B12 必须在 F13 切换前跑完并核对，否则老用户切换后会看不到菜单。</li>
+    <li>B2 上线时保留原角色 id，直到 B3、B4、F13 去掉前端写死的角色判断。</li>
+  </ol>
+</section>
+
+<footer>依据《组织与权限模型》v1.2 的功能单；依赖关系按 test 分支前后端代码，由后端、前端、上线兼容三个视角独立分析后裁决并复核。</footer>
+</div>

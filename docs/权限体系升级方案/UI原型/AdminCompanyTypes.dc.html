@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>公司类型</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+body{font-family:'Plus Jakarta Sans','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif}
+a{color:#bc4710}a:hover{color:#9a3a10}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1760px; box-sizing: border-box; position: relative; display: flex; flex-wrap: wrap; background: #f4f7fe; color: #002c41; font-family: 'Plus Jakarta Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;">
+  <nav aria-label="管理后台导航" style="flex: 0 0 248px; width: 248px; box-sizing: border-box; display: flex; flex-direction: column; padding: 16px 0 24px; background: #ffffff;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 16px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 30" width="45" height="32" fill="#ee7035" role="img" aria-label="CSS"><path d="M9.993 19.1v4.368c0 2.016-1.604 3.65-3.582 3.65-1.978 0-3.581-1.634-3.581-3.65V6.532c0-2.016 1.603-3.65 3.581-3.65s3.582 1.634 3.582 3.65V9.64h2.83V6.532C12.823 2.924 9.953 0 6.41 0 2.871 0 0 2.924 0 6.532v16.936C0 27.076 2.87 30 6.411 30c3.541 0 6.412-2.924 6.412-6.532V19.1h-2.83Z"/><path d="M12.823 9.64c0 .382-.15.749-.415 1.019-.265.27-.625.422-1 .422s-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM9.993 19.1c0-.383.149-.75.414-1.02.266-.27.626-.422 1-.422.376 0 .736.151 1.001.422.266.27.415.637.415 1.02h-2.83ZM26.707 9.82c0 .382-.15.749-.415 1.02-.265.27-.625.421-1 .421s-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM20.428 15.676c.375 0 .735.152 1 .422.266.27.415.637.415 1.02 0 .381-.15.748-.414 1.018-.266.27-.626.423-1.001.423v-2.883Z"/><path fill-rule="evenodd" d="M14.326 9.82h2.83V6.306c0-1.89 1.505-3.423 3.36-3.423 1.856 0 3.36 1.533 3.36 3.423V9.82h2.83V6.306c0-3.483-2.77-6.306-6.19-6.306-3.418 0-6.19 2.823-6.19 6.306V9.82Z"/><path d="M17.156 9.82h-2.83v2.432c0 3.483 2.772 6.307 6.19 6.307v-2.883c-1.855 0-3.36-1.533-3.36-3.424V9.82ZM14.326 20.18c0-.382.15-.749.415-1.02.265-.27.625-.421 1-.421s.735.152 1 .422c.266.27.415.637.415 1.02h-2.83ZM20.605 14.324c-.375 0-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02c0-.381.15-.748.414-1.018.266-.27.626-.423 1-.423v2.883Z"/><path fill-rule="evenodd" d="M26.707 20.18h-2.83v3.514c0 1.89-1.505 3.423-3.36 3.423-1.856 0-3.361-1.533-3.361-3.423V20.18h-2.83v3.514c0 3.483 2.772 6.306 6.19 6.306 3.42 0 6.19-2.823 6.19-6.306V20.18Z"/><path d="M23.877 20.18h2.83v-2.432c0-3.483-2.772-6.307-6.19-6.307v2.883c1.855 0 3.36 1.533 3.36 3.424v2.432ZM41.298 9.82c0 .382-.149.749-.414 1.02-.266.27-.625.421-1 .421-.376 0-.736-.152-1.001-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM35.02 15.676c.375 0 .735.152 1 .422s.414.637.414 1.02c0 .381-.149.748-.414 1.018s-.625.423-1 .423v-2.883Z"/><path fill-rule="evenodd" d="M28.918 9.82h2.83V6.306c0-1.89 1.504-3.423 3.36-3.423 1.856 0 3.36 1.533 3.36 3.423V9.82h2.83V6.306c0-3.483-2.771-6.306-6.19-6.306-3.419 0-6.19 2.823-6.19 6.306V9.82Z"/><path d="M31.747 9.82h-2.83v2.432c0 3.483 2.772 6.307 6.19 6.307v-2.883c-1.855 0-3.36-1.533-3.36-3.424V9.82ZM28.918 20.18c0-.382.149-.749.414-1.02.265-.27.625-.421 1-.421.376 0 .736.152 1.001.422.265.27.415.637.415 1.02h-2.83ZM35.196 14.324c-.375 0-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02c0-.381.15-.748.415-1.018s.625-.423 1-.423v2.883Z"/><path fill-rule="evenodd" d="M41.298 20.18h-2.83v3.514c0 1.89-1.504 3.423-3.36 3.423-1.856 0-3.36-1.533-3.36-3.423V20.18h-2.83v3.514c0 3.483 2.771 6.306 6.19 6.306 3.419 0 6.19-2.823 6.19-6.306V20.18Z"/><path d="M38.468 20.18h2.83v-2.432c0-3.483-2.771-6.307-6.19-6.307v2.883c1.856 0 3.36 1.533 3.36 3.424v2.432Z"/></svg>
+      <span style="display: flex; flex-direction: column; font-size: 13px; font-weight: 800; line-height: 16px; color: #002c41;"><span>Chain Service</span><span>Solutions</span></span>
+    </div>
+    <ul style="list-style: none; margin: 32px 0 0; padding: 0 0 0 24px;">
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M2 2h1.74c1.08 0 1.93.93 1.84 2l-.83 9.96a2.796 2.796 0 0 0 2.79 3.03h10.65c1.44 0 2.7-1.18 2.81-2.61l.54-7.5c.12-1.66-1.14-3.01-2.81-3.01H5.82M16.25 22a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM8.25 22a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM9 8h12"/></svg><span style="white-space: nowrap;">主数据库</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M9.16 10.87c-.1-.01-.22-.01-.33 0a4.42 4.42 0 0 1-4.27-4.43C4.56 3.99 6.54 2 9 2a4.435 4.435 0 0 1 .16 8.87ZM16.41 4c1.94 0 3.5 1.57 3.5 3.5 0 1.89-1.5 3.43-3.37 3.5a1.13 1.13 0 0 0-.26 0M4.16 14.56c-2.42 1.62-2.42 4.26 0 5.87 2.75 1.84 7.26 1.84 10.01 0 2.42-1.62 2.42-4.26 0-5.87-2.74-1.83-7.25-1.83-10.01 0ZM18.34 20c.72-.15 1.4-.44 1.96-.87 1.56-1.17 1.56-3.1 0-4.27-.55-.42-1.22-.7-1.93-.86"/></svg><span style="white-space: nowrap;">订阅客户</span></div></li>
+      <li style="margin: 0 0 24px;"><a href="AdminMenus.dc.html" style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; text-decoration: none;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M9 6h12M9 12h12M9 18h12"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01" stroke-width="2.5"/></svg><span style="white-space: nowrap;">菜单管理</span></a></li>
+      <li style="margin: 0 0 24px;"><a href="AdminCompanyTypes.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 800; line-height: 20px; color: #bc4710; text-decoration: none;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M2 22h20"/><path d="M4 22V6c0-2.5 1.5-4 4-4h8c2.5 0 4 1.5 4 4v16"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 22v-3h4v3"/></svg><span style="white-space: nowrap;">公司类型</span><span aria-hidden="true" style="margin-left: auto; width: 4px; height: 34px; border-radius: 8px 0 0 8px; background: #ee7035;"></span></a></li>
+      <li style="margin: 0 0 24px;"><a href="AdminRoleTemplates.dc.html" style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; text-decoration: none;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M10.49 2.23 5.5 4.11c-1.15.43-2.09 1.79-2.09 3.01v7.43c0 1.18.78 2.73 1.73 3.44l4.3 3.21c1.41 1.06 3.73 1.06 5.14 0l4.3-3.21c.95-.71 1.73-2.26 1.73-3.44V7.12c0-1.23-.94-2.59-2.09-3.02l-4.99-1.87c-.85-.31-2.21-.31-3.04 0Z"/><path d="M12 12.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM12 12.5v3"/></svg><span style="white-space: nowrap;">角色模板</span></a></li>
+      <li style="margin: 0 0 24px;"><a href="AdminRelationships.dc.html" style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; text-decoration: none;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M13.06 10.94a5.74 5.74 0 0 1 0 8.13c-2.25 2.24-5.89 2.25-8.13 0-2.24-2.25-2.25-5.89 0-8.13"/><path d="M10.59 13.41c-2.34-2.34-2.34-6.14 0-8.49 2.34-2.34 6.14-2.34 8.49 0 2.34 2.34 2.34 6.14 0 8.49"/></svg><span style="white-space: nowrap;">管理关系</span></a></li>
+      <li style="margin: 0 0 24px;"><a href="AdminAuditLog.dc.html" style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; text-decoration: none;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M16 22h2c.5 0 1-.2 1.4-.6.4-.4.6-.9.6-1.4V7.5L14.5 2H6c-.5 0-1 .2-1.4.6C4.2 3 4 3.5 4 4v3"/><path d="M14 2v6h6"/><path d="M8 22a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z"/><path d="M9.5 17.5 8 16.25V14"/></svg><span style="white-space: nowrap;">审计日志</span></a></li>
+      <li style="margin: 0 0 24px;"><a href="AdminUsers.dc.html" style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; text-decoration: none;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM20.59 22c0-3.87-3.85-7-8.59-7s-8.59 3.13-8.59 7"/></svg><span style="white-space: nowrap;">用户管理</span></a></li>
+    </ul>
+    <div style="height: 1px; margin-left: 24px; background: #fdf1eb;"></div>
+    <div style="padding: 16px 0 0 8px;">
+      <button type="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px 14px; border: 0; border-radius: 4px; background: #ffffff; color: #bc4710; font-family: inherit; font-size: 16px; font-weight: 700; line-height: 20px; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9M18.36 5.64a9 9 0 1 1-12.72 0"/></svg>退出登录</button>
+    </div>
+  </nav>
+  <div style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; padding: 0 16px 0 24px;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 24px;">
+      <div style="display: flex; align-items: center; padding: 8px 16px 8px 8px; border-radius: 8px; background: #ffffff;">
+        <button type="button" style="display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; color: #002c41; font-family: inherit; text-align: left; cursor: pointer;">
+          <span aria-hidden="true" style="display: flex; flex: 0 0 36px; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #002c41; color: #ffffff; font-size: 15px; font-weight: 700; line-height: 1;">管</span>
+          <span style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 14px; font-weight: 800; line-height: 18px; color: #002c41; white-space: nowrap;">平台管理员</span>
+            <span style="font-size: 12px; font-weight: 500; line-height: 16px; color: #4d6b7a; white-space: nowrap;">超级管理员</span>
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px; color: #2a61db;"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg>
+        </button>
+      </div>
+    </header>
+    <main style="flex: 1 0 auto; min-width: 0; margin-top: 24px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px;">
+        <div style="min-width: 0;">
+          <h1 style="margin: 0; font-size: 32px; font-weight: 800; line-height: 40px; color: #002c41;">公司类型</h1>
+          <p style="margin: 4px 0 0; font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">维护公司类型和所属大类，并为每种类型勾选开放的菜单和按钮。公司里的角色只能在这个范围内授权。</p>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+          <button type="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px 8px; border: 0; border-radius: 4px; background: #2a61db; color: #ffffff; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12h12M12 18V6"/></svg>新增类型</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px;">
+
+        <section aria-labelledby="types-title" style="flex: 1 1 300px; min-width: 0; box-sizing: border-box; padding: 24px 16px 16px; border-radius: 12px; background: #ffffff;">
+          <h2 id="types-title" style="margin: 0 8px; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">全部类型</h2>
+
+          <p id="grp-buyer" style="margin: 20px 12px 8px; font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: 0.04em; color: #4d6b7a;">采购方</p>
+          <ul aria-labelledby="grp-buyer" style="list-style: none; margin: 0; padding: 0;">
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">Restaurant</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">餐厅</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">46 家</span></button></li>
+          </ul>
+
+          <p id="grp-supplier" style="margin: 16px 12px 8px; font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: 0.04em; color: #4d6b7a;">供应方</p>
+          <ul aria-labelledby="grp-supplier" style="list-style: none; margin: 0; padding: 0;">
+            <li><button type="button" aria-current="true" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: #eaeffb; box-shadow: inset 3px 0 0 0 #2a61db; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 800; line-height: 20px; color: #2a61db;">Food Vendor</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">食品供应商</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 700; line-height: 18px; color: #2a61db;">18 家</span></button></li>
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">LV</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">酒水饮料供应商</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">7 家</span></button></li>
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">E&amp;S Dealer</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">设备与用品经销商</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">5 家</span></button></li>
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">Broadliner</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">综合供应商</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">14 家</span></button></li>
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">Dealer</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">经销商</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">9 家</span></button></li>
+          </ul>
+
+          <p id="grp-mfr" style="margin: 16px 12px 8px; font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: 0.04em; color: #4d6b7a;">制造商</p>
+          <ul aria-labelledby="grp-mfr" style="list-style: none; margin: 0; padding: 0;">
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">E&amp;S Manufacturer</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">设备与用品制造商</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">4 家</span></button></li>
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">Food Manufacturer</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">食品制造商</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">6 家</span></button></li>
+          </ul>
+
+          <p id="grp-platform" style="margin: 16px 12px 8px; font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: 0.04em; color: #4d6b7a;">平台</p>
+          <ul aria-labelledby="grp-platform" style="list-style: none; margin: 0; padding: 0;">
+            <li><button type="button" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font-family: inherit; text-align: left; cursor: pointer;"><span style="display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 15px; font-weight: 700; line-height: 20px; color: #002c41;">管理端</span><span style="font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">平台运营</span></span><span style="flex: 0 0 auto; font-size: 14px; font-weight: 600; line-height: 18px; color: #4d6b7a;">1 家</span></button></li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="type-detail-title" style="flex: 2.6 1 560px; min-width: 0; box-sizing: border-box; padding: 24px; border-radius: 12px; background: #ffffff;">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px;">
+            <div style="min-width: 0;">
+              <p style="margin: 0 0 4px; font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: 0.04em; color: #bc4710;">供应方</p>
+              <h2 id="type-detail-title" style="margin: 0; font-size: 24px; font-weight: 800; line-height: 32px; color: #002c41;">Food Vendor · 食品供应商</h2>
+              <p style="margin: 4px 0 0; font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">18 家公司正在使用这种类型</p>
+            </div>
+            <span style="display: inline-block; padding: 8px 16px; border-radius: 80px; background: #e9f8ee; color: #187e3c; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;">已启用</span>
+          </div>
+          <div aria-hidden="true" style="display: flex; gap: 8px; margin: 16px 0 24px;">
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #2a61db; opacity: 0.5;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #2a61db; opacity: 0.4;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #2a61db; opacity: 0.3;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #2a61db; opacity: 0.2;"></span>
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: #2a61db; opacity: 0.1;"></span>
+          </div>
+
+          <h3 style="margin: 0 0 16px; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">基本信息</h3>
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px 24px;">
+            <div style="flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column;">
+              <label for="type-name" style="margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 18px; color: #4d6b7a;">名称 *</label>
+              <input id="type-name" type="text" value="Food Vendor" style="width: 100%; box-sizing: border-box; padding: 14px 11px 16px 15px; border: 1px solid #e6eaec; border-radius: 4px; background: #ffffff; color: #002c41; font-family: inherit; font-size: 16px; font-weight: 500; line-height: 22px;" />
+            </div>
+            <div style="flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column;">
+              <label for="type-category" style="margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 18px; color: #4d6b7a;">所属大类 *</label>
+              <div style="position: relative;">
+                <select id="type-category" style="width: 100%; box-sizing: border-box; appearance: none; -webkit-appearance: none; padding: 14px 40px 16px 15px; border: 1px solid #e6eaec; border-radius: 4px; background: #ffffff; color: #002c41; font-family: inherit; font-size: 16px; font-weight: 500; line-height: 22px; cursor: pointer;">
+                  <option>采购方</option>
+                  <option selected="selected">供应方</option>
+                  <option>制造商</option>
+                  <option>平台</option>
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; top: 50%; right: 12px; margin-top: -9px; color: #002c41; pointer-events: none;"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg>
+              </div>
+            </div>
+            <div style="flex: 0 1 160px; min-width: 0; display: flex; flex-direction: column;">
+              <span id="type-status-label" style="margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 18px; color: #4d6b7a;">状态</span>
+              <div style="display: flex; align-items: center; gap: 16px; min-height: 54px;">
+                <button type="button" role="switch" aria-checked="true" aria-labelledby="type-status-label type-status-text" style="position: relative; flex: 0 0 45px; width: 45px; height: 30px; padding: 0; border: 0; border-radius: 15px; background: #2a61db; cursor: pointer;"><span aria-hidden="true" style="position: absolute; top: 3px; left: 18px; width: 24px; height: 24px; border-radius: 50%; background: #ffffff; box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.14), 0 1px 3px 0 rgba(0, 0, 0, 0.12);"></span></button>
+                <span id="type-status-text" style="font-size: 16px; font-weight: 400; line-height: 20px; color: #002c41;">启用</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin: 24px 0; border-top: 2px solid #e6eaec;"></div>
+
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;">
+            <div style="min-width: 0;">
+              <h3 id="menus-title" style="margin: 0; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">开放的菜单</h3>
+              <p style="margin: 4px 0 0; font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">从功能菜单树中勾选：一级菜单 → 二级菜单 → 按钮。</p>
+            </div>
+            <div style="display: flex; gap: 4px;">
+              <button type="button" style="padding: 4px 8px; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">全部展开</button>
+              <button type="button" style="padding: 4px 8px; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">全部收起</button>
+            </div>
+          </div>
+
+          <ul aria-labelledby="menus-title" style="list-style: none; margin: 16px 0 0; padding: 0; border: 1px solid #ccd5d9; border-radius: 12px; overflow: hidden;">
+            <li>
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <span aria-hidden="true" style="flex: 0 0 24px; width: 24px;"></span>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />仪表盘</label>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="true" aria-label="收起 报价" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />报价单</label>
+              </div>
+              <ul style="list-style: none; margin: 0 16px 12px 51px; padding: 0 0 0 16px; border-left: 1px solid #e6eaec;">
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />发给餐饮客户的报价</label>
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 8px 0 2px 26px;">
+                    <span style="padding: 2px 8px; border-radius: 80px; background: #fdf1eb; color: #bc4710; font-size: 12px; font-weight: 800; line-height: 16px;">按钮</span>
+                    <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />新建报价</label>
+                    <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />发送报价</label>
+                    <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />报价编号规则</label>
+                  </div>
+                </li>
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />制造商发来的报价</label>
+                    <span style="padding: 2px 8px; border-radius: 80px; background: #e6eaec; color: #4d6b7a; font-size: 12px; font-weight: 800; line-height: 16px;">即将上线</span>
+                  </div>
+                </li>
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />向制造商询价</label>
+                    <span style="padding: 2px 8px; border-radius: 80px; background: #e6eaec; color: #4d6b7a; font-size: 12px; font-weight: 800; line-height: 16px;">即将上线</span>
+                  </div>
+                </li>
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />餐饮客户发来的询价</label>
+                    <span style="padding: 2px 8px; border-radius: 80px; background: #e6eaec; color: #4d6b7a; font-size: 12px; font-weight: 800; line-height: 16px;">即将上线</span>
+                  </div>
+                </li>
+              </ul>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <span aria-hidden="true" style="flex: 0 0 24px; width: 24px;"></span>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />聊天</label>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="true" aria-label="收起 订单" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />订单</label>
+              </div>
+              <ul style="list-style: none; margin: 0 16px 12px 51px; padding: 0 0 0 16px; border-left: 1px solid #e6eaec;">
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />订单列表</label>
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 8px 0 2px 26px;">
+                    <span style="padding: 2px 8px; border-radius: 80px; background: #fdf1eb; color: #bc4710; font-size: 12px; font-weight: 800; line-height: 16px;">按钮</span>
+                    <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />新建订单</label>
+                    <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />导出订单</label>
+                    <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />取消订单</label>
+                  </div>
+                </li>
+              </ul>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="false" aria-label="展开 商品目录" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.91 19.92 6.52-6.52c.77-.77.77-2.03 0-2.8L8.91 4.08"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />我的产品目录</label>
+                <span style="margin-left: auto; font-size: 13px; font-weight: 500; line-height: 18px; color: #4d6b7a;">供应方侧栏显示为「我的产品目录」</span>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="true" aria-label="收起 制造商" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />制造商</label>
+              </div>
+              <ul style="list-style: none; margin: 0 16px 12px 51px; padding: 0 0 0 16px; border-left: 1px solid #e6eaec;">
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />制造商联系人</label>
+                  </div>
+                </li>
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />制造商商品目录</label>
+                  </div>
+                </li>
+              </ul>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="false" aria-label="展开 装箱单" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.91 19.92 6.52-6.52c.77-.77.77-2.03 0-2.8L8.91 4.08"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />装货单</label>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="false" aria-label="展开 客户" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.91 19.92 6.52-6.52c.77-.77.77-2.03 0-2.8L8.91 4.08"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />客户</label>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <span aria-hidden="true" style="flex: 0 0 24px; width: 24px;"></span>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />我的供应商</label>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="true" aria-label="收起 发票" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />发票</label>
+              </div>
+              <ul style="list-style: none; margin: 0 16px 12px 51px; padding: 0 0 0 16px; border-left: 1px solid #e6eaec;">
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />发票列表</label>
+                  </div>
+                </li>
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />主发票</label>
+                  </div>
+                </li>
+                <li style="padding: 6px 0;">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;">
+                    <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />发票模板</label>
+                  </div>
+                </li>
+              </ul>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="false" aria-label="展开 团队" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.91 19.92 6.52-6.52c.77-.77.77-2.03 0-2.8L8.91 4.08"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />团队</label>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="false" aria-label="展开 管理关系" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.91 19.92 6.52-6.52c.77-.77.77-2.03 0-2.8L8.91 4.08"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />管理关系</label>
+              </div>
+            </li>
+            <li style="border-top: 1px solid #e6eaec;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 16px;">
+                <button type="button" aria-expanded="false" aria-label="展开 公司设置" style="display: inline-flex; flex: 0 0 24px; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #2a61db; font-family: inherit; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8.91 19.92 6.52-6.52c.77-.77.77-2.03 0-2.8L8.91 4.08"/></svg></button>
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41; cursor: pointer;"><input type="checkbox" checked="checked" style="width: 16px; height: 16px; margin: 0; accent-color: #2a61db; cursor: pointer;" />公司设置</label>
+              </div>
+            </li>
+          </ul>
+
+          <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 24px; padding-top: 24px; border-top: 2px solid #e6eaec;">
+            <button type="button" style="display: inline-flex; align-items: center; justify-content: center; padding: 11px 31px 13px; border: 1px solid #bc4710; border-radius: 4px; background: #ffffff; color: #bc4710; font-family: inherit; font-size: 16px; font-weight: 700; line-height: 20px; cursor: pointer;">取消</button>
+            <button type="button" style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 32px 14px; border: 0; border-radius: 4px; background: #bc4710; color: #ffffff; font-family: inherit; font-size: 16px; font-weight: 700; line-height: 20px; cursor: pointer;">保存</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+    <footer style="display: flex; flex-wrap: wrap; gap: 40px; padding: 16px 24px 24px; font-size: 14px; font-weight: 400; line-height: 18px; color: #2a61db;"><span>隐私政策</span><span>Cookie 政策</span><span>服务条款</span></footer>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

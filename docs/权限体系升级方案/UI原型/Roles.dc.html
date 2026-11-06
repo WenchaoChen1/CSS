@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>公司设置 · 角色与权限</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+body{font-family:'Plus Jakarta Sans','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif}
+a{color:#bc4710}a:hover{color:#9a3a10}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 990px; box-sizing: border-box; position: relative; display: flex; flex-wrap: wrap; background: #f4f7fe; color: #002c41; font-family: 'Plus Jakarta Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;">
+  <nav aria-label="主导航" style="flex: 0 0 248px; width: 248px; box-sizing: border-box; display: flex; flex-direction: column; padding: 16px 0 24px; background: #ffffff;">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 16px;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 30" width="45" height="32" fill="#ee7035" role="img" aria-label="CSS"><path d="M9.993 19.1v4.368c0 2.016-1.604 3.65-3.582 3.65-1.978 0-3.581-1.634-3.581-3.65V6.532c0-2.016 1.603-3.65 3.581-3.65s3.582 1.634 3.582 3.65V9.64h2.83V6.532C12.823 2.924 9.953 0 6.41 0 2.871 0 0 2.924 0 6.532v16.936C0 27.076 2.87 30 6.411 30c3.541 0 6.412-2.924 6.412-6.532V19.1h-2.83Z"/><path d="M12.823 9.64c0 .382-.15.749-.415 1.019-.265.27-.625.422-1 .422s-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM9.993 19.1c0-.383.149-.75.414-1.02.266-.27.626-.422 1-.422.376 0 .736.151 1.001.422.266.27.415.637.415 1.02h-2.83ZM26.707 9.82c0 .382-.15.749-.415 1.02-.265.27-.625.421-1 .421s-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM20.428 15.676c.375 0 .735.152 1 .422.266.27.415.637.415 1.02 0 .381-.15.748-.414 1.018-.266.27-.626.423-1.001.423v-2.883Z"/><path fill-rule="evenodd" d="M14.326 9.82h2.83V6.306c0-1.89 1.505-3.423 3.36-3.423 1.856 0 3.36 1.533 3.36 3.423V9.82h2.83V6.306c0-3.483-2.77-6.306-6.19-6.306-3.418 0-6.19 2.823-6.19 6.306V9.82Z"/><path d="M17.156 9.82h-2.83v2.432c0 3.483 2.772 6.307 6.19 6.307v-2.883c-1.855 0-3.36-1.533-3.36-3.424V9.82ZM14.326 20.18c0-.382.15-.749.415-1.02.265-.27.625-.421 1-.421s.735.152 1 .422c.266.27.415.637.415 1.02h-2.83ZM20.605 14.324c-.375 0-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02c0-.381.15-.748.414-1.018.266-.27.626-.423 1-.423v2.883Z"/><path fill-rule="evenodd" d="M26.707 20.18h-2.83v3.514c0 1.89-1.505 3.423-3.36 3.423-1.856 0-3.361-1.533-3.361-3.423V20.18h-2.83v3.514c0 3.483 2.772 6.306 6.19 6.306 3.42 0 6.19-2.823 6.19-6.306V20.18Z"/><path d="M23.877 20.18h2.83v-2.432c0-3.483-2.772-6.307-6.19-6.307v2.883c1.855 0 3.36 1.533 3.36 3.424v2.432ZM41.298 9.82c0 .382-.149.749-.414 1.02-.266.27-.625.421-1 .421-.376 0-.736-.152-1.001-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM35.02 15.676c.375 0 .735.152 1 .422s.414.637.414 1.02c0 .381-.149.748-.414 1.018s-.625.423-1 .423v-2.883Z"/><path fill-rule="evenodd" d="M28.918 9.82h2.83V6.306c0-1.89 1.504-3.423 3.36-3.423 1.856 0 3.36 1.533 3.36 3.423V9.82h2.83V6.306c0-3.483-2.771-6.306-6.19-6.306-3.419 0-6.19 2.823-6.19 6.306V9.82Z"/><path d="M31.747 9.82h-2.83v2.432c0 3.483 2.772 6.307 6.19 6.307v-2.883c-1.855 0-3.36-1.533-3.36-3.424V9.82ZM28.918 20.18c0-.382.149-.749.414-1.02.265-.27.625-.421 1-.421.376 0 .736.152 1.001.422.265.27.415.637.415 1.02h-2.83ZM35.196 14.324c-.375 0-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02c0-.381.15-.748.415-1.018s.625-.423 1-.423v2.883Z"/><path fill-rule="evenodd" d="M41.298 20.18h-2.83v3.514c0 1.89-1.504 3.423-3.36 3.423-1.856 0-3.36-1.533-3.36-3.423V20.18h-2.83v3.514c0 3.483 2.771 6.306 6.19 6.306 3.419 0 6.19-2.823 6.19-6.306V20.18Z"/><path d="M38.468 20.18h2.83v-2.432c0-3.483-2.771-6.307-6.19-6.307v2.883c1.856 0 3.36 1.533 3.36 3.424v2.432Z"/></svg>
+      <span style="display: flex; flex-direction: column; font-size: 13px; font-weight: 800; line-height: 16px; color: #002c41;"><span>Chain Service</span><span>Solutions</span></span>
+    </div>
+    <ul style="list-style: none; margin: 32px 0 0; padding: 0 0 0 24px;">
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M10.07 2.82 3.14 8.37c-.78.62-1.28 1.93-1.11 2.91l1.33 7.96c.24 1.42 1.6 2.57 3.04 2.57h11.2c1.43 0 2.8-1.16 3.04-2.57l1.33-7.96c.16-.98-.34-2.29-1.11-2.91l-6.93-5.54c-1.07-.86-2.8-.86-3.86-.01ZM12 18v-3"/></svg><span style="white-space: nowrap;">仪表盘</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M21 7v10c0 3-1.5 5-5 5H8c-3.5 0-5-2-5-5V7c0-3 1.5-5 5-5h8c3.5 0 5 2 5 5Z"/><path d="M14.5 4.5v2c0 1.1.9 2 2 2h2M8 13h4M8 17h8"/></svg><span style="white-space: nowrap;">报价单</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="m18.47 16.83.39 3.16c.1.83-.79 1.41-1.5.98l-4.19-2.49c-.46 0-.91-.03-1.35-.09A4.86 4.86 0 0 0 13 15.23c0-2.84-2.46-5.14-5.5-5.14-1.16 0-2.23.33-3.12.91-.03-.25-.04-.5-.04-.76C4.34 5.69 8.29 2 13.17 2S22 5.69 22 10.24c0 2.7-1.39 5.09-3.53 6.59Z"/><path d="M13 15.23c0 1.19-.44 2.29-1.18 3.16-.99 1.2-2.56 1.97-4.32 1.97l-2.61 1.55c-.44.27-1-.1-.94-.61l.25-1.97C2.86 18.4 2 16.91 2 15.23c0-1.76.94-3.31 2.38-4.23.89-.58 1.96-.91 3.12-.91 3.04 0 5.5 2.3 5.5 5.14Z"/></svg><span style="white-space: nowrap;">聊天</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M9 22h6c5 0 7-2 7-7V9c0-5-2-7-7-7H9C4 2 2 4 2 9v6c0 5 2 7 7 7Z"/><path d="M2 13h3.76a2 2 0 0 1 1.79 1.11l.89 1.79C9 17 10 17 10.24 17h3.53a2 2 0 0 0 1.79-1.11l.89-1.79a2 2 0 0 1 1.79-1.11h3.74"/></svg><span style="white-space: nowrap;">订单</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M2 2h1.74c1.08 0 1.93.93 1.84 2l-.83 9.96a2.796 2.796 0 0 0 2.79 3.03h10.65c1.44 0 2.7-1.18 2.81-2.61l.54-7.5c.12-1.66-1.14-3.01-2.81-3.01H5.82M16.25 22a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM8.25 22a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5ZM9 8h12"/></svg><span style="white-space: nowrap;">我的产品目录</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M7.342 1.667 4.325 4.692M12.658 1.667l3.017 3.025"/><path d="M1.667 6.542c0-1.542.824-1.667 1.85-1.667h12.966c1.025 0 1.85.125 1.85 1.667 0 1.791-.825 1.666-1.85 1.666H3.517c-1.026 0-1.85.125-1.85-1.666Z"/><path d="M8.133 11.667v2.958M11.967 11.667v2.958M2.917 8.333l1.175 7.2c.266 1.617.908 2.8 3.291 2.8h5.025c2.592 0 2.975-1.133 3.275-2.7l1.4-7.3"/></svg><span style="white-space: nowrap;">装货单</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M9.16 10.87c-.1-.01-.22-.01-.33 0a4.42 4.42 0 0 1-4.27-4.43C4.56 3.99 6.54 2 9 2a4.435 4.435 0 0 1 .16 8.87ZM16.41 4c1.94 0 3.5 1.57 3.5 3.5 0 1.89-1.5 3.43-3.37 3.5a1.13 1.13 0 0 0-.26 0M4.16 14.56c-2.42 1.62-2.42 4.26 0 5.87 2.75 1.84 7.26 1.84 10.01 0 2.42-1.62 2.42-4.26 0-5.87-2.74-1.83-7.25-1.83-10.01 0ZM18.34 20c.72-.15 1.4-.44 1.96-.87 1.56-1.17 1.56-3.1 0-4.27-.55-.42-1.22-.7-1.93-.86"/></svg><span style="white-space: nowrap;">客户</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M20 8.25V18c0 3-1.79 4-4 4H8c-2.21 0-4-1-4-4V8.25c0-3.25 1.79-4 4-4 0 .62.25 1.18.66 1.59.41.41.97.66 1.59.66h3.5C14.99 6.5 16 5.49 16 4.25c2.21 0 4 .75 4 4Z"/><path d="M16 4.25c0 1.24-1.01 2.25-2.25 2.25h-3.5c-.62 0-1.18-.25-1.59-.66C8.25 5.43 8 4.87 8 4.25 8 3.01 9.01 2 10.25 2h3.5c.62 0 1.18.25 1.59.66.41.41.66.97.66 1.59ZM8 13h4M8 17h8"/></svg><span style="white-space: nowrap;">发票</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M18 7.16a.605.605 0 0 0-.19 0 2.573 2.573 0 0 1-2.48-2.58c0-1.43 1.15-2.58 2.58-2.58a2.58 2.58 0 0 1 2.58 2.58A2.589 2.589 0 0 1 18 7.16ZM16.97 14.44c1.37.23 2.88-.01 3.94-.72 1.41-.94 1.41-2.48 0-3.42-1.07-.71-2.6-.95-3.97-.71M5.969 7.16c.06-.01.13-.01.19 0a2.573 2.573 0 0 0 2.48-2.58c0-1.43-1.15-2.58-2.58-2.58a2.58 2.58 0 0 0-2.58 2.58c.01 1.4 1.11 2.53 2.49 2.58ZM7 14.44c-1.37.23-2.88-.01-3.94-.72-1.41-.94-1.41-2.48 0-3.42 1.07-.71 2.6-.95 3.97-.71M12 14.63a.605.605 0 0 0-.19 0 2.573 2.573 0 0 1-2.48-2.58c0-1.43 1.15-2.58 2.58-2.58a2.58 2.58 0 0 1 2.58 2.58c-.01 1.4-1.11 2.54-2.49 2.58ZM9.09 17.78c-1.41.94-1.41 2.48 0 3.42 1.6 1.07 4.22 1.07 5.82 0 1.41-.94 1.41-2.48 0-3.42-1.59-1.06-4.22-1.06-5.82 0Z"/></svg><span style="white-space: nowrap;">团队</span></div></li>
+      <li style="margin: 0 0 24px;"><div style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M13.06 10.94a5.74 5.74 0 0 1 0 8.13c-2.25 2.24-5.89 2.25-8.13 0-2.24-2.25-2.25-5.89 0-8.13"/><path d="M10.59 13.41c-2.34-2.34-2.34-6.14 0-8.49 2.34-2.34 6.14-2.34 8.49 0 2.34 2.34 2.34 6.14 0 8.49"/></svg><span style="white-space: nowrap;">管理关系</span></div></li>
+      <li style="margin: 0 0 24px;"><a href="AccountDetails.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 8px; height: 34px; font-size: 16px; font-weight: 800; line-height: 20px; color: #bc4710; text-decoration: none;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px;"><path d="M3 9.11v5.77C3 17 3 17 5 18.35l5.5 3.18c.83.48 2.18.48 3 0l5.5-3.18c2-1.35 2-1.35 2-3.46V9.11C21 7 21 7 19 5.65l-5.5-3.18c-.82-.48-2.17-.48-3 0L5 5.65C3 7 3 7 3 9.11Z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg><span style="white-space: nowrap;">公司设置</span><span aria-hidden="true" style="margin-left: auto; width: 4px; height: 34px; border-radius: 8px 0 0 8px; background: #ee7035;"></span></a></li>
+    </ul>
+    <div style="height: 1px; margin-left: 24px; background: #fdf1eb;"></div>
+    <div style="padding: 16px 0 0 8px;">
+      <button type="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px 14px; border: 0; border-radius: 4px; background: #ffffff; color: #bc4710; font-family: inherit; font-size: 16px; font-weight: 700; line-height: 20px; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v9M18.36 5.64a9 9 0 1 1-12.72 0"/></svg>退出登录</button>
+    </div>
+  </nav>
+  <div style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; padding: 0 16px 0 24px;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px;">
+      <a href="CompanySwitcher.dc.html" style="display: flex; align-items: center; gap: 12px; max-width: 100%; box-sizing: border-box; padding: 8px 12px 8px 8px; border: 1px solid #e6eaec; border-radius: 8px; background: #ffffff; color: #002c41; text-decoration: none;">
+        <span aria-hidden="true" style="display: flex; flex: 0 0 40px; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: #2a61db; color: #ffffff; font-size: 18px; font-weight: 800; line-height: 1;">H</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+          <span style="font-size: 14px; font-weight: 800; line-height: 18px; color: #002c41; white-space: nowrap;">Harbor Foodservice</span>
+          <span style="font-size: 12px; font-weight: 500; line-height: 16px; color: #4d6b7a; white-space: nowrap;">Broadliner · 综合供应商</span>
+        </span>
+        <span style="padding: 4px 10px; border-radius: 80px; background: #eaeffb; color: #2a61db; font-size: 12px; font-weight: 700; line-height: 16px; white-space: nowrap;">当前角色：运营经理、销售</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 18px; color: #2a61db;"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg>
+      </a>
+      <div style="display: flex; align-items: center; gap: 16px; padding: 10px 16px 10px 10px; border-radius: 8px; background: #ffffff;">
+        <button type="button" aria-label="通知" style="display: inline-flex; padding: 6px; border: 0; border-radius: 50%; background: transparent; color: #5581e2; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.02 2.91c-3.31 0-6 2.69-6 6v2.89c0 .61-.26 1.54-.57 2.06L4.3 15.77c-.71 1.18-.22 2.49 1.08 2.93 4.31 1.44 8.96 1.44 13.27 0 1.21-.4 1.74-1.83 1.08-2.93l-1.15-1.91c-.3-.52-.56-1.45-.56-2.06V8.91c0-3.3-2.7-6-6-6Z"/><path d="M13.87 3.2a6.754 6.754 0 0 0-3.7 0c.29-.74 1.01-1.26 1.85-1.26.84 0 1.56.52 1.85 1.26Z"/><path d="M15.02 19.06c0 1.65-1.35 3-3 3-.82 0-1.58-.34-2.12-.88a3.01 3.01 0 0 1-.88-2.12"/></svg></button>
+        <a href="ProfileInfo.dc.html" aria-label="个人资料：陈 Charles" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #002c41; color: #ffffff; font-size: 15px; font-weight: 700; line-height: 1; text-decoration: none;">陈</a>
+      </div>
+    </header>
+    <main style="flex: 1 0 auto; min-width: 0; margin-top: 24px;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px;">
+        <div style="min-width: 0;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800; line-height: 32px; color: #002c41;">公司设置</h1>
+          <p style="margin: 4px 0 0; font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">管理你在 Harbor Foodservice 的账户、公司详情与角色权限</p>
+        </div>
+      </div>
+      <section aria-label="公司设置内容" style="border-radius: 12px; background: #ffffff;">
+        <nav aria-label="公司设置分区" style="display: flex; overflow-x: auto; padding: 0 8px; box-shadow: inset 0 -2px 0 0 #ccd5d9;">
+          <a href="AccountDetails.dc.html" style="flex: 0 0 auto; padding: 16px 24px 14px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; text-decoration: none; white-space: nowrap;">账户详情</a>
+          <a href="CompanyInfo.dc.html" style="flex: 0 0 auto; padding: 16px 24px 14px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; text-decoration: none; white-space: nowrap;">公司详情</a>
+          <a href="Roles.dc.html" aria-current="page" style="flex: 0 0 auto; padding: 16px 24px 14px; font-size: 16px; font-weight: 800; line-height: 20px; color: #bc4710; text-decoration: none; white-space: nowrap; box-shadow: inset 0 -2px 0 0 #ee7035;">角色与权限</a>
+          <span style="flex: 0 0 auto; padding: 16px 24px 14px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; white-space: nowrap;">账单</span>
+          <span style="flex: 0 0 auto; padding: 16px 24px 14px; font-size: 16px; font-weight: 500; line-height: 20px; color: #002c41; white-space: nowrap;">配送</span>
+        </nav>
+        <div style="padding: 24px 24px 32px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px;">
+            <div style="min-width: 0;">
+              <h2 id="roles-title" style="margin: 0; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">角色列表</h2>
+              <p style="margin: 4px 0 0; font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">本公司的全部角色，以及每个角色的成员数</p>
+            </div>
+            <a href="RolePermissions.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px 14px 16px; border-radius: 4px; background: #bc4710; color: #ffffff; font-size: 16px; font-weight: 700; line-height: 20px; text-decoration: none; white-space: nowrap;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 12h12M12 18V6"/></svg>新建角色</a>
+          </div>
+          <div style="overflow-x: auto; border: 1px solid #ccd5d9; border-radius: 12px; background: #ffffff;">
+            <table aria-labelledby="roles-title" style="width: 100%; min-width: 860px; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid #ccd5d9;">
+                  <th scope="col" style="width: 22%; padding: 16px 6px 16px 24px; text-align: left; font-size: 13px; font-weight: 800; line-height: 16px; color: #002c41; white-space: nowrap;">角色名称</th>
+                  <th scope="col" style="width: 10%; padding: 16px 6px; text-align: left; font-size: 13px; font-weight: 800; line-height: 16px; color: #002c41; white-space: nowrap;">成员数</th>
+                  <th scope="col" style="width: 12%; padding: 16px 6px; text-align: left; font-size: 13px; font-weight: 800; line-height: 16px; color: #002c41; white-space: nowrap;">状态</th>
+                  <th scope="col" style="padding: 16px 6px; text-align: left; font-size: 13px; font-weight: 800; line-height: 16px; color: #002c41; white-space: nowrap;">说明</th>
+                  <th scope="col" style="padding: 16px 24px 16px 6px; text-align: right; font-size: 13px; font-weight: 800; line-height: 16px; color: #002c41; white-space: nowrap;">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom: 1px solid #ccd5d9; background: #fbfcff;">
+                  <th scope="row" style="padding: 16px 6px 16px 24px; text-align: left; font-weight: 600;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                      <span style="font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41;">所有者</span>
+                      <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 80px; background: #e6eaec; color: #4d6b7a; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10V7.5a5 5 0 0 1 10 0V10"/><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M12 15v2"/></svg>不可删除</span>
+                    </span>
+                  </th>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41; white-space: nowrap;">1 人</td>
+                  <td style="padding: 16px 6px;"><span style="display: inline-block; padding: 6px 14px; border-radius: 80px; background: #e9f8ee; color: #187e3c; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;">已启用</span></td>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 500; line-height: 24px; color: #4d6b7a;">公司所有者，每家公司至少一位</td>
+                  <td style="padding: 16px 24px 16px 6px; text-align: right; white-space: nowrap;">
+                    <a href="RolePermissions.dc.html" aria-label="编辑权限：所有者" style="font-size: 14px; font-weight: 700; line-height: 18px; color: #2a61db; text-decoration: none;">编辑权限</a>
+                    <button type="button" disabled="disabled" title="所有者角色不能改名" aria-label="改名：所有者（不可用）" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #4d6b7a; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: not-allowed;">改名</button>
+                    <button type="button" disabled="disabled" title="所有者角色不能停用" aria-label="停用：所有者（不可用）" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #4d6b7a; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: not-allowed;">停用</button>
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ccd5d9;">
+                  <th scope="row" style="padding: 16px 6px 16px 24px; text-align: left; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41;">运营经理</th>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41; white-space: nowrap;">2 人</td>
+                  <td style="padding: 16px 6px;"><span style="display: inline-block; padding: 6px 14px; border-radius: 80px; background: #e9f8ee; color: #187e3c; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;">已启用</span></td>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 500; line-height: 24px; color: #4d6b7a;">统筹订单、装货与配送</td>
+                  <td style="padding: 16px 24px 16px 6px; text-align: right; white-space: nowrap;">
+                    <a href="RolePermissions.dc.html" aria-label="编辑权限：运营经理" style="font-size: 14px; font-weight: 700; line-height: 18px; color: #2a61db; text-decoration: none;">编辑权限</a>
+                    <button type="button" aria-label="改名：运营经理" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #2a61db; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">改名</button>
+                    <button type="button" aria-label="停用：运营经理" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #d11118; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">停用</button>
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ccd5d9;">
+                  <th scope="row" style="padding: 16px 6px 16px 24px; text-align: left; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41;">销售</th>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41; white-space: nowrap;">5 人</td>
+                  <td style="padding: 16px 6px;"><span style="display: inline-block; padding: 6px 14px; border-radius: 80px; background: #e9f8ee; color: #187e3c; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;">已启用</span></td>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 500; line-height: 24px; color: #4d6b7a;">维护客户，处理报价与订单</td>
+                  <td style="padding: 16px 24px 16px 6px; text-align: right; white-space: nowrap;">
+                    <a href="RolePermissions.dc.html" aria-label="编辑权限：销售" style="font-size: 14px; font-weight: 700; line-height: 18px; color: #2a61db; text-decoration: none;">编辑权限</a>
+                    <button type="button" aria-label="改名：销售" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #2a61db; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">改名</button>
+                    <button type="button" aria-label="停用：销售" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #d11118; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">停用</button>
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ccd5d9;">
+                  <th scope="row" style="padding: 16px 6px 16px 24px; text-align: left; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41;">打包员</th>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41; white-space: nowrap;">4 人</td>
+                  <td style="padding: 16px 6px;"><span style="display: inline-block; padding: 6px 14px; border-radius: 80px; background: #e9f8ee; color: #187e3c; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;">已启用</span></td>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 500; line-height: 24px; color: #4d6b7a;">仓库拣货与打包</td>
+                  <td style="padding: 16px 24px 16px 6px; text-align: right; white-space: nowrap;">
+                    <a href="RolePermissions.dc.html" aria-label="编辑权限：打包员" style="font-size: 14px; font-weight: 700; line-height: 18px; color: #2a61db; text-decoration: none;">编辑权限</a>
+                    <button type="button" aria-label="改名：打包员" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #2a61db; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">改名</button>
+                    <button type="button" aria-label="停用：打包员" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #d11118; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">停用</button>
+                  </td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ccd5d9;">
+                  <th scope="row" style="padding: 16px 6px 16px 24px; text-align: left; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41;">司机</th>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 600; line-height: 24px; color: #002c41; white-space: nowrap;">6 人</td>
+                  <td style="padding: 16px 6px;"><span style="display: inline-block; padding: 6px 14px; border-radius: 80px; background: #e9f8ee; color: #187e3c; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;">已启用</span></td>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 500; line-height: 24px; color: #4d6b7a;">按装货单配送并确认送达</td>
+                  <td style="padding: 16px 24px 16px 6px; text-align: right; white-space: nowrap;">
+                    <a href="RolePermissions.dc.html" aria-label="编辑权限：司机" style="font-size: 14px; font-weight: 700; line-height: 18px; color: #2a61db; text-decoration: none;">编辑权限</a>
+                    <button type="button" aria-label="改名：司机" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #2a61db; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">改名</button>
+                    <button type="button" aria-label="停用：司机" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #d11118; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">停用</button>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" style="padding: 16px 6px 16px 24px; text-align: left; font-size: 15px; font-weight: 600; line-height: 24px; color: #4d6b7a;">财务</th>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 600; line-height: 24px; color: #4d6b7a; white-space: nowrap;">0 人</td>
+                  <td style="padding: 16px 6px;"><span style="display: inline-block; padding: 6px 14px; border-radius: 80px; background: #e6eaec; color: #4d6b7a; font-size: 12px; font-weight: 800; line-height: 16px; white-space: nowrap;">已停用</span></td>
+                  <td style="padding: 16px 6px; font-size: 15px; font-weight: 500; line-height: 24px; color: #4d6b7a;">开具发票与对账</td>
+                  <td style="padding: 16px 24px 16px 6px; text-align: right; white-space: nowrap;">
+                    <a href="RolePermissions.dc.html" aria-label="编辑权限：财务" style="font-size: 14px; font-weight: 700; line-height: 18px; color: #2a61db; text-decoration: none;">编辑权限</a>
+                    <button type="button" aria-label="改名：财务" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #2a61db; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">改名</button>
+                    <button type="button" aria-label="启用：财务" style="margin-left: 16px; padding: 0; border: 0; background: transparent; color: #187e3c; font-family: inherit; font-size: 14px; font-weight: 700; line-height: 18px; cursor: pointer;">启用</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; margin-top: 24px; padding: 16px; border-radius: 8px; background: #f4f7fe;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px; margin-top: 1px; color: #2a61db;"><path d="M10.49 2.23 5.5 4.11c-1.15.43-2.09 1.79-2.09 3.01v7.43c0 1.18.78 2.73 1.73 3.44l4.3 3.21c1.41 1.06 3.73 1.06 5.14 0l4.3-3.21c.95-.71 1.73-2.26 1.73-3.44V7.12c0-1.23-.94-2.59-2.09-3.02l-4.99-1.87c-.85-.31-2.21-.31-3.04 0Z"/><path d="M12 12.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM12 12.5v3"/></svg>
+            <ul style="margin: 0; padding: 0 0 0 18px; font-size: 14px; font-weight: 500; line-height: 22px; color: #002c41;">
+              <li>角色只属于本公司，调整这里的角色不影响其他公司的同名角色。</li>
+              <li>角色的权限只能在本公司类型（Broadliner）开放的菜单范围内勾选。</li>
+              <li>每家公司至少一位所有者；所有者角色不能删除，也不能授予管理方派驻来的人。</li>
+              <li>给成员分配角色请到「团队」页面，一个成员可以同时有多个角色。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer style="display: flex; flex-wrap: wrap; gap: 40px; padding: 16px 24px 24px; font-size: 14px; font-weight: 400; line-height: 18px; color: #2a61db;"><span>隐私政策</span><span>Cookie 政策</span><span>服务条款</span></footer>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":990}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

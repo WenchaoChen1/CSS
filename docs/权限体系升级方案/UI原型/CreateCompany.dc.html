@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>创建公司</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+body{font-family:'Plus Jakarta Sans','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif}
+a{color:#bc4710}a:hover{color:#9a3a10}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1600px; box-sizing: border-box; position: relative; display: flex; justify-content: center; padding: 0 32px; background: #fdf1eb; color: #002c41; font-family: 'Plus Jakarta Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;">
+  <div style="display: flex; flex-direction: column; width: 100%; max-width: 1134px; min-width: 0;">
+    <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 32px 0;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 30" width="56" height="40" fill="#ee7035" role="img" aria-label="CSS"><path d="M9.993 19.1v4.368c0 2.016-1.604 3.65-3.582 3.65-1.978 0-3.581-1.634-3.581-3.65V6.532c0-2.016 1.603-3.65 3.581-3.65s3.582 1.634 3.582 3.65V9.64h2.83V6.532C12.823 2.924 9.953 0 6.41 0 2.871 0 0 2.924 0 6.532v16.936C0 27.076 2.87 30 6.411 30c3.541 0 6.412-2.924 6.412-6.532V19.1h-2.83Z"/><path d="M12.823 9.64c0 .382-.15.749-.415 1.019-.265.27-.625.422-1 .422s-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM9.993 19.1c0-.383.149-.75.414-1.02.266-.27.626-.422 1-.422.376 0 .736.151 1.001.422.266.27.415.637.415 1.02h-2.83ZM26.707 9.82c0 .382-.15.749-.415 1.02-.265.27-.625.421-1 .421s-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM20.428 15.676c.375 0 .735.152 1 .422.266.27.415.637.415 1.02 0 .381-.15.748-.414 1.018-.266.27-.626.423-1.001.423v-2.883Z"/><path fill-rule="evenodd" d="M14.326 9.82h2.83V6.306c0-1.89 1.505-3.423 3.36-3.423 1.856 0 3.36 1.533 3.36 3.423V9.82h2.83V6.306c0-3.483-2.77-6.306-6.19-6.306-3.418 0-6.19 2.823-6.19 6.306V9.82Z"/><path d="M17.156 9.82h-2.83v2.432c0 3.483 2.772 6.307 6.19 6.307v-2.883c-1.855 0-3.36-1.533-3.36-3.424V9.82ZM14.326 20.18c0-.382.15-.749.415-1.02.265-.27.625-.421 1-.421s.735.152 1 .422c.266.27.415.637.415 1.02h-2.83ZM20.605 14.324c-.375 0-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02c0-.381.15-.748.414-1.018.266-.27.626-.423 1-.423v2.883Z"/><path fill-rule="evenodd" d="M26.707 20.18h-2.83v3.514c0 1.89-1.505 3.423-3.36 3.423-1.856 0-3.361-1.533-3.361-3.423V20.18h-2.83v3.514c0 3.483 2.772 6.306 6.19 6.306 3.42 0 6.19-2.823 6.19-6.306V20.18Z"/><path d="M23.877 20.18h2.83v-2.432c0-3.483-2.772-6.307-6.19-6.307v2.883c1.855 0 3.36 1.533 3.36 3.424v2.432ZM41.298 9.82c0 .382-.149.749-.414 1.02-.266.27-.625.421-1 .421-.376 0-.736-.152-1.001-.422a1.455 1.455 0 0 1-.415-1.02h2.83ZM35.02 15.676c.375 0 .735.152 1 .422s.414.637.414 1.02c0 .381-.149.748-.414 1.018s-.625.423-1 .423v-2.883Z"/><path fill-rule="evenodd" d="M28.918 9.82h2.83V6.306c0-1.89 1.504-3.423 3.36-3.423 1.856 0 3.36 1.533 3.36 3.423V9.82h2.83V6.306c0-3.483-2.771-6.306-6.19-6.306-3.419 0-6.19 2.823-6.19 6.306V9.82Z"/><path d="M31.747 9.82h-2.83v2.432c0 3.483 2.772 6.307 6.19 6.307v-2.883c-1.855 0-3.36-1.533-3.36-3.424V9.82ZM28.918 20.18c0-.382.149-.749.414-1.02.265-.27.625-.421 1-.421.376 0 .736.152 1.001.422.265.27.415.637.415 1.02h-2.83ZM35.196 14.324c-.375 0-.735-.152-1-.422a1.455 1.455 0 0 1-.415-1.02c0-.381.15-.748.415-1.018s.625-.423 1-.423v2.883Z"/><path fill-rule="evenodd" d="M41.298 20.18h-2.83v3.514c0 1.89-1.504 3.423-3.36 3.423-1.856 0-3.36-1.533-3.36-3.423V20.18h-2.83v3.514c0 3.483 2.771 6.306 6.19 6.306 3.419 0 6.19-2.823 6.19-6.306V20.18Z"/><path d="M38.468 20.18h2.83v-2.432c0-3.483-2.771-6.307-6.19-6.307v2.883c1.856 0 3.36 1.533 3.36 3.424v2.432Z"/></svg>
+        <span style="display: flex; flex-direction: column; font-size: 16px; font-weight: 800; line-height: 20px; color: #002c41;"><span>Chain Service</span><span>Solutions</span></span>
+      </div>
+      <p style="margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">当前登录：<span style="font-weight: 700; color: #002c41;">charlec.chen@harborfoods.com</span></p>
+    </header>
+    <main style="box-sizing: border-box; padding: 48px 40px 40px; border-radius: 24px; background: #ffffff; box-shadow: 0 16px 32px 0 #ffede3;">
+      <p style="margin: 0 0 4px; font-size: 13px; font-weight: 800; line-height: 16px; letter-spacing: 0.04em; color: #bc4710;">开始方式一</p>
+      <h1 style="margin: 0 0 8px; font-size: 32px; font-weight: 800; line-height: 40px; color: #002c41;">创建公司</h1>
+      <p style="margin: 0 0 32px; font-size: 16px; font-weight: 500; line-height: 24px; color: #4d6b7a;">填写公司信息并选择公司类型。创建后你将成为这家公司的所有者。</p>
+
+      <section aria-labelledby="cc-basic-title" style="padding-bottom: 32px; border-bottom: 2px solid #e6eaec;">
+        <h2 id="cc-basic-title" style="margin: 0 0 16px; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">基本信息</h2>
+        <div style="display: flex; flex-direction: column; max-width: 466px;">
+          <label for="cc-name" style="margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 18px; color: #4d6b7a;">公司名称 *</label>
+          <input id="cc-name" type="text" value="Golden Leaf Foods" autocomplete="organization" aria-describedby="cc-name-desc" style="width: 100%; box-sizing: border-box; padding: 14px 11px 16px 15px; border: 1px solid #e6eaec; border-radius: 4px; background: #ffffff; color: #002c41; font-family: inherit; font-size: 16px; font-weight: 500; line-height: 22px;" />
+          <p id="cc-name-desc" style="margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">将显示在发票和报价单的抬头。</p>
+        </div>
+      </section>
+
+      <section aria-labelledby="cc-type-title" style="padding: 32px 0; border-bottom: 2px solid #e6eaec;">
+        <h2 id="cc-type-title" style="margin: 0 0 16px; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">公司类型 *</h2>
+        <div role="note" style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 24px; padding: 16px 20px; border-radius: 8px; background: #fdf1eb; color: #002c41;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px; margin-top: 1px; color: #bc4710;"><path d="M12 9v5M12 21.41H5.94c-3.47 0-4.92-2.48-3.24-5.51l3.12-5.62L8.76 5c1.78-3.21 4.7-3.21 6.48 0l2.94 5.29 3.12 5.62c1.68 3.03.22 5.51-3.24 5.51H12v-.01Z"/><path d="M11.99 17h.01" stroke-width="2"/></svg>
+          <p style="margin: 0; font-size: 14px; font-weight: 500; line-height: 22px;"><span style="font-weight: 800;">公司类型创建后不能修改。</span>系统会按所选类型开放对应菜单，并为公司预置一套该类型的角色。兼营多种业务时，请分别创建公司。</p>
+        </div>
+        <fieldset style="min-width: 0; margin: 0; padding: 0; border: 0;">
+          <legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">选择公司类型</legend>
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+
+            <fieldset style="min-width: 0; margin: 0; padding: 0; border: 0;">
+              <legend style="margin-bottom: 12px; padding: 0; font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">采购方<span style="margin-left: 8px; font-size: 14px; font-weight: 500; color: #4d6b7a;">在平台上向供应商采购</span></legend>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                <label for="type-restaurant" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #e6eaec; border-radius: 12px; background: #ffffff; cursor: pointer;">
+                  <input id="type-restaurant" type="radio" name="company-type" value="restaurant" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">餐厅</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">Restaurant</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">向供应商下单，管理采购和供应链</span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset style="min-width: 0; margin: 0; padding: 0; border: 0;">
+              <legend style="margin-bottom: 12px; padding: 0; font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">供应方<span style="margin-left: 8px; font-size: 14px; font-weight: 500; color: #4d6b7a;">向餐厅等客户供货</span></legend>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                <label for="type-food-vendor" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #ee7035; border-radius: 12px; background: #fdf1eb; box-shadow: inset 0 0 0 1px #ee7035; cursor: pointer;">
+                  <input id="type-food-vendor" type="radio" name="company-type" value="food-vendor" checked="checked" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">食品供应商</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">Food Vendor</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">把制造商的食品配送到各家餐厅</span>
+                  </span>
+                </label>
+                <label for="type-lv" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #e6eaec; border-radius: 12px; background: #ffffff; cursor: pointer;">
+                  <input id="type-lv" type="radio" name="company-type" value="lv" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">酒水饮料供应商</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">LV</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">向餐厅供应酒水饮料，附带客户酒牌校验</span>
+                  </span>
+                </label>
+                <label for="type-es-dealer" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #e6eaec; border-radius: 12px; background: #ffffff; cursor: pointer;">
+                  <input id="type-es-dealer" type="radio" name="company-type" value="es-dealer" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">设备与用品经销商</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">E&amp;S Dealer</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">向制造商采购设备与用品，管理客户订单</span>
+                  </span>
+                </label>
+                <label for="type-broadliner" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #e6eaec; border-radius: 12px; background: #ffffff; cursor: pointer;">
+                  <input id="type-broadliner" type="radio" name="company-type" value="broadliner" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">综合供应商</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">Broadliner</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">向客户配送多品类的综合产品</span>
+                  </span>
+                </label>
+                <label for="type-dealer" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #e6eaec; border-radius: 12px; background: #ffffff; cursor: pointer;">
+                  <input id="type-dealer" type="radio" name="company-type" value="dealer" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">经销商</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">Dealer</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">以经销商身份为客户供货并管理订单</span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset style="min-width: 0; margin: 0; padding: 0; border: 0;">
+              <legend style="margin-bottom: 12px; padding: 0; font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">制造商<span style="margin-left: 8px; font-size: 14px; font-weight: 500; color: #4d6b7a;">生产商品，供货给分销商和客户</span></legend>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;">
+                <label for="type-es-mfr" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #e6eaec; border-radius: 12px; background: #ffffff; cursor: pointer;">
+                  <input id="type-es-mfr" type="radio" name="company-type" value="es-manufacturer" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">设备与用品制造商</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">E&amp;S Manufacturer</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">生产设备与用品，供货给经销商和客户</span>
+                  </span>
+                </label>
+                <label for="type-food-mfr" style="display: flex; align-items: flex-start; gap: 12px; box-sizing: border-box; min-width: 0; padding: 16px 20px; border: 1px solid #e6eaec; border-radius: 12px; background: #ffffff; cursor: pointer;">
+                  <input id="type-food-mfr" type="radio" name="company-type" value="food-manufacturer" style="flex: 0 0 16px; width: 16px; height: 16px; margin: 3px 0 0; accent-color: #2a61db; cursor: pointer;" />
+                  <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                    <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;"><span style="font-size: 16px; font-weight: 800; line-height: 22px; color: #002c41;">食品制造商</span><span style="font-size: 13px; font-weight: 700; line-height: 18px; color: #4d6b7a;">Food Manufacturer</span></span>
+                    <span style="font-size: 14px; font-weight: 500; line-height: 20px; color: #4d6b7a;">生产食品，供货给分销商和客户</span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+          </div>
+        </fieldset>
+      </section>
+
+      <section aria-labelledby="cc-contact-title" style="padding: 32px 0; border-bottom: 2px solid #e6eaec;">
+        <h2 id="cc-contact-title" style="margin: 0 0 16px; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">联系方式</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px 24px;">
+          <div style="grid-column: 1 / -1; display: flex; flex-direction: column;">
+            <label for="cc-address" style="margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 18px; color: #4d6b7a;">地址 *</label>
+            <input id="cc-address" type="text" value="1180 Embarcadero, Oakland, CA 94606" autocomplete="street-address" style="width: 100%; box-sizing: border-box; padding: 14px 11px 16px 15px; border: 1px solid #e6eaec; border-radius: 4px; background: #ffffff; color: #002c41; font-family: inherit; font-size: 16px; font-weight: 500; line-height: 22px;" />
+          </div>
+          <div style="display: flex; flex-direction: column; min-width: 0;">
+            <label for="cc-phone" style="margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 18px; color: #4d6b7a;">联系电话 *</label>
+            <div style="display: flex; gap: 8px;">
+              <div style="position: relative; flex: 0 0 104px;">
+                <select aria-label="国家或地区区号" style="width: 100%; box-sizing: border-box; appearance: none; -webkit-appearance: none; padding: 14px 36px 16px 15px; border: 1px solid #e6eaec; border-radius: 4px; background: #ffffff; color: #002c41; font-family: inherit; font-size: 16px; font-weight: 500; line-height: 22px; cursor: pointer;">
+                  <option selected="selected">+1</option>
+                  <option>+44</option>
+                  <option>+86</option>
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; top: 50%; right: 12px; margin-top: -9px; color: #002c41; pointer-events: none;"><path d="m19.92 8.95-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95"/></svg>
+              </div>
+              <input id="cc-phone" type="tel" value="(510) 555-0187" autocomplete="tel-national" style="flex: 1 1 auto; min-width: 0; box-sizing: border-box; padding: 14px 11px 16px 15px; border: 1px solid #e6eaec; border-radius: 4px; background: #ffffff; color: #002c41; font-family: inherit; font-size: 16px; font-weight: 500; line-height: 22px;" />
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; min-width: 0;">
+            <label for="cc-email" style="margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 18px; color: #4d6b7a;">公司邮箱 *</label>
+            <input id="cc-email" type="email" value="hello@goldenleaffoods.com" autocomplete="email" style="width: 100%; box-sizing: border-box; padding: 14px 11px 16px 15px; border: 1px solid #e6eaec; border-radius: 4px; background: #ffffff; color: #002c41; font-family: inherit; font-size: 16px; font-weight: 500; line-height: 22px;" />
+          </div>
+        </div>
+      </section>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-top: 32px;">
+        <p style="display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 500; line-height: 22px; color: #002c41;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 20px; color: #bc4710;"><path d="M10.49 2.23 5.5 4.11c-1.15.43-2.09 1.79-2.09 3.01v7.43c0 1.18.78 2.73 1.73 3.44l4.3 3.21c1.41 1.06 3.73 1.06 5.14 0l4.3-3.21c.95-.71 1.73-2.26 1.73-3.44V7.12c0-1.23-.94-2.59-2.09-3.02l-4.99-1.87c-.85-.31-2.21-.31-3.04 0Z"/><path d="M12 12.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM12 12.5v3"/></svg><span>创建后，你将成为 <span style="font-weight: 800;">Golden Leaf Foods</span> 的所有者。</span></p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <a href="Onboarding.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 31px 13px; border: 1px solid #bc4710; border-radius: 4px; background: #ffffff; color: #bc4710; font-size: 16px; font-weight: 700; line-height: 20px; text-decoration: none;">返回</a>
+          <a href="AccountDetails.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 32px 14px; border-radius: 4px; background: #bc4710; color: #ffffff; font-size: 16px; font-weight: 700; line-height: 20px; text-decoration: none;">创建公司</a>
+        </div>
+      </div>
+    </main>
+    <footer style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 24px 0; font-size: 14px; font-weight: 400; line-height: 20px; color: #002c41;">
+      <p style="flex: 1 1 auto; margin: 0;">© 2026 Chain Service Solutions®. 保留所有权利</p>
+      <span style="color: #2a61db; white-space: nowrap;">隐私政策</span>
+      <span style="color: #2a61db; white-space: nowrap;">Cookie 政策</span>
+      <span style="color: #2a61db; white-space: nowrap;">服务条款</span>
+    </footer>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1600}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

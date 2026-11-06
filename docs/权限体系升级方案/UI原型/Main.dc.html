@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>账号与权限 UI 原型 · 目录</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap">
+<style>
+body{margin:0}
+body{font-family:'Plus Jakarta Sans','Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif}
+a{color:#bc4710}a:hover{color:#9a3a10}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1160px; box-sizing: border-box; padding: 48px 48px 56px; background: #f4f7fe; color: #002c41; display: flex; flex-direction: column; gap: 28px;">
+
+  <header style="display: flex; flex-direction: column; gap: 12px; max-width: 1200px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; background: #ee7035; color: #ffffff; font-size: 14px; font-weight: 800; letter-spacing: 0.02em;">CSS</span>
+      <span style="font-size: 13px; font-weight: 800; letter-spacing: 0.04em; color: #4d6b7a;">CHAIN SERVE · 2026-10-26</span>
+    </div>
+    <h1 style="margin: 0; font-size: 32px; font-weight: 800; line-height: 40px; color: #002c41;">账号与权限 UI 原型</h1>
+    <p style="margin: 0; max-width: 880px; font-size: 16px; font-weight: 500; line-height: 26px; color: #4d6b7a;">按《组织与权限模型》的功能单绘制，沿用当前系统的颜色、字体和组件。点击下面任一页面进入，页面之间可以继续点击跳转：侧边栏的「公司设置」、右上角头像、顶栏的公司切换器、页签和主要按钮都能点。</p>
+    <p style="margin: 0; max-width: 880px; padding: 12px 16px; border-radius: 8px; background: #ffffff; font-size: 14px; font-weight: 500; line-height: 22px; color: #4d6b7a;">说明：为满足文字对比度，按钮和文字用的橙色从系统的 #ee7035 加深为 #bc4710，logo、选中竖条等装饰仍用原色。管理端「用户管理」两页依据的是还在确认中的草稿。</p>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start;">
+
+    <section aria-labelledby="g-auth" style="box-sizing: border-box; padding: 24px; border-radius: 12px; background: #ffffff; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <h2 id="g-auth" style="margin: 0; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">登录注册流程</h2>
+        <span style="display: inline-block; padding: 4px 12px; border-radius: 80px; background: #f4f7fe; color: #2a61db; font-size: 12px; font-weight: 800; line-height: 16px;">F1</span>
+      </div>
+      <nav aria-label="登录注册页面" style="display: flex; flex-direction: column; border-top: 1px solid #ccd5d9;">
+        <a href="Login.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">登录<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">邮箱或手机号 + 密码</span></a>
+        <a href="Register.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">注册<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">只建个人账号，邮箱验证码</span></a>
+        <a href="ResetPassword.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">忘记密码<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">验证码重置，三步</span></a>
+        <a href="Onboarding.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">引导页<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">没有 Account 时：创建公司或接受邀请</span></a>
+        <a href="CreateCompany.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">创建公司<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">选择公司类型，创建人成为 Owner</span></a>
+      </nav>
+    </section>
+
+    <section aria-labelledby="g-profile" style="box-sizing: border-box; padding: 24px; border-radius: 12px; background: #ffffff; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <h2 id="g-profile" style="margin: 0; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">个人中心与切换公司</h2>
+        <span style="display: inline-block; padding: 4px 12px; border-radius: 80px; background: #f4f7fe; color: #2a61db; font-size: 12px; font-weight: 800; line-height: 16px;">F2 · F3</span>
+      </div>
+      <nav aria-label="个人中心页面" style="display: flex; flex-direction: column; border-top: 1px solid #ccd5d9;">
+        <a href="ProfileInfo.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">个人信息<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">右上角头像 → My Profile</span></a>
+        <a href="ProfilePassword.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">修改密码<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">所有公司同时生效</span></a>
+        <a href="ProfileEmail.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">修改邮箱<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">新邮箱验证码确认</span></a>
+        <a href="ProfileNotifications.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">通知设置<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">用户级，按通知类型 × 渠道</span></a>
+        <a href="CompanySwitcher.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">切换公司<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">顶栏切换器展开状态</span></a>
+      </nav>
+    </section>
+
+    <section aria-labelledby="g-company" style="box-sizing: border-box; padding: 24px; border-radius: 12px; background: #ffffff; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <h2 id="g-company" style="margin: 0; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">公司设置</h2>
+        <span style="display: inline-block; padding: 4px 12px; border-radius: 80px; background: #f4f7fe; color: #2a61db; font-size: 12px; font-weight: 800; line-height: 16px;">F4 · F5 · F6</span>
+      </div>
+      <nav aria-label="公司设置页面" style="display: flex; flex-direction: column; border-top: 1px solid #ccd5d9;">
+        <a href="AccountDetails.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">Account 详情<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">我在本公司的角色、来源、职位</span></a>
+        <a href="CompanyInfo.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">公司详情<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">公司信息、联系人，类型只读</span></a>
+        <a href="Roles.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">角色列表<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">本公司角色的新建、改名、停用</span></a>
+        <a href="RolePermissions.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">编辑角色权限<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">一级 → 二级 → 按钮，树形勾选</span></a>
+      </nav>
+    </section>
+
+    <section aria-labelledby="g-admin" style="box-sizing: border-box; padding: 24px; border-radius: 12px; background: #ffffff; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <h2 id="g-admin" style="margin: 0; font-size: 18px; font-weight: 800; line-height: 24px; color: #002c41;">管理端</h2>
+        <span style="display: inline-block; padding: 4px 12px; border-radius: 80px; background: #f4f7fe; color: #2a61db; font-size: 12px; font-weight: 800; line-height: 16px;">F8–F12 · F14 草稿</span>
+      </div>
+      <nav aria-label="管理端页面" style="display: flex; flex-direction: column; border-top: 1px solid #ccd5d9;">
+        <a href="AdminMenus.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">菜单管理<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">全平台一棵菜单树</span></a>
+        <a href="AdminCompanyTypes.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">公司类型<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">9 种类型及开放的菜单</span></a>
+        <a href="AdminRoleTemplates.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">角色模板<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">每种类型的预设角色</span></a>
+        <a href="AdminRelationships.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">管理关系总览<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">全平台管理关系，只看不改</span></a>
+        <a href="AdminAuditLog.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">审计日志<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">菜单、类型、权限、关系的变更</span></a>
+        <a href="AdminUsers.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">用户管理（草稿）<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">禁用、拉黑用户的登录与注册</span></a>
+        <a href="AdminUserDisable.dc.html" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 4px; border-bottom: 1px solid #ccd5d9; text-decoration: none; font-size: 15px; font-weight: 700; line-height: 22px;">禁用用户弹窗（草稿）<span style="font-size: 13px; font-weight: 500; color: #4d6b7a;">仅禁用 / 禁用并拉黑，原因必填</span></a>
+      </nav>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-26T08:00:00Z" },
+  "title": "账号与权限 UI 原型",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1160, "title": "目录", "expand": "fill", "is_interactive": true },
+
+    "Login.dc.html": { "x": 0, "y": 1520, "w": 1440, "h": 960, "title": "登录", "expand": "fill", "is_interactive": true },
+    "Register.dc.html": { "x": 1520, "y": 1520, "w": 1440, "h": 1040, "title": "注册", "expand": "fill", "is_interactive": true },
+    "ResetPassword.dc.html": { "x": 3040, "y": 1520, "w": 1440, "h": 1260, "title": "忘记密码", "expand": "fill", "is_interactive": true },
+    "Onboarding.dc.html": { "x": 4560, "y": 1520, "w": 1440, "h": 1040, "title": "引导页", "expand": "fill", "is_interactive": true },
+    "CreateCompany.dc.html": { "x": 6080, "y": 1520, "w": 1440, "h": 1600, "title": "创建公司", "expand": "fill", "is_interactive": true },
+
+    "ProfileInfo.dc.html": { "x": 0, "y": 3540, "w": 1440, "h": 1010, "title": "个人中心 · 个人信息", "expand": "fill", "is_interactive": true },
+    "ProfilePassword.dc.html": { "x": 1520, "y": 3540, "w": 1440, "h": 980, "title": "个人中心 · 修改密码", "expand": "fill", "is_interactive": true },
+    "ProfileEmail.dc.html": { "x": 3040, "y": 3540, "w": 1440, "h": 960, "title": "个人中心 · 修改邮箱", "expand": "fill", "is_interactive": true },
+    "ProfileNotifications.dc.html": { "x": 4560, "y": 3540, "w": 1440, "h": 1050, "title": "个人中心 · 通知设置", "expand": "fill", "is_interactive": true },
+    "CompanySwitcher.dc.html": { "x": 6080, "y": 3540, "w": 1440, "h": 960, "title": "切换公司", "expand": "fill", "is_interactive": true },
+
+    "AccountDetails.dc.html": { "x": 0, "y": 5010, "w": 1440, "h": 1210, "title": "公司设置 · Account 详情", "expand": "fill", "is_interactive": true },
+    "CompanyInfo.dc.html": { "x": 1520, "y": 5010, "w": 1440, "h": 1480, "title": "公司设置 · 公司详情", "expand": "fill", "is_interactive": true },
+    "Roles.dc.html": { "x": 3040, "y": 5010, "w": 1440, "h": 990, "title": "公司设置 · 角色列表", "expand": "fill", "is_interactive": true },
+    "RolePermissions.dc.html": { "x": 4560, "y": 5010, "w": 1440, "h": 1730, "title": "公司设置 · 编辑角色权限", "expand": "fill", "is_interactive": true },
+
+    "AdminMenus.dc.html": { "x": 0, "y": 7160, "w": 1440, "h": 1180, "title": "管理端 · 菜单管理", "expand": "fill", "is_interactive": true },
+    "AdminCompanyTypes.dc.html": { "x": 1520, "y": 7160, "w": 1440, "h": 1760, "title": "管理端 · 公司类型", "expand": "fill", "is_interactive": true },
+    "AdminRoleTemplates.dc.html": { "x": 3040, "y": 7160, "w": 1440, "h": 960, "title": "管理端 · 角色模板", "expand": "fill", "is_interactive": true },
+    "AdminRelationships.dc.html": { "x": 4560, "y": 7160, "w": 1440, "h": 960, "title": "管理端 · 管理关系总览", "expand": "fill", "is_interactive": true },
+    "AdminAuditLog.dc.html": { "x": 6080, "y": 7160, "w": 1440, "h": 1030, "title": "管理端 · 审计日志", "expand": "fill", "is_interactive": true },
+    "AdminUsers.dc.html": { "x": 7600, "y": 7160, "w": 1440, "h": 1070, "title": "管理端 · 用户管理（草稿）", "expand": "fill", "is_interactive": true },
+    "AdminUserDisable.dc.html": { "x": 9120, "y": 7160, "w": 1440, "h": 960, "title": "管理端 · 禁用用户（草稿）", "expand": "fill", "is_interactive": true }
+  },
+  "order": [
+    "Main.dc.html",
+    "Login.dc.html", "Register.dc.html", "ResetPassword.dc.html", "Onboarding.dc.html", "CreateCompany.dc.html",
+    "ProfileInfo.dc.html", "ProfilePassword.dc.html", "ProfileEmail.dc.html", "ProfileNotifications.dc.html", "CompanySwitcher.dc.html",
+    "AccountDetails.dc.html", "CompanyInfo.dc.html", "Roles.dc.html", "RolePermissions.dc.html",
+    "AdminMenus.dc.html", "AdminCompanyTypes.dc.html", "AdminRoleTemplates.dc.html", "AdminRelationships.dc.html", "AdminAuditLog.dc.html", "AdminUsers.dc.html", "AdminUserDisable.dc.html"
+  ],
+  "notes": {
+    "rowAuth": { "x": 0, "y": 1220, "text": "登录注册流程（F1）", "kind": "title1", "maxW": 7520 },
+    "rowProfile": { "x": 0, "y": 3240, "text": "个人中心与切换公司（F2、F3）", "kind": "title1", "maxW": 7520 },
+    "rowCompany": { "x": 0, "y": 4710, "text": "公司设置（F4、F5、F6）", "kind": "title1", "maxW": 6000 },
+    "rowAdmin": { "x": 0, "y": 6860, "text": "管理端（F8–F12，用户管理为草稿）", "kind": "title1", "maxW": 10560 }
+  },
+  "designSystems": []
+}
