@@ -24,7 +24,7 @@ def load_secret(backend: Path) -> str | None:
     hits = list(backend.glob('core_app/src/app/migrations/versions/*4b52dd3297e5*.py'))
     if not hits:
         return None
-    m = re.search(r"^PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", hits[0].read_text(), re.M)
+    m = re.search(r"^PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", hits[0].read_text(encoding='utf-8'), re.M)
     return m.group(1) if m else None
 
 
@@ -37,9 +37,9 @@ def main() -> None:
     ap.add_argument('--standalone', action='store_true')
     a = ap.parse_args()
 
-    rows = json.loads(Path(a.findings).read_text())
+    rows = json.loads(Path(a.findings).read_text(encoding='utf-8'))
     data = json.dumps(rows, ensure_ascii=False).replace('</', '<\\/')
-    tpl = Path(a.template).read_text()
+    tpl = Path(a.template).read_text(encoding='utf-8')
     assert tpl.count('__DATA__') == 1, '模板里应当恰好有一个 __DATA__'
     page = tpl.replace('__DATA__', data)
     if a.standalone:
@@ -48,7 +48,7 @@ def main() -> None:
     for s in [secret, (secret or '').rstrip('!')]:
         if s:
             assert s not in page, '页面里出现了固定密码原文'
-    Path(a.out).write_text(page)
+    Path(a.out).write_text(page, encoding='utf-8')
     print(f'{a.out}: {len(page.encode())} bytes, {len(rows)} rows')
 
 

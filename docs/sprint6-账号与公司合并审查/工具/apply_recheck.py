@@ -41,7 +41,8 @@ import re
 import sys
 from pathlib import Path
 
-CLOSED = ('fixed', 'obsolete', 'accepted')
+CLOSED = ('fixed', 'obsolete', 'accepted', 'waived')
+KEEP = ('accepted', 'waived')  # 用户已确认的处理，复核结果不覆盖，只有 overrides 里写了 st 才改
 
 
 def load_secret(backend: Path) -> str | None:
@@ -49,7 +50,7 @@ def load_secret(backend: Path) -> str | None:
     hits = list(backend.glob('core_app/src/app/migrations/versions/*4b52dd3297e5*.py'))
     if not hits:
         return None
-    m = re.search(r"^PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", hits[0].read_text(), re.M)
+    m = re.search(r"^PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", hits[0].read_text(encoding='utf-8'), re.M)
     return m.group(1) if m else None
 
 
@@ -71,9 +72,9 @@ def main() -> None:
             s = s.replace(x, '<固定密码>')
         return s
 
-    rows = json.loads(Path(a.findings).read_text())
-    res = json.loads(Path(a.result).read_text())
-    dec = json.loads(Path(a.decisions).read_text())
+    rows = json.loads(Path(a.findings).read_text(encoding='utf-8'))
+    res = json.loads(Path(a.result).read_text(encoding='utf-8'))
+    dec = json.loads(Path(a.decisions).read_text(encoding='utf-8'))
     rc = {x['id']: x for x in res['recheck']}
     ver = res['review']['verified']
     ov = dec.get('overrides', {})
@@ -85,13 +86,13 @@ def main() -> None:
         x = rc.get(f['id'])
         o = ov.get(f['id'], {})
         if x is None:
-            if f['st'] == 'accepted' or o:
+            if f['st'] in KEEP or o:
                 x = {'status': f['st'], 'severity_now': f['sev'], 'note': f['note'], 'evidence': '', 'fixed_by': [],
                      'changed_since_prev': False}
             else:
                 missing.append(f['id'])
                 continue
-        st = o.get('st', 'accepted' if f['st'] == 'accepted' and 'st' not in o else x['status'])
+        st = o.get('st', f['st'] if f['st'] in KEEP else x['status'])
         sev = o.get('sev', x['severity_now'])
         if st in CLOSED or sev == 'none':
             sev = f['sev']
@@ -152,7 +153,7 @@ def main() -> None:
     text = json.dumps(out, ensure_ascii=False, indent=1)
     for s in secrets:
         assert s not in text, '输出里仍有固定密码原文'
-    Path(a.out).write_text(text)
+    Path(a.out).write_text(text, encoding='utf-8')
 
     op = [r for r in out if r['st'] not in CLOSED]
     print('总数', len(out), '未关闭', len(op), dict(collections.Counter(r['sev'] for r in op)))

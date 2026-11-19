@@ -44,8 +44,11 @@ Felix 在 sprint/sprint6 上做了「四张 `*_member` 表合并进 account、st
 - **`company_back` 只是备份，将来会删除；`deprecated_*` 表将来也会删除，这些表都不再使用。**
   复核时以此为前提：依赖这些表「还能找回数据」的结论不再成立；删表前必须完成的事项单独列出。
 - **删除范围只包括 `company_back` 和 `deprecated_*` 表；`deprecated_*` 列和 9 张 `*_backup` / 映射表都不删除**（2026-11-18，D9）。
-  按这个范围的复核还没做（用户要求暂停），报告和 findings.json 仍是 D7 时的结论。下一轮先做这件事，
-  待办清单和初步判断见沟通与决策记录第三节。
+  第 5 版已按这个范围复核。注意 `b8e906f7` 把这 9 张备份表在新库里改名为 `deprecated_*`，与 D9 冲突，
+  去留待用户决定（N93，沟通与决策记录第三节）；用户决定前，按「保留」处理。
+- **sprint6 已合入 `test` 分支**（D13，2026-11-18）：test 环境很可能已执行本系列迁移；uat/prod 仍停在 `b3d9f1a2c4e5`。
+  不要写「sprint6 尚未部署到任何环境」。
+- **本地库例外**（D12）：只有用户明确要求时才在本地库跑迁移；审查代理始终只读代码、不连任何库。
 - **X1（订单接口越权）是 main 上已存在的问题，不属于本系列**，单列为范围外，不计入统计；用户暂不修。
 - 审查范围包含 Felix、Lily、lucy 三人的提交；新问题要注明作者。
 - 迁移改写（改已推送迁移的内容或 down_revision、删已推送的 revision）统一记在 F6，不在各条里重复计数。
@@ -85,7 +88,13 @@ cd <工作区>/CSS_frontend-main  && git branch --show-current && git status --s
 
 #### 3.3 运行 Workflow，汇总结果
 
+- **审查途中 sprint6 又前进了怎么办**（第 5 版遇到过）：Workflow 跑着时不要 pull，代理会读到不一致的代码。
+  已跑完的部分先用 `apply_recheck.py --out <scratchpad>/findings_mid.json` 写成中间稿；再拉到最新，
+  用同一个 `recheck-workflow.js` 跑增量（`findingsPath` 指向中间稿，`baseBe`/`baseFe` 用第一段的 HEAD，
+  背景说明只写新提交），最后用 `工具/apply_delta.py` 叠加，`prev`/`psev` 会保持上一版的值。
+  定一个冻结点，冻结后再推送的提交写进报告「冻结点之后」一节，留到下一轮。
 - Workflow 返回 `{recheck, review}`，存成 scratchpad 里的 `wf_result.json`。
+  在 Windows 上运行工具脚本前设 `PYTHONUTF8=1`。
 - 统计 recheck 的状态迁移、级别变化，逐条读 review 的全部 verdict（`idx` 从 0 开始，对应 `group.items[idx]`）。
 - 写 `decisions.json`（格式见 `工具/apply_recheck.py` 开头的说明）：
   - 新问题编号接着上一版最大的 N 号往下编；同一根因的多条候选合成一条；
