@@ -105,6 +105,8 @@ def main() -> None:
             prev=f['st'], text=mask(f['text']), hash=f.get('hash', ''), file=f.get('file', ''), note=mask(note),
             fix=fix, by=f.get('by', ''),
             chg=bool(x.get('changed_since_prev')) or f['id'] in ov or st != f['st'],
+            # 团队答复（原话、批次、一句话核实结论）原样保留到下一版
+            **{k: f[k] for k in ('reply', 'replyb', 'replyv') if k in f},
         ))
     if missing:
         sys.exit(f'recheck 结果里缺少这些 id：{missing}')

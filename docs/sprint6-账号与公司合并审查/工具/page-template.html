@@ -168,6 +168,11 @@ button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visibl
 .all .tog .k { font-family: var(--font-mono); color: var(--muted); }
 .all .pane { font-size: 13px; color: var(--muted); margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
 .all .pane[hidden] { display: none; }
+/* 团队答复：原话和一句话核实结论直接显示在问题下面，不用展开 */
+.all .reply { margin-top: 6px; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--bg); border-radius: 0 6px 6px 0; font-size: 13px; display: grid; gap: 3px; }
+.all .reply .rk { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); margin-right: 6px; white-space: nowrap; }
+.all .reply .rv { color: var(--muted); }
+.all .reply .rv .rk { color: var(--muted); }
 .all .pane.loc { white-space: normal; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
 .all .pane.loc ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
 .all .pane.loc li { overflow-wrap: anywhere; }
@@ -205,10 +210,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>172</b><span>当前未关闭（第 6 版补充 168 条，本版新增 4 条，没有关闭）</span></div>
+      <div class="stat"><b>174</b><span>当前未关闭（第 6 版补充 168 条，另一台电脑补录 N134、N135，第 7 版新增 4 条，没有关闭）</span></div>
       <div class="stat h"><b>8</b><span>高危（N129 改为部分修复，N88 更严重）</span></div>
       <div class="stat m"><b>54</b><span>中危（新增 N136，N69 升回中危）</span></div>
-      <div class="stat l"><b>110</b><span>低危（新增 N137–N139）</span></div>
+      <div class="stat l"><b>112</b><span>低危（补录 N134、N135；新增 N137–N139）</span></div>
       <div class="stat n"><b>4</b><span>第 7 版新发现（N136–N139）</span></div>
     </div>
     <h2>第 6 版补充的 238 条问题的现状</h2>
@@ -223,7 +228,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>团队答复（2026-11-19）</h2>
-    <p class="prose">开发团队对 48 条问题给了书面答复（两批）。每条都对照 sprint6 最新代码（后端 <code>dd2e1556</code>、前端 <code>f2619ea2</code>）核实过（D19）：设计或需求取舍按设计接受；环境数据和发布流程方面的说法没法连库验证，按团队确认的前提不计入；「已修复」「接口已不再使用」「表已废弃」必须在代码里找到证据；答复没答到点或和代码不符的，状态不变并回问团队。每条的核实说明见「全部问题」表里该条的「复核说明」。</p>
+    <p class="prose">开发团队对 48 条问题给了书面答复（两批）。每条都对照 sprint6 最新代码（后端 <code>dd2e1556</code>、前端 <code>f2619ea2</code>）核实过（D19）：设计或需求取舍按设计接受；环境数据和发布流程方面的说法没法连库验证，按团队确认的前提不计入；「已修复」「接口已不再使用」「表已废弃」必须在代码里找到证据；答复没答到点或和代码不符的，状态不变并回问团队。在「全部问题」表里，每条下面直接列出团队原话和一句话核实结论，点状态筛选里的「有团队答复」可以只看这 48 条；详细证据在该条的「复核说明」里。</p>
     <div class="cats">
       <div class="cat"><h3>关闭 <span>22</span></h3><ul>
         <li><b>按设计接受 10</b>：F2、F17（M2）、F28、F34、F64、F88、F93；测试取舍 F66、F70、F95（团队确认没写测试、不影响业务）</li>
@@ -241,6 +246,8 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li>按答复关闭的条目都没有回归</li>
         <li><b>N133</b>（中）补充：被恢复的厂商带着已作废的邀请码和仍可用的旧成员账号回来</li>
         <li><b>F6</b> 仍按前提不计入，但 test 合并又带进 5 个已执行迁移的改写（N136）；回问问题都还没有答复</li>
+        <li><b>N134</b>（低，另一台电脑补自旧第 5 版 N111）侧栏 Settings 对所有角色常显，没勾 settings 节点的角色点开是 NotFound，改不了自己的姓名和语言</li>
+        <li><b>N135</b>（低，补自旧第 5 版 N112）前端 permissionCodes.ts 还有 12 个码在后端不存在，目前没有引用</li>
       </ul></div>
     </div>
   </section>
@@ -380,7 +387,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前六版（含第 6 版补充）的 238 条加本版新问题 4 条（N136–N139）。X1、X2 是范围外的存量问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「本版新增」筛选包括本版内已修或部分修复的新问题。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
+    <p class="prose count">前六版（含第 6 版补充）的 238 条、另一台电脑补录的 2 条（N134、N135），加本版新问题 4 条（N136–N139）。X1、X2 是范围外的存量问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「本版新增」筛选包括本版内已修或部分修复的新问题。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -397,6 +404,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <button type="button" data-k="st" data-v="partially_fixed" aria-pressed="false">部分修复</button>
       <button type="button" data-k="st" data-v="closed" aria-pressed="false">已关闭</button>
       <button type="button" data-k="st" data-v="changed" aria-pressed="false">本版有变化</button>
+      <button type="button" data-k="st" data-v="replied" aria-pressed="false">有团队答复</button>
     </div>
     <div class="controls">
       <input id="q" type="search" placeholder="搜索编号、提交哈希、作者、文件或关键词" aria-label="搜索">
@@ -499,7 +507,7 @@ function syncAllLoc() {
 function refreshAutoLoc() {
   const term = q.value.trim().toLowerCase();
   autoLoc = new Set(!term ? [] : DATA.filter(d => String(d.file || '').toLowerCase().includes(term) &&
-    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by].join(' ').toLowerCase().includes(term)).map(d => d.id));
+    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by, d.reply, d.replyv].join(' ').toLowerCase().includes(term)).map(d => d.id));
 }
 function locCell(d) {
   const locs = splitLoc(d.file);
@@ -515,6 +523,7 @@ function stMatch(d) {
   if (f.st === 'all') return true;
   if (f.st === 'closed') return CLOSED.includes(d.st);
   if (f.st === 'changed') return d.chg;
+  if (f.st === 'replied') return !!d.reply;
   // 本版新发现：上一版没有这条（prev 为空），不论本版内是否已修
   if (f.st === 'new') return !d.prev;
   return d.st === f.st;
@@ -522,7 +531,7 @@ function stMatch(d) {
 function render() {
   const term = q.value.trim().toLowerCase();
   const list = DATA.filter(d => (f.sev === 'all' || d.sev === f.sev) && stMatch(d) &&
-    (!term || [d.id, d.lab, d.text, d.hash, d.file, d.note, d.fix, d.by].join(' ').toLowerCase().includes(term)));
+    (!term || [d.id, d.lab, d.text, d.hash, d.file, d.note, d.fix, d.by, d.reply, d.replyv].join(' ').toLowerCase().includes(term)));
   rows.innerHTML = list.map(d => {
     const st = ST[d.st] || [d.st, 'open'];
     const closed = CLOSED.includes(d.st);
@@ -533,10 +542,12 @@ function render() {
     const id = esc(d.id);
     const noteOpen = openNote.has(d.id);
     const loc = locCell(d);
+    const reply = d.reply ? `<div class="reply"><div><span class="rk">团队答复</span>${esc(d.reply)}</div>` +
+      (d.replyv ? `<div class="rv"><span class="rk">核实</span>${esc(d.replyv)}</div>` : '') + '</div>' : '';
     return `<tr><td class="n">${id}${d.lab ? `<span class="lab">${esc(d.lab)}</span>` : ''}</td>` +
       `<td><span class="sev ${d.sev}">${SEV[d.sev] || d.sev}</span>${was}</td>` +
       `<td><span class="chip ${st[1]}">${st[0]}</span>${prev}${fix}</td>` +
-      `<td class="txt">${esc(d.text)}<div class="acts">` +
+      `<td class="txt">${esc(d.text)}${reply}<div class="acts">` +
       `<button type="button" class="tog" data-t="note" data-id="${id}" aria-expanded="${noteOpen}" aria-controls="note-${id}">${!d.prev ? '详情与证据' : '复核说明'}</button>` +
       `${loc.btn}</div><div class="pane" id="note-${id}"${noteOpen ? '' : ' hidden'}>${esc(d.note)}</div>${loc.pane}</td>` +
       `<td class="h">${esc(d.hash || '—')}${by}</td></tr>`;
