@@ -190,7 +190,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 6 版</div>
     <h1>「账号与公司合并」系列提交审查</h1>
     <div class="meta">
-      <span>2026-11-19 复核</span>
+      <span>2026-11-19 复核；同日补充团队答复（按后端 <code>dd2e1556</code>、前端 <code>f2619ea2</code> 核实）</span>
       <span>当前代码：后端 <code>9d19c8a2</code>，前端 <code>e4b966df</code></span>
       <span>第 5 版：后端 <code>4b1db16c</code>，前端 <code>bc820add</code></span>
       <span>本版新增审查：后端 1 个、前端 3 个非合并提交（Felix、lucy）</span>
@@ -205,11 +205,11 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>188</b><span>当前未关闭的问题</span></div>
-      <div class="stat h"><b>8</b><span>高危（其中新增 1）</span></div>
-      <div class="stat m"><b>56</b><span>中危（其中新增 1）</span></div>
-      <div class="stat l"><b>124</b><span>低危（其中新增 2）</span></div>
-      <div class="stat n"><b>4</b><span>本版新发现（N129–N132）</span></div>
+      <div class="stat"><b>168</b><span>当前未关闭（第 6 版 188 条，团队答复后关闭 22 条、重开 1 条、新增 1 条）</span></div>
+      <div class="stat h"><b>8</b><span>高危（第 6 版新增 1）</span></div>
+      <div class="stat m"><b>52</b><span>中危（含团队答复时新增的 N133）</span></div>
+      <div class="stat l"><b>108</b><span>低危</span></div>
+      <div class="stat n"><b>5</b><span>第 6 版新发现（N129–N133）</span></div>
     </div>
     <h2>第 5 版 233 条问题的现状</h2>
     <div class="flow">
@@ -219,6 +219,30 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <div class="op"><b>123</b><span>仍存在</span><ul><li>N118 跨租户拿到员工联系方式</li><li>N97 迁移硬删公司</li><li>N2 dev admin 对所有公司放行</li><li>H5、H6 的 id 冲突、M1</li></ul></div>
     </div>
     <p class="count prose">复核方法：233 条分 34 批逐条复核，以第 5 版之后的改动为主；新提交从 6 个方向审查（软删母公司的影响面、账号外键与约束改名、前端访问守卫、前端采购组、迁移、横向安全），23 条候选对抗式验证后新增 4 条、并入 13 条、驳回 2 条。<b>本地实测</b>（用户要求把本地库升到最新）：升级前统计并 dump，再执行两个新迁移，均成功；N129 的数字出自这次实测。没有连接 test/uat/prod 的数据库。</p>
+  </section>
+
+  <section>
+    <h2>团队答复（2026-11-19）</h2>
+    <p class="prose">开发团队对 48 条问题给了书面答复（两批）。每条都对照 sprint6 最新代码（后端 <code>dd2e1556</code>、前端 <code>f2619ea2</code>）核实过（D19）：设计或需求取舍按设计接受；环境数据和发布流程方面的说法没法连库验证，按团队确认的前提不计入；「已修复」「接口已不再使用」「表已废弃」必须在代码里找到证据；答复没答到点或和代码不符的，状态不变并回问团队。每条的核实说明见「全部问题」表里该条的「复核说明」。</p>
+    <div class="cats">
+      <div class="cat"><h3>关闭 <span>22</span></h3><ul>
+        <li><b>按设计接受 10</b>：F2、F17（M2）、F28、F34、F64、F88、F93；测试取舍 F66、F70、F95（团队确认没写测试、不影响业务）</li>
+        <li><b>按前提不计入 7</b>：F6、F11、F21（一次性发布，uat/prod 和 test 都不受影响）；F7（M1）、F20、F39（H7 残留）（环境里没有这种数据，未连库核实）；F12（表已废弃，代码已核实）</li>
+        <li><b>已修复 3</b>：F82、F83、F86</li>
+        <li><b>不再适用 2</b>：F18、F44（security_code 没有任何业务校验）</li>
+      </ul></div>
+      <div class="cat"><h3>答复不成立，状态不变 <span>17</span></h3><ul>
+        <li><b>F43、F45、F51</b> 「只给 devadmin 用」：/account/* 没挂 check_dev_admin，平台管理员和有 team:* 权限的成员都能调；多账号切换是所有用户都走的路径</li>
+        <li><b>F67、F68、F69</b> 「接口已不再使用」：前端仍在调 /me/accounts</li>
+        <li><b>F15</b> 没有迁移会删 order_comment 的空行；<b>F9</b> 9 个迁移仍没有 lock_timeout；<b>F13</b> 兜底类型和答复不一致</li>
+        <li><b>F19、F23、F25、F30、F32、F41、F47、F52</b> 见报告「〇-B」的回问问题</li>
+      </ul></div>
+      <div class="cat"><h3>新提交带来的变化 <span>第 7 版复核</span></h3><ul>
+        <li><b>N133</b>（中）<code>5b319dae</code> 的 <code>36cd67a87d67</code> 把所有已删除的顶层厂商都恢复了，包括之前被管理员删除或合并掉的，downgrade 为空</li>
+        <li><b>F4</b> 重开（中）：厂商母公司恢复后，厂商又是「母公司 + 子部门行」</li>
+        <li>F40、F84、F50 已修复的结论经核实不变</li>
+      </ul></div>
+    </div>
   </section>
 
   <section>
