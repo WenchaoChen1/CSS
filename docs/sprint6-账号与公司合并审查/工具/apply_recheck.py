@@ -41,7 +41,8 @@ import re
 import sys
 from pathlib import Path
 
-CLOSED = ('fixed', 'obsolete', 'accepted')
+CLOSED = ('fixed', 'obsolete', 'accepted', 'waived')
+KEEP = ('accepted', 'waived')  # 按用户决定关闭的状态：复核结果不改它，除非 decisions.overrides 显式给 st
 
 
 def load_secret(backend: Path) -> str | None:
@@ -85,13 +86,13 @@ def main() -> None:
         x = rc.get(f['id'])
         o = ov.get(f['id'], {})
         if x is None:
-            if f['st'] == 'accepted' or o:
+            if f['st'] in KEEP or o:
                 x = {'status': f['st'], 'severity_now': f['sev'], 'note': f['note'], 'evidence': '', 'fixed_by': [],
                      'changed_since_prev': False}
             else:
                 missing.append(f['id'])
                 continue
-        st = o.get('st', 'accepted' if f['st'] == 'accepted' and 'st' not in o else x['status'])
+        st = o.get('st', f['st'] if f['st'] in KEEP else x['status'])
         sev = o.get('sev', x['severity_now'])
         if st in CLOSED or sev == 'none':
             sev = f['sev']

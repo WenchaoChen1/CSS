@@ -44,8 +44,10 @@ Felix 在 sprint/sprint6 上做了「四张 `*_member` 表合并进 account、st
 - **`company_back` 只是备份，将来会删除；`deprecated_*` 表将来也会删除，这些表都不再使用。**
   复核时以此为前提：依赖这些表「还能找回数据」的结论不再成立；删表前必须完成的事项单独列出。
 - **删除范围只包括 `company_back` 和 `deprecated_*` 表；`deprecated_*` 列和 9 张 `*_backup` / 映射表都不删除**（2026-11-18，D9）。
-  按这个范围的复核还没做（用户要求暂停），报告和 findings.json 仍是 D7 时的结论。下一轮先做这件事，
-  待办清单和初步判断见沟通与决策记录第三节。
+  第 5 版已按 D9 复核：只在「列或备份表也会被删」时才成立的风险填 `waived`（例如 N91），
+  说明开头写【D9 不计入】；保留列和备份表带来的新风险（autogenerate 生成 drop、jsonb PII、删表后无法解释的旧 id）照常计入。
+  注意 `b8e906f7` 已把 9 张备份表在新库里改名为 `deprecated_*` 前缀，和 D9 冲突（N102），用户决定前按「冲突待定」处理。
+- 审查代理的候选中，标题以【D9】开头的是按 D9 前提对现有代码的复核，不要因为「存量问题」驳回。
 - **X1（订单接口越权）是 main 上已存在的问题，不属于本系列**，单列为范围外，不计入统计；用户暂不修。
 - 审查范围包含 Felix、Lily、lucy 三人的提交；新问题要注明作者。
 - 迁移改写（改已推送迁移的内容或 down_revision、删已推送的 revision）统一记在 F6，不在各条里重复计数。
@@ -133,6 +135,7 @@ python3 apply_recheck.py --findings ../findings.json --result <scratchpad>/wf_re
 | `fixed` | 已修复，写修复提交 |
 | `obsolete` | 相关代码已删除或重构，问题不再适用 |
 | `accepted` | 团队确认按设计接受，不列为风险（例如 H1） |
+| `waived` | 按已确认的前提不计入（例如 D7 下的 F8，D9 下的 N91）；`apply_recheck.py` 不会用复核结果改掉 `accepted` / `waived`，要改须在 `decisions.overrides` 里显式给 `st` |
 
 严重度：high = 跨租户/越权/后门/凭据泄露、不可逆数据丢失或错位、主流程不可用、uat/prod 升级必然失败；
 medium = 公司内越权、局部功能坏掉、可恢复的数据问题、明显的行为回归；low = 边界情况、代码质量、一致性、测试缺失。
