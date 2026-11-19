@@ -59,6 +59,7 @@ Lily、lucy 在这条线上继续开发 Team、平台用户管理、公司信息
 | `file` | 主要位置 |
 | `fix` | 修复提交 |
 | `chg` | 本版是否有变化 |
+| `reply` / `replyb` / `replyv` | 只有团队答复过的条目才有：团队原话（逐字照录）/ 第几批答复 / 一句话核实结论。页面在该条问题下面直接显示，`apply_recheck.py` 会原样带到下一版 |
 
 未关闭 = `st` 不是 `fixed`、`obsolete`、`accepted`、`waived`。
 
