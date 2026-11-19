@@ -205,11 +205,11 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>168</b><span>当前未关闭（第 6 版 188 条，团队答复后关闭 22 条、重开 1 条、新增 1 条）</span></div>
+      <div class="stat"><b>170</b><span>当前未关闭（第 6 版 188 条，团队答复后关闭 22 条、重开 1 条，补充新增 3 条）</span></div>
       <div class="stat h"><b>8</b><span>高危（第 6 版新增 1）</span></div>
       <div class="stat m"><b>52</b><span>中危（含团队答复时新增的 N133）</span></div>
-      <div class="stat l"><b>108</b><span>低危</span></div>
-      <div class="stat n"><b>5</b><span>第 6 版新发现（N129–N133）</span></div>
+      <div class="stat l"><b>110</b><span>低危（含补入的 N134、N135）</span></div>
+      <div class="stat n"><b>7</b><span>第 6 版新发现（N129–N135）</span></div>
     </div>
     <h2>第 5 版 233 条问题的现状</h2>
     <div class="flow">
@@ -241,6 +241,8 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li><b>N133</b>（中）<code>5b319dae</code> 的 <code>36cd67a87d67</code> 把所有已删除的顶层厂商都恢复了，包括之前被管理员删除或合并掉的，downgrade 为空</li>
         <li><b>F4</b> 重开（中）：厂商母公司恢复后，厂商又是「母公司 + 子部门行」</li>
         <li>F40、F84、F50 已修复的结论经核实不变</li>
+        <li><b>N134</b>（低，补自旧第 5 版 N111）侧栏 Settings 对所有角色常显，没勾 settings 节点的角色点开是 NotFound，改不了自己的姓名和语言</li>
+        <li><b>N135</b>（低，补自旧第 5 版 N112）前端 permissionCodes.ts 还有 12 个码在后端不存在，目前没有引用</li>
       </ul></div>
     </div>
   </section>
