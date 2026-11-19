@@ -173,7 +173,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 5 版</div>
     <h1>「账号与公司合并」系列提交审查</h1>
     <div class="meta">
-      <span>2026-11-18 复核</span>
+      <span>2026-11-18 复核；2026-11-19 补充团队答复</span>
       <span>当前代码：后端 <code>8e156199</code>，前端 <code>0c27bcf6</code></span>
       <span>第 4 版：后端 <code>a4db1e5f</code>，前端 <code>6eb46852</code></span>
       <span>本版新增审查：后端 17 个、前端 9 个非合并提交（Felix、Lily、lucy）</span>
@@ -188,10 +188,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>173</b><span>当前未关闭的问题</span></div>
-      <div class="stat h"><b>10</b><span>高危（其中新增 3）</span></div>
-      <div class="stat m"><b>53</b><span>中危（其中新增 9）</span></div>
-      <div class="stat l"><b>110</b><span>低危（其中新增 6）</span></div>
+      <div class="stat"><b>160</b><span>当前未关闭（第 5 版 173 条，团队答复后关闭 13 条）</span></div>
+      <div class="stat h"><b>9</b><span>高危（本版新增 3）</span></div>
+      <div class="stat m"><b>49</b><span>中危（本版新增 9）</span></div>
+      <div class="stat l"><b>102</b><span>低危（本版新增 6）</span></div>
       <div class="stat n"><b>18</b><span>本版新发现</span></div>
     </div>
     <h2>前四版 201 条问题的现状</h2>
@@ -202,6 +202,35 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <div class="op"><b>96</b><span>仍存在</span><ul><li>N35 账号接管链</li><li>N73 新 vendor 订单列表 500</li><li>H5、H6（F5）、M1</li><li>N69、N74 公司停用</li></ul></div>
     </div>
     <p class="count prose">复核方法：201 条（含已关闭的）分 31 批逐条对照 HEAD 复核，和删表有关的 11 条按 D9 单独成批；本轮新提交按 9 个方向审查（新权限体系、权限缓存、迁移、弃用旧表、邀请码、平台用户与日志、前端权限、横向安全、D9 前提），52 条候选逐条做对抗性验证，确认 33 条。去重后新增 18 条；另有 16 条并入已有问题（F6、F9、N64、N13、N88、N30、N67、F70、N56、N2、N89），5 条驳回。N97、N98、N99 三条新高危，以及 N34 已修复、H6′ 降级、N2、N42、N104、N105、N106，都已人工核对代码。uat/prod 停在 <code>b3d9f1a2c4e5</code>，这批迁移都还没执行。</p>
+  </section>
+
+  <section>
+    <h2>团队答复（2026-11-19）</h2>
+    <p class="prose">团队对 26 条问题给了书面答复，每条都对照 sprint6 最新代码（后端 <code>9d19c8a2</code>、前端 <code>e4b966df</code>）核实过：设计或需求取舍按设计接受；环境数据和发布流程方面的说法没法连库验证，按团队确认的前提不计入；「已修复」「表已废弃」必须在代码里找到证据；答复没答到点或和代码不符的，状态不变并回问团队。13 条因此关闭，未关闭从 173 条变为 160 条。每条的核实说明见下方「全部问题」表里该条的「复核说明」。</p>
+    <div class="cats">
+      <div class="cat"><h3>关闭 <span>13</span></h3><ul>
+        <li><b>按设计接受</b>：F2（dev_admin 只由迁移建）、F17（M2，账号复制到每个门店是需求）、F28（只是 docstring）、F34（price tier 只对 Liquor Vendor）</li>
+        <li><b>已修复</b>：F4（门店就是公司；<code>8011513c0d5c</code> 软删母公司后列表和去重问题不再成立）</li>
+        <li><b>按前提不计入</b>：F6、F11、F21（uat/prod 一次执行最终链）；F7（M1）、F20、F39（H7 残留）（环境里没有这种数据，未连库核实）；F12（表已废弃，代码已核实）</li>
+        <li><b>不再适用</b>：F18（旧角色表已改名为 deprecated_）</li>
+      </ul></div>
+      <div class="cat"><h3>答复没答到点，状态不变 <span>8</span></h3><ul>
+        <li><b>F15</b> 没有迁移会删除 order_comment 三列全空的行，「会被删除」可能是把 F7 套过来了</li>
+        <li><b>F9</b> 本系列 9 个迁移仍没有 lock_timeout</li>
+        <li><b>F13</b> 默认规则接受，但 MANUFACTURER 兜底在几处仍是 Food_Manufacturer，和答复不一致</li>
+        <li><b>F19</b> _css_pii_masked 是运维的脱敏标记，不是应用表</li>
+        <li><b>F25</b> 答复没回答 store_id 为空时 vendor_id 被清空（只影响开发库）</li>
+        <li><b>F32</b> 同一门店重复编号仍会让建索引失败，需要上线前查重</li>
+        <li><b>F47</b> onboarding 和邀请注册查 owner 仍不过滤已删账号</li>
+        <li><b>F50</b> 外键已加（<code>049461d68471</code>），但孤儿账号会让升级中止，/account/create 仍返回 409</li>
+      </ul></div>
+      <div class="cat"><h3>新提交改变的结论 <span>第 6 版复核</span></h3><ul>
+        <li><b>N2</b> 更严重：<code>3e945bde</code> 重新加回 dev admin 对所有未停用公司放行</li>
+        <li><b>N35</b> 可能已修：旧的 PUT /team/members/{id} 被删掉了</li>
+        <li><b>8011513c0d5c</b> 软删所有带子行的母公司，不备份；母公司上的订阅不会转到门店</li>
+        <li><b>N107</b> 可能已修：新订单邮件改读 new_order_email 节点</li>
+      </ul></div>
+    </div>
   </section>
 
   <section>
