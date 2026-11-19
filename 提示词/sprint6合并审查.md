@@ -33,7 +33,7 @@ Felix 在 sprint/sprint6 上做了「四张 `*_member` 表合并进 account、st
 - **不连数据库、不跑迁移**：结论全部来自读代码和迁移文件；报告里要写明「没有连库或运行测试验证」。
 - **口令打码**：迁移 `4b52dd3297e5` 里的 dev admin 固定密码、test/uat 统一口令，一律写成 `<固定密码>`。
   工具脚本会从迁移文件里读出原文做检查，任何会提交的文件里都不要出现原文。
-- **prod 是未脱敏真实数据**；uat/prod 的 alembic 停在 `b3d9f1a2c4e5`，这批迁移都还没执行。
+- **prod 是未脱敏真实数据**；uat/prod 已部署到 sprint5，`main`/`uat` 的迁移 head 是 `731ddff784cc`（D20，第 7 版核实；工作区说明里的 `b3d9f1a2c4e5` 已过时），这批迁移都还没执行。每轮先用 `git ls-tree` 读 `origin/main` 的迁移文件确认 head，不要照抄。
 - 审查代理和汇总都不要编造：每条结论都要有 `文件:行号` 和提交哈希。
 
 ### 2. 已确认的前提和决定（以此为准，详见沟通与决策记录）
@@ -43,10 +43,12 @@ Felix 在 sprint/sprint6 上做了「四张 `*_member` 表合并进 account、st
   N2（dev admin 对所有公司放行等权限设计）仍按风险跟踪，除非用户另有决定。
 - **`company_back` 只是备份，将来会删除；`deprecated_*` 表将来也会删除，这些表都不再使用。**
   复核时以此为前提：依赖这些表「还能找回数据」的结论不再成立；删表前必须完成的事项单独列出。
+- **`deprecated_*` 表审查时当作不存在**（D22，2026-11-19）：它们以后都会删除，不能再拿来当找回或核查数据的依据，也不因长期保留 PII 算问题；只有代码还在查询、写入或映射这些表，或其它表和它们有外键关联，才算问题。
 - **删除范围只包括 `company_back` 和 `deprecated_*` 表；`deprecated_*` 列和 9 张 `*_backup` / 映射表都不删除**（2026-11-18，D9）。
   第 5 版已按这个范围复核。注意 `b8e906f7` 把这 9 张备份表在新库里改名为 `deprecated_*`，与 D9 冲突，
   去留待用户决定（N93，沟通与决策记录第三节）；用户决定前，按「保留」处理。
-- **sprint6 已合入 `test` 分支**（D13，2026-11-18）：test 环境很可能已执行本系列迁移；uat/prod 仍停在 `b3d9f1a2c4e5`。
+- **sprint6 已合入 `test` 分支**（D13，2026-11-18）：test 环境很可能已执行本系列迁移；uat/prod 还没执行。
+- **test 也被合进了 sprint6**（D20，Felix 2026-11-19）：sprint6 与 `origin/test` 代码树相同，test 上原来独有的提交按本系列审查（N136）。每轮用 `git diff <上一版基线> <合并提交>` 看合并的净改动，不要只看非合并提交。
   不要写「sprint6 尚未部署到任何环境」。
 - **本地库例外**（D12）：只有用户明确要求时才在本地库跑迁移；审查代理始终只读代码、不连任何库。
 - **团队书面答复的处理原则**（2026-11-19，D19）：设计或需求取舍按设计接受（`accepted`）；环境数据和发布流程的说法没法连库验证，
@@ -70,7 +72,7 @@ cd <工作区>/CSS_frontend-main  && git branch --show-current && git status --s
 - 上一版的基线提交写在 `docs/sprint6-账号与公司合并审查/README.md` 的版本表里。
 - 列出新提交：`git log --no-merges --format='%h %an %ad %s' --date=format:'%m-%d %H:%M' <上一版基线>..HEAD`，
   以及每个提交的 `git show --stat`。
-- 迁移：`git diff --name-status <基线>..HEAD -- core_app/src/app/migrations/versions`；从 `b3d9f1a2c4e5` 走一遍
+- 迁移：`git diff --name-status <基线>..HEAD -- core_app/src/app/migrations/versions`；从 uat/prod 的 head（现为 `731ddff784cc`）走一遍
   revision / down_revision，确认是否单一 head、有没有改写或删除已推送的迁移。
 - 检查 `origin/sprint/sprint6_permissions` 是否已合入（N34 的配套代码）：`git merge-base --is-ancestor <提交> HEAD`。
 
@@ -79,7 +81,7 @@ cd <工作区>/CSS_frontend-main  && git branch --show-current && git status --s
 用 `docs/sprint6-账号与公司合并审查/工具/recheck-workflow.js`（Workflow 工具的 `scriptPath`），`args` 为：
 
 - `ctx`：背景说明。写清楚两个仓库路径、上一版基线和当前 HEAD、本轮每个非合并提交（哈希、作者、标题、改了哪些模块）、
-  新迁移和迁移链状态、`sprint6_permissions` 是否合入、环境状态（uat/prod 在 `b3d9f1a2c4e5`，prod 未脱敏），
+  新迁移和迁移链状态、`sprint6_permissions` 是否合入、环境状态（uat/prod 在 `731ddff784cc`，prod 未脱敏），
   以及第 2 节的前提和决定。
 - `findingsPath`：`findings.json` 的绝对路径。
 - `prevLabel`：上一版的名称，例如 `第 4 版`。
@@ -121,6 +123,8 @@ python3 apply_recheck.py --findings ../findings.json --result <scratchpad>/wf_re
     --decisions <scratchpad>/decisions.json --backend <工作区>/CSS_backend-main --out ../findings.json
 ```
 
+- `apply_recheck.py` 会用本轮复核说明**替换**每条的 `note`。运行后对比上一版：第 6 版补充的团队答复核实说明（D19）、用户决定相关的说明不能丢，丢了要手工追加回去（第 7 版遇到过）。
+- 每条「部分修复」都要有 `done`（已修好）和 `remain`（还剩）各一两句话，页面直接显示在问题下面，报告「〇-C」逐条列出。`apply_recheck.py` 只在状态仍是部分修复时把旧的带过来，**每版都要按新基线重新核对**（2026-11-19 起用 Workflow：每组一个写作代理 + 一个独立复核代理，读代码一律带基线版本号）；新变成部分修复的条目要新写。
 - 按脚本打印的数字更新 `审查报告.md`：页头（日期、当前代码、上一版基线、本版新增审查的提交数）、
   〇 结论与数字表、一 阶段表（本版新增的提交加粗）、二 阻断项、三 高危（3.1 未关闭 / 3.2 已关闭或降级 / 3.3 范围外）、
   四 中危（4.1 本版新增 / 4.2 前几版现状）、五 低危、六 驳回与更正、七 建议。
