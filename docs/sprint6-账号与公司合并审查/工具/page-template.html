@@ -210,17 +210,17 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>174</b><span>当前未关闭（第 6 版补充 168 条，另一台电脑补录 N134、N135，第 7 版新增 4 条，没有关闭）</span></div>
-      <div class="stat h"><b>8</b><span>高危（N129 改为部分修复，N88 更严重）</span></div>
-      <div class="stat m"><b>54</b><span>中危（新增 N136，N69 升回中危）</span></div>
-      <div class="stat l"><b>112</b><span>低危（补录 N134、N135；新增 N137–N139）</span></div>
+      <div class="stat"><b>168</b><span>当前未关闭（第 7 版 174 条；按 D22 又有 6 条不计入）</span></div>
+      <div class="stat h"><b>7</b><span>高危（N129 改为部分修复；N88 按 D22 不计入）</span></div>
+      <div class="stat m"><b>53</b><span>中危（新增 N136，N69 升回中危；N93 按 D22 降为低危）</span></div>
+      <div class="stat l"><b>108</b><span>低危（补录 N134、N135，新增 N137–N139；N13、N19、N94–N96 按 D22 不计入）</span></div>
       <div class="stat n"><b>4</b><span>第 7 版新发现（N136–N139）</span></div>
     </div>
     <h2>第 6 版补充的 238 条问题的现状</h2>
     <div class="flow">
       <div class="fx"><b>70</b><span>已关闭或不计入</span><ul><li>本版没有新关闭的条目</li><li>已修复 32、不再适用 16，均未回归</li><li>按设计接受 11、按前提不计入 11（F6 又多 5 个迁移改写，仍按 D19 不计入）</li></ul></div>
       <div class="pt"><b>41</b><span>部分修复</span><ul><li>N129 厂商一块由 <code>36cd67a87d67</code> 补上</li><li>F67 切换已修、访问仍缺</li><li>F4 厂商又是「母公司 + 子部门行」</li></ul></div>
-      <div class="wr"><b>8</b><span>更严重</span><ul><li>N69 停用不级联，升回中危</li><li>N88 厂商的删除状态只剩备份表里有</li><li>F63、N112 测试被整文件删掉；N63 角色接口改为 422</li></ul></div>
+      <div class="wr"><b>8</b><span>更严重</span><ul><li>N69 停用不级联，升回中危</li><li>N88 本版更严重，随后按 D22 不计入</li><li>F63、N112 测试被整文件删掉；N63 角色接口改为 422</li></ul></div>
       <div class="op"><b>119</b><span>仍存在</span><ul><li>N118 跨租户拿到员工联系方式</li><li>N97 迁移硬删公司</li><li>N2 dev admin 对所有公司放行</li><li>N133 恢复厂商范围过宽</li></ul></div>
     </div>
     <p class="count prose">复核方法：238 条分 32 批逐条复核（含已关闭的）；新提交从 7 个方向审查（<code>5b319dae</code>、<code>02d1c1a3</code>、test 合并的后端改动、<code>e152d0e3</code>、前端 fix bug 与 test 合并、迁移、横向安全），17 条候选对抗式验证后新增 4 条、并入 5 条、没有驳回。人工核对了 N136 的三处回退和 <code>36cd67a87d67</code> 原文；迁移链用脚本建图计算。没有连接数据库，没有运行测试。</p>
@@ -298,7 +298,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <article class="issue"><div class="id">N73</div><div class="body"><h3>新建的 vendor 公司一接单，订单列表就 500</h3><p><code>3e945bde</code> 让 onboarding 收尾时给 VENDOR 补建 <code>store_delivery</code>，邀请、Admin 建公司、导入这些要走 onboarding 的路径都覆盖了。剩下公司切换器里的 Add Company：直接建出 ACTIVE 的 vendor，不经过 onboarding，也不补这行。</p></div><div class="side"><span class="by">c8fb1cd6 2538e427</span><span class="chip part">部分修复</span><small>Add Company 也补，或缺行时兜底为 0</small></div></article>
       <article class="issue"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id（F5）</h3><p><code>b7d82c2e651b</code> 没变。第 6 版：<code>049461d68471</code> 的孤儿检查发现不了这类冲突，新外键反而会把错挂的账号固定在错误的公司上。H6 的另一半 F4（副本混进列表）因母公司被删，本版关闭。</p></div><div class="side"><span class="by">2a7d08bc e3ba8005</span><span class="chip open">F5 未修，F4 已关闭</span><small>uat 执行前先做只读冲突核查</small></div></article>
       <article class="issue"><div class="id">H5</div><div class="body"><h3>迁移清空所有公司的 parent_company_id</h3><p><code>d8aaccb9a900</code> 没变。原值只在 <code>company_back</code> 里（新库里叫 <code>deprecated_company_back</code>），按 D9 要删。第 7 版：厂商母公司被 <code>36cd67a87d67</code> 恢复，「分支指向已删除行」现在只对门店和餐厅成立；已删除的厂商子公司也被清空了 parent，会被一并恢复。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip open">未修</span><small>prod 升级前只读导出层级，请产品书面确认</small></div></article>
-      <article class="issue"><div class="id">N88</div><div class="body"><h3>删表前提：deprecated_* 表是多条问题唯一的数据来源，范围又扩大了</h3><p>旧母子层级、id 冲突线索、暂存成员、多类型、账单地址、各公司旧权限矩阵（N99 补迁的唯一来源）、类型角色表、通知设置，按 D7 都要删。<b>第 7 版</b>：<code>36cd67a87d67</code> 把所有已删除顶层厂商的 deleted_at 改成 NULL，2026-05-07 有审计日志之前被删除的厂商，删除状态从此只剩 <code>deprecated_company_back</code> 里有。</p></div><div class="side"><span class="by">删表前提</span><span class="chip worse">更严重</span><small>删表前先导出，先做完 N99 补迁；把被恢复的厂商 id 写进保留表</small></div></article>
+      <article class="issue lo"><div class="id">N88</div><div class="body"><h3>deprecated_* 表是多条问题唯一的数据来源（按 D22 不计入）</h3><p>用户确认 <code>deprecated_</code> 开头的表以后都会删除，审查时当作不存在（D22）。本条的风险完全建立在「这些表还能用来找回或核查数据」上，所以不再计入；它列出的数据丢失分别由 F3（旧层级）、F5、N41、F13、N61、N99、N129、N133、N3 跟踪，按 D22 视为已丢失。</p></div><div class="side"><span class="by">删表前提</span><span class="chip down">按 D22 不计入</span></div></article>
       <article class="issue done"><div class="id">N34</div><div class="body"><h3>只合入了公司角色迁移，没合入代码</h3><p>已修：配套代码经 <code>b6c1083a</code> 合入，ORM、读取方和所有写角色的入口都改到 <code>system_company_role</code>（人工核对）。已执行过中间版本的库缺 10 个迁移，记在 F6。</p></div><div class="side"><span class="by">3f19b998</span><span class="chip fixed">已修复 · ded52c12 69c5cb38</span></div></article>
       <article class="issue done"><div class="id">N35</div><div class="body"><h3>账号接管链</h3><p>已修：<code>3e945bde</code> 删除了 <code>PUT /team/members/{id}</code>，这是唯一能改别人全局邮箱和手机号的一环（人工核对）。加人仍不需要对方确认（F58），新出现的「改写他人显示名」另列为 N122。</p></div><div class="side"><span class="by">fbfc9b9c 13e16617</span><span class="chip fixed">已修复 · 3e945bde</span></div></article>
       <article class="issue done"><div class="id">N98</div><div class="body"><h3>（第 5 版新发现）供应商下单全部走餐厅流程</h3><p>后端不再下发 <code>CREATE_VENDOR_ORDER</code>，前端订单表单 13 处仍靠它判断买卖方。已由 <code>bc820add</code> 改为按公司类型判断（人工核对）。</p></div><div class="side"><span class="by">5ab121cc · Felix</span><span class="chip fixed">已修复 · bc820add</span></div></article>
@@ -310,23 +310,20 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
   </section>
 
   <section>
-    <h2>删表前提下的复核（按 D9）</h2>
-    <p class="prose">D9：删除范围<b>只包括</b> <code>company_back</code> 和 <code>deprecated_*</code> 表，<code>deprecated_*</code> 列和 9 张备份/映射表都不删。<b>最大的新情况是 D9 自己的两条规定冲突了</b>：<code>b8e906f7</code> 原地改写了 10 个已推送的迁移，让 9 张备份表在新库里一建出来就叫 <code>deprecated_*</code>，按「删 <code>deprecated_*</code> 表」执行会把它们一起删掉；跑过旧版迁移的库里它们仍是旧名，同一份删表语句在两类库上结果不同。<b>需要你决定</b>：继续保留（删表清单逐表列名、排除它们），还是理解为也要删（N93）。</p>
+    <h2>删表前提下的复核（第 7 版补充，按 D22）</h2>
+    <p class="prose"><b>D22（用户原话）</b>：「deprecated_ 开头的表在后面的会删除，此时在审核的时候当做没有就好；如果代码中查询了这些表或者有的表和这些表有关联关系才是问题。」所有 46 张 <code>deprecated_*</code> 表（含 <code>deprecated_company_back</code> 和 9 张备份/映射表）视为不存在；<code>deprecated_*</code> 列按 D9 照旧不删。扫描结果：<b>应用代码已经不查询这些表</b>（人工核对）；在用表指向旧表的外键只有 N90 的 4 条；旧表指向在用表的 23 条外键都是 CASCADE。</p>
     <div class="cats">
-      <div class="cat"><h3>结论变化 <span>按 D9</span></h3><ul>
-        <li><b>N91</b> 不再适用：列不删</li>
-        <li><b>N93</b> 更严重：与 D9 冲突；jsonb 整行 PII 会长期保留</li>
-        <li><b>N88</b> 更严重：旧权限矩阵、类型角色表、通知表也进入删除范围</li>
-        <li><b>N92</b> 恢复为中危：原来恰好挡住回滚的外键拦截没有了</li>
-        <li><b>N89</b> 部分修复：ImportError 已修，<code>include_object</code> 仍缺，且要按名单排除</li>
-        <li><b>N90</b> 未变：列保留，只删外键约束</li>
+      <div class="cat"><h3>结论变化 <span>按 D22</span></h3><ul>
+        <li><b>N88</b>（高）不计入：数据丢失由 F3、N129、N133 等跟踪</li>
+        <li><b>N13、N19、N94、N95、N96</b>（低）不计入；N94 的后果由 F19 跟踪</li>
+        <li><b>N93</b> 降为低危：只剩旧库里的旧表名，删表脚本要新旧名都列</li>
+        <li><b>N92、N89、N99、N41、N61</b> 收窄；<b>N90</b> 不变（外键关联）</li>
+        <li><b>F3、N133、N3</b> 不变，补救不能再靠备份表；N133 改用 <code>8011513c0d5c</code> 的事务时间戳</li>
       </ul></div>
-      <div class="cat"><h3>删表前要做 <span>顺序</span></h3><ul>
-        <li>本系列在 prod 稳定后，删表单独发版</li>
-        <li>先决定 9 张备份表的去留（N93）</li>
-        <li>prod 只读导出：层级、冲突、暂存成员、多类型、账单地址、退款余额、旧权限矩阵</li>
-        <li><code>env.py</code> 加 <code>include_object</code>，按名单排除</li>
-        <li>逐表列名删，兼容新旧两种表名，不用前缀、不用 CASCADE；downgrade 直接 raise</li>
+      <div class="cat"><h3>删表要做 <span>顺序</span></h3><ul>
+        <li>本系列在 prod 稳定后，删表迁移追加在链尾、单独发版；不能在 uat/prod 升级前手工先删（<code>1f7c3a9e5b28</code>、<code>b5e1d7c3a920</code> 升级时还要读这些表）</li>
+        <li><code>env.py</code> 加 <code>include_object</code>，按 <code>deprecated_</code> 前缀排除；<code>legacy_models.py</code> 保留（N89）</li>
+        <li>先删 4 条在用表指向旧表的外键（N90）；按依赖顺序逐表删，新旧表名都列，不用 CASCADE，不删共用的枚举；downgrade 直接 raise（N92、N93）</li>
         <li>空库和 uat 副本各跑一遍（空库现在在 <code>f05bb0b9b161</code> 就失败，F118）</li>
       </ul></div>
     </div>
@@ -436,7 +433,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li><b>N73、N121、N57、N7</b>：Add Company 也补配送设置；前端处理 403 <code>company_access_disabled</code>；收件人查询过滤停用账号；建账号都写姓名。</li>
         <li><b>补完公司停用</b>（N69 厂商母公司回来后必须级联、N70、N74）、<b>修操作日志</b>（N67、N68、N72、N37）。</li>
         <li><b>在 prod 副本上演练整条迁移链</b>（从 <code>731ddff784cc</code> 起 86 个），重点看 H6、H7、F13、N41、N72、N97、N99、N119、N129、N133。</li>
-        <li><b>删表按上面的顺序做</b>，先决定 9 张备份表的去留（N93）；修好空库建库（F118）。</li>
+        <li><b>删表按上面的顺序做</b>（按 D22，<code>deprecated_*</code> 表都删，脚本兼容旧库的旧表名）；修好空库建库（F118）。</li>
       </ol>
     </div>
     <div style="display:grid;gap:12px;align-content:start;min-width:0">
@@ -447,7 +444,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       </ul>
       <h2 style="margin-top:12px">需要你或产品确认</h2>
       <ul class="steps">
-        <li>9 张备份表已被改成 <code>deprecated_*</code>：按 D9 保留，还是一起删（N93）？</li>
+        <li><s>9 张备份表按 D9 保留还是一起删（N93）？</s> 已按 D22 处理：<code>deprecated_*</code> 表以后都会删。</li>
         <li>升级时各公司的定制权限重置成模板，是否接受（N99）？</li>
         <li>新公司的新订单邮件只发 CEO、不再发门店邮箱，是否有意（N106）？</li>
         <li>My Stores / My Restaurants、Notifications 设置页整块下线，是否有意？</li>
