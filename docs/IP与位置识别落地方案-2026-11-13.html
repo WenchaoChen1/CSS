@@ -1,0 +1,441 @@
+<meta charset="utf-8">
+<title>IP 与位置识别落地方案</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (max 1080px) for an engineering plan. The request chain is the
+   one diagram; tables carry "现有 / 修改后"; suggestions sit in amber dashed boxes numbered S1… */
+:root {
+  --bg: #F2F4F3;
+  --surface: #FFFFFF;
+  --ink: #172026;
+  --muted: #5A6670;
+  --line: #D7DDDF;
+  --line-strong: #8C989F;
+  --route: #1F5FA8;        /* 请求链路 / 本方案要做的 */
+  --route-soft: #E2EBF7;
+  --ok: #2B7A4E;           /* 现状可用 */
+  --ok-soft: #E1F1E7;
+  --amber: #9A5A06;        /* 建议 S1… */
+  --amber-soft: #F7ECD9;
+  --no: #A3311E;           /* 不采用 / 问题 */
+  --no-soft: #F8E4DF;
+  --code-bg: #EEF1F2;
+  --font-display: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  --font-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1417; --surface: #161D21; --ink: #E2E8EB; --muted: #9AA6AE;
+    --line: #28323A; --line-strong: #5B6871;
+    --route: #8DB5F0; --route-soft: #182640;
+    --ok: #7FCB9C; --ok-soft: #14291D;
+    --amber: #E3AA4F; --amber-soft: #33270F;
+    --no: #F19A86; --no-soft: #3A1E18;
+    --code-bg: #11181C;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1417; --surface: #161D21; --ink: #E2E8EB; --muted: #9AA6AE;
+  --line: #28323A; --line-strong: #5B6871;
+  --route: #8DB5F0; --route-soft: #182640;
+  --ok: #7FCB9C; --ok-soft: #14291D;
+  --amber: #E3AA4F; --amber-soft: #33270F;
+  --no: #F19A86; --no-soft: #3A1E18;
+  --code-bg: #11181C;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15.5px; line-height: 1.75;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 72px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+a { color: var(--route); }
+a:focus-visible { outline: 2px solid var(--route); outline-offset: 3px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+p { margin: 0 0 12px; max-width: 72ch; }
+
+/* header */
+.top { padding-block: 48px 4px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.draft { border: 1px dashed var(--amber); color: var(--amber); background: var(--amber-soft); border-radius: 999px; padding: 1px 10px; letter-spacing: .04em; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.9rem, 1.3rem + 2.4vw, 2.9rem); line-height: 1.22; margin: .3em 0 .4em; text-wrap: balance; }
+.lede { color: var(--muted); font-size: 1.03rem; max-width: 68ch; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 18px; font-size: 14px; }
+.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
+.toc a:hover { border-bottom-color: var(--ink); }
+
+.phases { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px 14px; display: grid; gap: 4px; align-content: start; }
+.phase .tag { font-family: var(--font-mono); font-size: 12px; color: var(--route); font-weight: 500; }
+.phase h3 { margin: 0; font-size: 1.05rem; }
+.phase .get { font-size: 13.5px; color: var(--muted); }
+.phase .get b { color: var(--ink); font-weight: 500; }
+.note { margin-top: 14px; font-size: 14px; color: var(--muted); max-width: 80ch; }
+
+/* sections */
+section { padding-block: 48px 4px; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.4rem, 1.2rem + .8vw, 1.75rem); line-height: 1.3; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 1.04rem; margin: 26px 0 8px; line-height: 1.45; }
+.sub { color: var(--muted); max-width: 72ch; }
+
+figure { margin: 18px 0 0; }
+.frame { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
+figcaption { font-size: 13.5px; color: var(--muted); margin-top: 8px; max-width: 80ch; }
+
+.dg { display: block; width: 100%; min-width: 880px; height: auto; }
+.dg text { font-family: var(--font-body); }
+.dg .bx rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.2; }
+.dg .bx.rt rect { fill: var(--route-soft); stroke: var(--route); }
+.dg .bt { font-size: 14px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
+.dg .bs { font-size: 11.5px; fill: var(--muted); text-anchor: middle; }
+.dg .hop { font-family: var(--font-mono); font-size: 11.5px; fill: var(--route); text-anchor: middle; }
+.dg .hop.mut { fill: var(--muted); }
+.dg .e { stroke: var(--ink); stroke-width: 1.4; fill: none; }
+.dg .ah { fill: var(--ink); }
+.dg .panel { fill: var(--code-bg); stroke: var(--line); }
+.dg .cap { font-size: 12.5px; fill: var(--muted); }
+.dg .ip { font-family: var(--font-mono); font-size: 15px; fill: var(--muted); }
+.dg .ip.fake { fill: var(--no); }
+.dg .ip.real { fill: var(--ok); font-weight: 500; }
+.dg .ipl { font-size: 11.5px; fill: var(--muted); }
+.dg .ipl.fake { fill: var(--no); }
+.dg .ipl.real { fill: var(--ok); font-weight: 700; }
+.dg .scan { stroke: var(--route); stroke-width: 1.6; fill: none; }
+.dg .scanh { fill: var(--route); }
+.dg .scant { font-size: 12.5px; fill: var(--route); font-weight: 500; }
+
+.table-scroll { overflow-x: auto; margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+thead th { font-size: 12.5px; color: var(--muted); font-weight: 500; letter-spacing: .03em; white-space: nowrap; }
+td.nowrap { white-space: nowrap; }
+.file { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+table.wide { min-width: 760px; }
+
+.pill { display: inline-block; font-size: 12px; line-height: 1.5; padding: 1px 9px; border-radius: 999px; white-space: nowrap; font-weight: 500; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.no { background: var(--no-soft); color: var(--no); }
+.pill.rt { background: var(--route-soft); color: var(--route); }
+.pill.mut { background: var(--code-bg); color: var(--muted); }
+
+pre { margin: 14px 0 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; }
+pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+.cm { color: var(--muted); }
+
+ul.plain { margin: 8px 0 0; padding-left: 1.2em; max-width: 76ch; display: grid; gap: 6px; }
+
+.reject { display: grid; gap: 10px; margin-top: 14px; }
+.reject > div { display: grid; grid-template-columns: minmax(0, 15em) minmax(0, 1fr); gap: 4px 18px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--no); border-radius: 4px 10px 10px 4px; }
+.reject b { font-weight: 500; }
+.reject span { color: var(--muted); font-size: 14.5px; }
+
+.suggests { display: grid; gap: 12px; margin-top: 16px; }
+.suggest { border: 1.5px dashed var(--amber); background: var(--amber-soft); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 2px 12px; }
+.suggest .id { font-family: var(--font-mono); font-weight: 500; color: var(--amber); font-size: 1rem; grid-row: span 2; }
+.suggest h3 { margin: 0; font-size: 1rem; }
+.suggest p { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+.checks { margin-top: 14px; display: grid; gap: 8px; }
+.checks div { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 10px; font-size: 14.5px; }
+.checks b { font-family: var(--font-mono); font-weight: 500; color: var(--route); }
+
+.sources { font-size: 13.5px; }
+.sources ul { margin: 8px 0 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.sources a { overflow-wrap: anywhere; }
+footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .phases { grid-template-columns: minmax(0, 1fr); }
+  .reject > div { grid-template-columns: minmax(0, 1fr); }
+  body { font-size: 15px; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow"><span>CSS · 落地方案</span><span class="draft">草稿 v0.1 · 待确认</span><span>2026-11-13</span></div>
+  <h1>IP 与位置识别落地方案</h1>
+  <p class="lede">目标是让系统知道用户大概在哪里，用来给表单填默认值；需要精确地址的地方，让用户一键填入当前位置。本页按现有代码和 AWS 配置写成，确认后再拆成开发任务。</p>
+  <nav class="toc" aria-label="目录">
+    <a href="#now">一、现状</a>
+    <a href="#p1">二、P1 真实 IP</a>
+    <a href="#p2">三、P2 IP 推地区</a>
+    <a href="#p3">四、P3 当前位置填地址</a>
+    <a href="#no">五、不采用的做法</a>
+    <a href="#sug">六、建议 S1–S5</a>
+    <a href="#plan">七、顺序与验证</a>
+  </nav>
+
+  <div class="phases">
+    <div class="phase">
+      <span class="tag">P1 · 后端</span>
+      <h3>拿到真实客户端 IP</h3>
+      <span class="get">现在后端拿到的是 nginx 容器地址。<b>后面两步都靠它。</b></span>
+    </div>
+    <div class="phase">
+      <span class="tag">P2 · 后端 + 前端</span>
+      <h3>IP 推国家 / 州 / 城市</h3>
+      <span class="get">离线 IP 库，新接口 <code>GET /api/geo/me</code>。<b>先用在电话国家码默认值上。</b></span>
+    </div>
+    <div class="phase">
+      <span class="tag">P3 · 前端</span>
+      <h3>「使用当前位置」填门牌地址</h3>
+      <span class="get">浏览器定位加 Google 逆地理编码。<b>要用户点允许。</b></span>
+    </div>
+  </div>
+  <p class="note">IP 最细只能到城市，手机流量和 VPN 下连城市都可能不准。要门牌级地址只能走 P3，或者让用户在现有的地址补全里自己选。</p>
+</header>
+
+<!-- ============ 一、现状 ============ -->
+<section id="now" aria-labelledby="h-now">
+  <h2 id="h-now">一、现状</h2>
+  <p class="sub">一次 API 请求从浏览器到 FastAPI 要经过下面几层。每层 nginx 都会把上一跳的地址追加到 <code>X-Forwarded-For</code>（下文简称 XFF），所以真实 IP 其实已经传到了后端，只是还没有代码去取。</p>
+
+  <figure>
+    <div class="frame">
+      <svg class="dg" viewBox="0 0 1040 262" role="img" aria-labelledby="dg-title dg-desc">
+        <title id="dg-title">请求链路与 X-Forwarded-For 的累加</title>
+        <desc id="dg-desc">用户浏览器经 Global Accelerator、ALB、前端 nginx、后端 nginx 到 gunicorn。每一跳把上一跳地址追加进 XFF。app 收到的 XFF 从右往左跳过内网地址，第一个公网地址就是真实 IP。</desc>
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="arr-rt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="scanh" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+
+        <g class="bx"><rect x="10" y="20" width="158" height="70" rx="10"/><text class="bt" x="89" y="50">用户浏览器</text><text class="bs" x="89" y="72">公网 IP 203.0.113.7</text></g>
+        <g class="bx"><rect x="184" y="20" width="158" height="70" rx="10"/><text class="bt" x="263" y="50">Global Accelerator</text><text class="bs" x="263" y="72">仅 prod · 已保留源 IP</text></g>
+        <g class="bx"><rect x="358" y="20" width="158" height="70" rx="10"/><text class="bt" x="437" y="50">ALB</text><text class="bs" x="437" y="72">css-&lt;env&gt; · VPC 内网</text></g>
+        <g class="bx"><rect x="532" y="20" width="158" height="70" rx="10"/><text class="bt" x="611" y="50">前端 nginx 容器</text><text class="bs" x="611" y="72">EC2:80</text></g>
+        <g class="bx"><rect x="706" y="20" width="158" height="70" rx="10"/><text class="bt" x="785" y="50">后端 nginx 容器</text><text class="bs" x="785" y="72">nginx:80</text></g>
+        <g class="bx rt"><rect x="880" y="20" width="150" height="70" rx="10"/><text class="bt" x="955" y="50">gunicorn + FastAPI</text><text class="bs" x="955" y="72">UvicornWorker</text></g>
+
+        <line class="e" x1="168" y1="55" x2="182" y2="55" marker-end="url(#arr)"/>
+        <line class="e" x1="342" y1="55" x2="356" y2="55" marker-end="url(#arr)"/>
+        <line class="e" x1="516" y1="55" x2="530" y2="55" marker-end="url(#arr)"/>
+        <line class="e" x1="690" y1="55" x2="704" y2="55" marker-end="url(#arr)"/>
+        <line class="e" x1="864" y1="55" x2="878" y2="55" marker-end="url(#arr)"/>
+
+        <text class="hop mut" x="89" y="114">可自带 XFF: 1.2.3.4</text>
+        <text class="hop mut" x="263" y="114">源 IP 不变</text>
+        <text class="hop" x="437" y="114">XFF += 203.0.113.7</text>
+        <text class="hop" x="611" y="114">XFF += 10.10.0.21</text>
+        <text class="hop" x="785" y="114">XFF += 172.18.0.5</text>
+        <text class="hop mut" x="955" y="114">对端 172.18.0.6</text>
+
+        <rect class="panel" x="10" y="136" width="1020" height="116" rx="10"/>
+        <text class="cap" x="30" y="162">app 最终收到的 X-Forwarded-For（示例地址）</text>
+        <text class="ip fake" x="30" y="200">1.2.3.4,</text>
+        <text class="ip real" x="136" y="200">203.0.113.7,</text>
+        <text class="ip" x="268" y="200">10.10.0.21,</text>
+        <text class="ip" x="390" y="200">172.18.0.5</text>
+        <text class="ipl fake" x="30" y="224">用户自带，可伪造</text>
+        <text class="ipl real" x="136" y="224">真实 IP</text>
+        <text class="ipl" x="268" y="224">ALB（10/8）</text>
+        <text class="ipl" x="390" y="224">前端 nginx（172.16/12）</text>
+        <line class="scan" x1="1000" y1="195" x2="532" y2="195" marker-end="url(#arr-rt)"/>
+        <text class="scant" x="552" y="182">从右往左跳过可信内网网段，遇到的第一个公网地址就是真实 IP</text>
+        <text class="ipl" x="552" y="224">不能取最左边：那一段是浏览器自己发的，任何人都能伪造</text>
+      </svg>
+    </div>
+    <figcaption>test / uat 没有 Global Accelerator，浏览器直接到 ALB，后面完全一样。地址都是示例；prod VPC 是 10.10.0.0/16，non-prod 是 10.20.0.0/16，容器网段在 172.16/12 或 192.168/16 里。</figcaption>
+  </figure>
+
+  <h3>读代码和配置得到的现状</h3>
+  <div class="table-scroll">
+    <table class="wide">
+      <thead><tr><th>位置</th><th>现状</th><th>结论</th></tr></thead>
+      <tbody>
+        <tr><td>prod 入口<div class="file">css-terraform/css-prod/prod/accelerator/main.tf:53</div></td><td><code>client_ip_preservation_enabled = true</code></td><td><span class="pill ok">可用</span> ALB 能看到用户真实 IP</td></tr>
+        <tr><td>两层 nginx<div class="file">core_app/nginx/nginx.conf<br>deploy/config/frontend-nginx.conf</div></td><td>都用 <code>$proxy_add_x_forwarded_for</code> 追加上一跳</td><td><span class="pill ok">可用</span> 真实 IP 已在 XFF 里，nginx 不用改</td></tr>
+        <tr><td>gunicorn 启动参数<div class="file">deploy/compose/backend.yml</div></td><td>没有设 <code>forwarded_allow_ips</code>，默认只信任 127.0.0.1</td><td><span class="pill no">问题</span> <code>request.client.host</code> 拿到的是后端 nginx 容器地址</td></tr>
+        <tr><td>uvicorn 0.24.0<div class="file">core_app/src/poetry.lock</div></td><td>信任列表只认精确 IP，不认网段；设成 <code>*</code> 时取 XFF 最左边的值</td><td><span class="pill no">问题</span> 改启动参数解决不了，设 <code>*</code> 会被伪造</td></tr>
+        <tr><td>后端代码</td><td>没有任何地方读取客户端 IP</td><td><span class="pill mut">空白</span> 日志和审计里都没有用户 IP</td></tr>
+        <tr><td>电话输入框<div class="file">src/ui/shared/PhoneInput/PhoneInput.tsx:41</div></td><td>默认国家写死 <code>'US'</code>，占位符写死美国格式</td><td><span class="pill rt">P2 改</span> 非美国用户每次都要手动切国家</td></tr>
+        <tr><td>地址补全<div class="file">src/ui/features/AddressAutocomplete/AddressAutocomplete.tsx:61</div></td><td>Google Places（旧版），限定 <code>country: 'us'</code>，没有传位置参数；用在入驻、门店、餐厅、银行账户等 7 处表单</td><td><span class="pill ok">已有</span> Google 没收到位置参数时会按浏览器 IP 偏置结果</td></tr>
+        <tr><td>Google Maps key</td><td>non-prod 的 GCP 项目已启用 Maps JavaScript API 和 Places API（旧版）</td><td><span class="pill rt">P3 改</span> 逆地理编码要再启用 Geocoding API</td></tr>
+        <tr><td>依赖</td><td>前后端都没有 IP 库或地理编码依赖</td><td><span class="pill mut">空白</span> 从零开始</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">前后端代码依据本地当前分支 <code>sprint/sprint6</code>；AWS 配置依据 css-terraform 仓库。</p>
+</section>
+
+<!-- ============ 二、P1 ============ -->
+<section id="p1" aria-labelledby="h-p1">
+  <h2 id="h-p1">二、P1 拿到真实客户端 IP</h2>
+  <p class="sub">在后端加一个取 IP 的函数：把 XFF 和直连对端拼成一条链，从右往左跳过可信网段，返回遇到的第一个不可信地址。可信网段做成配置，默认覆盖 VPC 和容器网络的全部内网地址。公网用户不可能带着这些地址进来，所以全部信任是安全的。</p>
+
+<pre><code><span class="cm"># core_app/src/app/pkg/http/client_ip.py（建议位置）</span>
+import ipaddress
+from fastapi import Request
+
+def get_client_ip(request: Request, trusted: list[ipaddress.IPv4Network | ipaddress.IPv6Network]) -&gt; str | None:
+    hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",") if h.strip()]
+    peer = request.client.host if request.client else None
+    for raw in reversed(hops + ([peer] if peer else [])):
+        try:
+            ip = ipaddress.ip_address(raw)
+        except ValueError:
+            return None                      <span class="cm"># 链上出现非法值时宁可不认</span>
+        if not any(ip in net for net in trusted):
+            return str(ip)
+    return None                              <span class="cm"># 整条链都是内网：本地开发</span></code></pre>
+
+  <div class="table-scroll">
+    <table class="wide">
+      <thead><tr><th>项</th><th>现有</th><th>修改后</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap">取 IP</td><td>无</td><td><code>get_client_ip()</code>，加一个中间件把结果放进 <code>request.state.client_ip</code></td></tr>
+        <tr><td class="nowrap">可信网段</td><td>gunicorn 默认 127.0.0.1</td><td>新配置 <code>TRUSTED_PROXY_CIDRS</code>，默认 <code>10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, ::1/128, fc00::/7</code></td></tr>
+        <tr><td class="nowrap">gunicorn 参数</td><td>不设 <code>forwarded_allow_ips</code></td><td>不变。不改成 <code>*</code>，原因见第五节</td></tr>
+        <tr><td class="nowrap">配置类</td><td>无</td><td>新增 <code>config/geo_settings.py</code>，<b>每项都带默认值</b>：共享 Settings 里缺值会让四个应用入口全部起不来</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">单测覆盖这几种情况：用户伪造最左值、没有 XFF、整条链都是内网、IPv6、链里有非法值。</p>
+</section>
+
+<!-- ============ 三、P2 ============ -->
+<section id="p2" aria-labelledby="h-p2">
+  <h2 id="h-p2">三、P2 用 IP 推国家、州、城市</h2>
+
+  <h3>数据源选型</h3>
+  <div class="table-scroll">
+    <table class="wide">
+      <thead><tr><th>方案</th><th>能拿到</th><th>费用与许可</th><th>维护</th><th>结论</th></tr></thead>
+      <tbody>
+        <tr><td><b>MaxMind GeoLite2 City</b><br>离线 mmdb 文件</td><td>国家、州、城市、邮编、时区、大致经纬度</td><td>免费，注册拿 license key；要求署名；新版发布后 30 天内要停用并删除旧库</td><td>官方 <code>geoipupdate</code> 容器定时拉新</td><td><span class="pill ok">推荐</span></td></tr>
+        <tr><td><b>IPinfo Lite</b><br>离线 mmdb 或 API</td><td>只有国家和运营商（ASN）</td><td>免费可商用，CC BY-SA 4.0，要署名</td><td>同上，需要 token</td><td><span class="pill mut">备选</span> 只要国家时可用</td></tr>
+        <tr><td><b>在线 IP 接口</b><br>ipinfo、ipapi 等</td><td>城市级，部分带 VPN 检测</td><td>按量收费；用户 IP 要发给第三方</td><td>免维护</td><td><span class="pill no">不推荐</span> 多一次外网调用，隐私政策也要多写一家</td></tr>
+        <tr><td><b>浏览器时区推断</b><br><code>Intl…timeZone</code></td><td>只能猜国家</td><td>免费，不经过后端</td><td>无</td><td><span class="pill mut">兜底</span> P2 接口失败时前端用</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>后端</h3>
+  <ul class="plain">
+    <li><b>库文件分发：</b>在 <code>deploy/compose/backend.yml</code> 新增 <code>geoipupdate</code> 服务（官方镜像，固定版本），每 72 小时拉一次 GeoLite2-City，写进命名卷；app 只读挂载这个卷。不把库打进镜像，因为 prod 只在手动部署时重建镜像，超过 30 天不部署就违反许可。</li>
+    <li><b>凭证：</b>一个 MaxMind 账号给所有环境用。account id 和 license key 放进 SSM <code>/css/&lt;env&gt;/backend.env</code>，本地底稿在 <code>deploy-env/&lt;env&gt;/</code>。只把这两个变量传给 geoipupdate，不挂整份 backend.env，免得把数据库口令交给第三方镜像。</li>
+    <li><b>读库：</b><code>app/pkg/geoip/</code> 封装 <code>geoip2</code>：每个 worker 打开一次，每 10 分钟看一次文件修改时间，有新版就重新打开。文件不存在时返回空并只记一次警告，绝不抛 500，本地开发没有库也能启动。</li>
+    <li><b>本地调试：</b>配置 <code>GEOIP_DEBUG_IP</code>，仅在 dev 生效，用来模拟某个国家的 IP。</li>
+    <li><b>接口：</b><code>internal/main_app/geo/transport/handlers.py</code> 提供 <code>GET /api/geo/me</code>，在 <code>main_app/app.py</code> 注册。它在 <code>/api</code> 下，照常校验 API key（前端每个请求都带），但不要求登录，注册页也能用。响应头 <code>Cache-Control: private, max-age=3600</code>。不返回、也不保存 IP 本身。</li>
+  </ul>
+<pre><code><span class="cm">// GET /api/geo/me —— 每个字段都可能是 null（内网、查不到、库还没下载）</span>
+{ "country_code": "US", "region_code": "TX", "region": "Texas",
+  "city": "Austin", "postal_code": "78701", "time_zone": "America/Chicago" }</code></pre>
+
+  <h3>前端</h3>
+  <div class="table-scroll">
+    <table class="wide">
+      <thead><tr><th>文件</th><th>现有</th><th>修改后</th></tr></thead>
+      <tbody>
+        <tr><td class="file">src/api/geo.ts<br>src/hooks/useGeoCountry.ts</td><td>无</td><td>调 <code>/api/geo/me</code>；TanStack Query，<code>staleTime: Infinity</code>，失败不重试；接口没给国家时用时区推断兜底</td></tr>
+        <tr><td class="file">src/ui/shared/PhoneInput/PhoneInput.tsx</td><td>默认 <code>'US'</code>；占位符固定 <code>(123) 456-7890</code></td><td>输入框为空、且用户还没手动选过国家时，按 IP 国家、时区国家、<code>'US'</code> 的顺序取默认值；已有号码仍按号码自己的国家显示；非 US 时不显示占位符</td></tr>
+        <tr><td class="file">PhoneInput 的测试</td><td>—</td><td>统一 mock <code>useGeoCountry</code>，测试不用包 QueryClient</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">平台用户以美国为主，美国用户看不到变化。P2 主要改善海外厂商和团队内部测试人员的体验，同时把位置能力的底座搭起来。</p>
+</section>
+
+<!-- ============ 四、P3 ============ -->
+<section id="p3" aria-labelledby="h-p3">
+  <h2 id="h-p3">四、P3 用「当前位置」填门牌地址</h2>
+  <p class="sub">在地址输入框旁加一个定位按钮。点了以后浏览器弹出授权，拿到经纬度，再用 Google 逆地理编码换成街道地址填进去。Maps JavaScript API 已经在 <code>AppLayout.tsx</code> 加载，直接用它的 Geocoder，不用新加脚本。</p>
+<pre><code><span class="cm">// AddressAutocomplete 内，按钮的点击处理（UI 文案保持英文）</span>
+const fillCurrentAddress = () =&gt;
+  navigator.geolocation.getCurrentPosition(
+    async ({ coords }) =&gt; {
+      const { results } = await new google.maps.Geocoder().geocode({
+        location: { lat: coords.latitude, lng: coords.longitude }
+      })
+      const best = results.find(r =&gt; r.types.includes('street_address') || r.types.includes('premise'))
+      if (best) onChange?.(best.formatted_address)
+      else toast('No street address found here. Enter it manually.')
+    },
+    () =&gt; toast('Could not get your location. Enter the address manually.'),
+    { enableHighAccuracy: true, timeout: 10_000 }
+  )</code></pre>
+  <ul class="plain">
+    <li><b>组件改动：</b><code>AddressAutocomplete</code> 加可选属性 <code>allowCurrentLocation</code>，默认关闭，只在选定的表单打开。</li>
+    <li><b>前提：</b>页面必须是 HTTPS（各环境都已满足，本地 localhost 也算）。non-prod 和 prod 两个 key 所在的 GCP 项目都要启用 Geocoding API，并把它加进 key 的 API 限制列表。</li>
+    <li><b>费用：</b>Geocoding 每月前 10,000 次免费，之后约 $5 / 千次。这是第三方整理的 2026 年价格，以 Google 官方价目页为准；建议在 GCP 给这个 API 设每日配额上限。</li>
+    <li><b>体验：</b>手机用 GPS 能到米级，台式机靠 WiFi 或 IP 推算，可能偏几百米，所以填入后要让用户核对。结果不在美国时提示一下，因为补全组件只支持美国地址。</li>
+  </ul>
+</section>
+
+<!-- ============ 五、不采用 ============ -->
+<section id="no" aria-labelledby="h-no">
+  <h2 id="h-no">五、不采用的做法</h2>
+  <div class="reject">
+    <div><b>gunicorn 设 <code>--forwarded-allow-ips='*'</code></b><span>uvicorn 0.24 在信任全部时取 XFF 最左边的值，用户自己带一个请求头就能冒充任意 IP。</span></div>
+    <div><b>前端直接调第三方 IP 接口</b><span>token 会暴露在前端代码里，广告拦截插件也常拦这类域名。</span></div>
+    <div><b>让 ALB 或 Global Accelerator 加地理请求头</b><span>这两层都不提供。只有 CloudFront、Cloudflare 这类 CDN 才有，为这个再加一层 CDN 改动太大。</span></div>
+    <div><b>给地址补全加 IP 位置偏置</b><span>Google 在没收到位置参数时本来就按请求方 IP 偏置，浏览器直连时就是用户 IP，再做一遍收益很小。</span></div>
+  </div>
+</section>
+
+<!-- ============ 六、建议 ============ -->
+<section id="sug" aria-labelledby="h-sug">
+  <h2 id="h-sug">六、建议（按编号取舍）</h2>
+  <div class="suggests">
+    <div class="suggest"><span class="id">S1</span><h3>第一批只做 P1 和 P2，P3 等确定表单后再做</h3><p>P1 + P2 不需要用户授权，也不产生 Google 费用；P3 要先定哪些表单开定位按钮，并去 GCP 开 API。</p></div>
+    <div class="suggest"><span class="id">S2</span><h3>隐私政策补两句：IP 的用途和数据来源署名</h3><p>写明「用 IP 推断大致地区，用于表单默认值，不保存」，再加一行 GeoLite2 署名。GeoLite2 和 IPinfo Lite 都要求署名，<b>需要你确认能否在隐私政策页（<code>src/ui/pages/Privacy</code>）加这段</b>。不能加的话就只剩付费数据源或在线接口。</p></div>
+    <div class="suggest"><span class="id">S3</span><h3>做 P1 时顺带把真实 IP 记进登录日志</h3><p>照 <code>app/pkg/request_context.py</code> 里 <code>current_user_id</code> 的写法加一个 <code>current_client_ip</code>，由 P1 的中间件设置，审计日志直接读。现在后端完全不记用户 IP，排查账号问题时没有线索。</p></div>
+    <div class="suggest"><span class="id">S4</span><h3>P3 先只开在门店和餐厅地址两张表单</h3><p>即 <code>StoreForm</code> 和 <code>RestaurantForm</code>。这两类地址最常是人在现场时填写，定位最准也最省事。</p></div>
+    <div class="suggest"><span class="id">S5</span><h3>后续可选：异地登录提醒</h3><p>P1、P2 完成后，按登录 IP 的国家变化提醒用户，成本很低。本方案不包含，留作单独需求。</p></div>
+  </div>
+</section>
+
+<!-- ============ 七、顺序与验证 ============ -->
+<section id="plan" aria-labelledby="h-plan">
+  <h2 id="h-plan">七、实施顺序、工作量与验证</h2>
+  <div class="table-scroll">
+    <table class="wide">
+      <thead><tr><th>阶段</th><th>内容</th><th>谁</th><th>粗估</th><th>前置</th></tr></thead>
+      <tbody>
+        <tr><td class="nowrap"><span class="pill rt">P1</span></td><td><code>get_client_ip</code>、中间件、<code>geo_settings.py</code>、单测</td><td>后端</td><td class="nowrap">0.5 人天</td><td>无</td></tr>
+        <tr><td class="nowrap"><span class="pill rt">P2 运维</span></td><td>注册 MaxMind 账号；SSM 加两个变量；compose 加 geoipupdate 和共享卷；核对 deploy.sh 会不会拉起新服务</td><td>运维</td><td class="nowrap">0.5 人天</td><td>账号要你本人注册</td></tr>
+        <tr><td class="nowrap"><span class="pill rt">P2 后端</span></td><td>geoip 封装、<code>/api/geo/me</code>、单测</td><td>后端</td><td class="nowrap">1 人天</td><td>P1</td></tr>
+        <tr><td class="nowrap"><span class="pill rt">P2 前端</span></td><td><code>api/geo.ts</code>、<code>useGeoCountry</code>、PhoneInput 默认值、测试</td><td>前端</td><td class="nowrap">0.5–1 人天</td><td>P2 后端</td></tr>
+        <tr><td class="nowrap"><span class="pill rt">P3</span></td><td>定位按钮、逆地理编码、两张表单接入；GCP 启用 Geocoding API</td><td>前端 + GCP</td><td class="nowrap">1 人天</td><td>可与 P2 并行</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>验证</h3>
+  <div class="checks">
+    <div><b>P1</b><span>在 test 上带伪造头请求：<code>curl -H "X-Forwarded-For: 1.2.3.4" -H "X-API-KEY: …" https://test.chain-serve.com/api/geo/me</code>，返回的应该是你自己所在的国家，而不是 1.2.3.4 所在地。</span></div>
+    <div><b>P2</b><span>用 VPN 切到加拿大，打开注册页，电话框默认国家变成 CA；切回美国，默认 US；已有号码的编辑页不受影响。</span></div>
+    <div><b>P3</b><span>用手机打开门店表单，点定位按钮并允许，填出的应是当前所在街道地址；拒绝授权时出现提示，仍可手动输入。</span></div>
+  </div>
+  <p class="note">上线路径照现有约定：从 ops 出分支，分别晋级 test / uat / main，不从 test 合并到 uat（两条代码线的迁移头不同）。本方案不涉及数据库迁移，也不新增 <code>VITE_*</code> 变量。</p>
+</section>
+
+<section class="sources" aria-labelledby="h-src">
+  <h2 id="h-src">资料来源</h2>
+  <ul>
+    <li><a href="https://www.maxmind.com/en/geolite2/eula">MaxMind GeoLite2 End User License Agreement</a></li>
+    <li><a href="https://support.maxmind.com/hc/en-us/articles/4408927681307">MaxMind：Maintain up-to-date data（30 天更新要求）</a></li>
+    <li><a href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data">MaxMind：GeoLite Databases and Web Services</a></li>
+    <li><a href="https://github.com/maxmind/geoipupdate">maxmind/geoipupdate（官方更新程序与 Docker 镜像）</a></li>
+    <li><a href="https://ipinfo.io/developers/ipinfo-lite-database">IPinfo Lite Database（许可与署名）</a></li>
+    <li><a href="https://developers.google.com/maps/documentation/places/web-service/migrate-autocomplete">Google：Migrate to Autocomplete (New)（未设位置时按 IP 偏置）</a></li>
+    <li><a href="https://developers.google.com/maps/billing/overview/">Google Maps Platform pricing overview</a></li>
+    <li><a href="https://developers.google.com/maps/billing-and-pricing/march-2025">Google：2025 年 3 月起的免费额度变更</a></li>
+    <li><a href="https://csv2geo.com/blog/geocoding-api-pricing-compared-real-cost-2026">Geocoding API pricing compared（第三方整理的 2026 价格）</a></li>
+  </ul>
+</section>
+
+<footer>草稿 v0.1 · 2026-11-13 · 确认 S1–S5 的取舍后再定稿并拆成开发任务。</footer>
+</div>

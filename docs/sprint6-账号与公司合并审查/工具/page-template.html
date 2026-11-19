@@ -149,11 +149,29 @@ button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visibl
 .sev.medium { background: var(--med-bg); color: var(--med); }
 .sev.low { background: var(--low-bg); color: var(--low); }
 .was { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; }
-.all td.where { font-family: var(--font-mono); font-size: 12px; color: var(--muted); min-width: 160px; max-width: 260px; overflow-wrap: anywhere; }
 .all td.txt { min-width: 320px; }
-.all td.txt details { margin-top: 4px; }
-.all td.txt summary { font-size: 12px; color: var(--accent); cursor: pointer; width: fit-content; }
-.all td.txt details p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* 提交列和修复哈希允许换行，否则一条长说明会把整张表撑到几千像素宽 */
+.all td.h { font-family: var(--font-mono); color: var(--muted); font-size: 12px; width: 180px; min-width: 150px; max-width: 200px; overflow-wrap: anywhere; }
+.all td.h .was, .all .was.fx { white-space: normal; overflow-wrap: anywhere; max-width: 200px; }
+/* 每行的「复核说明」「位置」两个展开按钮，原来单独的位置列并进问题格 */
+.all .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.all .tog {
+  font: inherit; font-size: 12px; line-height: 1.5; padding: 1px 10px 1px 8px; border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--accent);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.all .tog::before { content: "▸"; font-size: 10px; transition: transform 120ms ease; }
+.all .tog[aria-expanded="true"] { background: var(--code-bg); border-color: var(--accent); }
+.all .tog[aria-expanded="true"]::before { transform: rotate(90deg); }
+.all .tog:hover { border-color: var(--accent); }
+.all .tog .k { font-family: var(--font-mono); color: var(--muted); }
+.all .pane { font-size: 13px; color: var(--muted); margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
+.all .pane[hidden] { display: none; }
+.all .pane.loc { white-space: normal; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.all .pane.loc ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
+.all .pane.loc li { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .all .tog, .all .tog::before { transition: none; } }
 .lab { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; white-space: nowrap; font-family: var(--font-mono); }
 
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
@@ -163,79 +181,49 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <style>
 .issue.lo { border-left-color: var(--low); }
-.all td.txt details p { white-space: pre-line; }
 .cat ul b { font-family: var(--font-mono); font-weight: 500; color: var(--fg); }
 </style>
 
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 5 版</div>
+    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 6 版</div>
     <h1>「账号与公司合并」系列提交审查</h1>
     <div class="meta">
-      <span>2026-11-18 复核；2026-11-19 补充团队答复</span>
-      <span>当前代码：后端 <code>8e156199</code>，前端 <code>0c27bcf6</code></span>
-      <span>第 4 版：后端 <code>a4db1e5f</code>，前端 <code>6eb46852</code></span>
-      <span>本版新增审查：后端 17 个、前端 9 个非合并提交（Felix、Lily、lucy）</span>
+      <span>2026-11-19 复核</span>
+      <span>当前代码：后端 <code>9d19c8a2</code>，前端 <code>e4b966df</code></span>
+      <span>第 5 版：后端 <code>4b1db16c</code>，前端 <code>bc820add</code></span>
+      <span>本版新增审查：后端 1 个、前端 3 个非合并提交（Felix、lucy）</span>
     </div>
     <div class="verdict">
       <strong>结论：仍然不能上 uat / prod</strong>
-      <p>本轮最大的变化是 Felix 的新权限体系（<code>sprint6_permissions</code>）合入了 sprint6：N34「只有迁移没有代码」已修复；中间件不再给 dev admin 和 CEO 放行，N2 部分修复（仍为高危），H6′ 降为中危。但新权限体系带来了 2 条新高危：经邀请注册的制造商 owner 拿到零权限的 CEO，什么都做不了（N97）；订单表单还在用已下线的旧权限码，供应商无法代客户下单（N98）。lucy 的邀请码迁移按名称和地址的启发式条件硬删公司，可能误删 prod 上导入的真实公司或让升级失败（N99）。账号接管链（N35）和新 vendor 一接单订单列表 500（N73）仍未修。</p>
-      <p>第一次按 D9（只删 <code>company_back</code> 和 <code>deprecated_*</code> 表，列和 9 张备份表都保留）复核：N91 不再计入；但 <code>env.py</code> 没有 <code>include_object</code>，一次 autogenerate 就会生成删掉这些列和备份表的语句（N89）；而且 <code>b8e906f7</code> 已把这 9 张备份表在新库里改名成 <code>deprecated_*</code> 前缀，和 D9 直接冲突，<b>需要你决定</b>（N102）。</p>
+      <p>第 5 版冻结点之后只有 4 个提交，但其中一个迁移影响很大：Felix 的 <code>8011513c0d5c</code> 以「母公司已不再使用」为前提，把所有带子行的公司软删，前提不成立（N129）。本地实测：软删 306 家，68 条厂商商品全部挂在被删的母公司上、在用公司上一条都没有，所有厂商目录失去入口；40 家付费订阅方被删；62 家未走完 onboarding 的公司被删，其中 58 个 owner 升级后无法登录。迁移不做备份，downgrade 为 pass。</p>
+      <p>母公司被删后，「门店副本混进公司列表」（F4）等几条症状随之消失，F4 判为已修复，F72、F104、N69 降为低危，但它们都依赖这个要重写的迁移。<code>get_company</code>、<code>has_account</code> 不看公司是否已删除，被删母公司上的 377 个账号仍能通过只校验 token 的接口读写数据（F67 升为中危）。lucy 的 <code>79c4cbc8</code> 修好了 N121 的主体，但会把别家公司的「访问已停用」算到当前公司头上，把人踢出正常的公司（N130）。</p>
     </div>
-    <p class="correction prose"><code>86aead3a</code> 又改写了已推送迁移的 down_revision，把 10 个权限迁移插进链中间：跑过中间版本 sprint6 的库（本地开发库等）升级时会静默跳过它们，登录和判权会 500。uat/prod 按最终链执行，不受影响。范围外的 X1（prod 上已存在的订单接口越权）仍未修，不计入下面的数字。</p>
+    <p class="correction prose"><b>test 环境（11-19 只读核实）：</b>test 库已执行全部 sprint6 迁移（到 <code>8011513c0d5c</code>）。母公司软删在 11-18 10:01 UTC 执行：279 家被删，26 家付费订阅方从列表消失，<b>57 个未走完 onboarding 的 owner 现在无法登录</b>。同批被删的 28 家厂商母公司已由你手工恢复，之后会补迁移排除厂商（D16）。uat/prod 仍停在 <code>b3d9f1a2c4e5</code>。前端 <code>feature/sprint6_company</code> 还有 1 个没合进 sprint6 的提交（<code>804e85da</code>，只改公司类型的显示名称）。</p>
   </header>
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>160</b><span>当前未关闭（第 5 版 173 条，团队答复后关闭 13 条）</span></div>
-      <div class="stat h"><b>9</b><span>高危（本版新增 3）</span></div>
-      <div class="stat m"><b>49</b><span>中危（本版新增 9）</span></div>
-      <div class="stat l"><b>102</b><span>低危（本版新增 6）</span></div>
-      <div class="stat n"><b>18</b><span>本版新发现</span></div>
+      <div class="stat"><b>188</b><span>当前未关闭的问题</span></div>
+      <div class="stat h"><b>8</b><span>高危（其中新增 1）</span></div>
+      <div class="stat m"><b>56</b><span>中危（其中新增 1）</span></div>
+      <div class="stat l"><b>124</b><span>低危（其中新增 2）</span></div>
+      <div class="stat n"><b>4</b><span>本版新发现（N129–N132）</span></div>
     </div>
-    <h2>前四版 201 条问题的现状</h2>
+    <h2>第 5 版 233 条问题的现状</h2>
     <div class="flow">
-      <div class="fx"><b>46</b><span>已关闭或不计入</span><ul><li>N34 迁移与代码不一致（本轮修复）</li><li>N42 删除成员权限、N5、N50、N77、N85 等 15 条本轮修复</li><li>My Stores / My Restaurants 删除，7 条不再适用</li><li>N91 按 D9 不计入；H1 按设计接受</li></ul></div>
-      <div class="pt"><b>38</b><span>部分修复</span><ul><li>N2 中间件不再给 dev admin 放行</li><li>H6′ CEO 不再跳过权限，降为中危</li><li>N89 旧迁移 ImportError 已解决</li><li>N67、N68、N70、N72 等</li></ul></div>
-      <div class="wr"><b>21</b><span>更严重</span><ul><li>F6 已推送迁移又被改写，旧库跳过权限迁移</li><li>N88 待删表又多了 7 张</li><li>N44 升为中危</li><li>测试缺口：F70、F141、N29、N30、N65</li></ul></div>
-      <div class="op"><b>96</b><span>仍存在</span><ul><li>N35 账号接管链</li><li>N73 新 vendor 订单列表 500</li><li>H5、H6（F5）、M1</li><li>N69、N74 公司停用</li></ul></div>
+      <div class="fx"><b>49</b><span>已关闭或不计入</span><ul><li>本版新关闭 4 条：F4、F50 已修复，F122、F155 不再适用</li><li>H1 按设计接受，F8 等 4 条按删表前提不计入</li><li>之前已关闭的 40 条，均未回归</li></ul></div>
+      <div class="pt"><b>43</b><span>部分修复</span><ul><li>N121 普通成员已能被移出，管理员一侧未接</li><li>F72、F104、N69 因母公司被删降为低危</li><li>N124、N126 采购组前端已接上</li></ul></div>
+      <div class="wr"><b>18</b><span>更严重</span><ul><li>F67 已删除公司仍能访问，升为中危</li><li>N41 未走完 onboarding 的 owner 无法登录</li><li>F35、F77、F92、N18 受母公司软删影响</li><li>N125 改名同步开始真正改写报价单</li></ul></div>
+      <div class="op"><b>123</b><span>仍存在</span><ul><li>N118 跨租户拿到员工联系方式</li><li>N97 迁移硬删公司</li><li>N2 dev admin 对所有公司放行</li><li>H5、H6 的 id 冲突、M1</li></ul></div>
     </div>
-    <p class="count prose">复核方法：201 条（含已关闭的）分 31 批逐条对照 HEAD 复核，和删表有关的 11 条按 D9 单独成批；本轮新提交按 9 个方向审查（新权限体系、权限缓存、迁移、弃用旧表、邀请码、平台用户与日志、前端权限、横向安全、D9 前提），52 条候选逐条做对抗性验证，确认 33 条。去重后新增 18 条；另有 16 条并入已有问题（F6、F9、N64、N13、N88、N30、N67、F70、N56、N2、N89），5 条驳回。N97、N98、N99 三条新高危，以及 N34 已修复、H6′ 降级、N2、N42、N104、N105、N106，都已人工核对代码。uat/prod 停在 <code>b3d9f1a2c4e5</code>，这批迁移都还没执行。</p>
-  </section>
-
-  <section>
-    <h2>团队答复（2026-11-19）</h2>
-    <p class="prose">团队对 26 条问题给了书面答复，每条都对照 sprint6 最新代码（后端 <code>9d19c8a2</code>、前端 <code>e4b966df</code>）核实过：设计或需求取舍按设计接受；环境数据和发布流程方面的说法没法连库验证，按团队确认的前提不计入；「已修复」「表已废弃」必须在代码里找到证据；答复没答到点或和代码不符的，状态不变并回问团队。13 条因此关闭，未关闭从 173 条变为 160 条。每条的核实说明见下方「全部问题」表里该条的「复核说明」。</p>
-    <div class="cats">
-      <div class="cat"><h3>关闭 <span>13</span></h3><ul>
-        <li><b>按设计接受</b>：F2（dev_admin 只由迁移建）、F17（M2，账号复制到每个门店是需求）、F28（只是 docstring）、F34（price tier 只对 Liquor Vendor）</li>
-        <li><b>已修复</b>：F4（门店就是公司；<code>8011513c0d5c</code> 软删母公司后列表和去重问题不再成立）</li>
-        <li><b>按前提不计入</b>：F6、F11、F21（uat/prod 一次执行最终链）；F7（M1）、F20、F39（H7 残留）（环境里没有这种数据，未连库核实）；F12（表已废弃，代码已核实）</li>
-        <li><b>不再适用</b>：F18（旧角色表已改名为 deprecated_）</li>
-      </ul></div>
-      <div class="cat"><h3>答复没答到点，状态不变 <span>8</span></h3><ul>
-        <li><b>F15</b> 没有迁移会删除 order_comment 三列全空的行，「会被删除」可能是把 F7 套过来了</li>
-        <li><b>F9</b> 本系列 9 个迁移仍没有 lock_timeout</li>
-        <li><b>F13</b> 默认规则接受，但 MANUFACTURER 兜底在几处仍是 Food_Manufacturer，和答复不一致</li>
-        <li><b>F19</b> _css_pii_masked 是运维的脱敏标记，不是应用表</li>
-        <li><b>F25</b> 答复没回答 store_id 为空时 vendor_id 被清空（只影响开发库）</li>
-        <li><b>F32</b> 同一门店重复编号仍会让建索引失败，需要上线前查重</li>
-        <li><b>F47</b> onboarding 和邀请注册查 owner 仍不过滤已删账号</li>
-        <li><b>F50</b> 外键已加（<code>049461d68471</code>），但孤儿账号会让升级中止，/account/create 仍返回 409</li>
-      </ul></div>
-      <div class="cat"><h3>新提交改变的结论 <span>第 6 版复核</span></h3><ul>
-        <li><b>N2</b> 更严重：<code>3e945bde</code> 重新加回 dev admin 对所有未停用公司放行</li>
-        <li><b>N35</b> 可能已修：旧的 PUT /team/members/{id} 被删掉了</li>
-        <li><b>8011513c0d5c</b> 软删所有带子行的母公司，不备份；母公司上的订阅不会转到门店</li>
-        <li><b>N107</b> 可能已修：新订单邮件改读 new_order_email 节点</li>
-      </ul></div>
-    </div>
+    <p class="count prose">复核方法：233 条分 34 批逐条复核，以第 5 版之后的改动为主；新提交从 6 个方向审查（软删母公司的影响面、账号外键与约束改名、前端访问守卫、前端采购组、迁移、横向安全），23 条候选对抗式验证后新增 4 条、并入 13 条、驳回 2 条。<b>本地实测</b>（用户要求把本地库升到最新）：升级前统计并 dump，再执行两个新迁移，均成功；N129 的数字出自这次实测。没有连接 test/uat/prod 的数据库。</p>
   </section>
 
   <section>
     <h2>这批提交做了什么</h2>
-    <p class="prose">把原来的 company → store / restaurant / manufacturer_subdivision 两层结构和四张 <code>*_member</code> 成员表，合并成统一的 <code>company</code> 表加 <code>account</code> 表：每家门店、餐厅、子部门都是一条独立的 company 行，用户在每个业务里各有一个 account。第 5 版起，权限改为每家公司自己的角色，由 CEO 在 Roles &amp; Permissions 里配置。底色标出的是本版新增审查的提交。</p>
+    <p class="prose">把原来的 company → store / restaurant / manufacturer_subdivision 两层结构和四张 <code>*_member</code> 成员表，合并成统一的 <code>company</code> 表加 <code>account</code> 表：每家门店、餐厅、子部门都是一条独立的 company 行，用户在每个业务里各有一个 account。第 5 版把权限改成每家公司自己配置，第 6 版把母公司整体软删。底色标出的是本版新增审查的提交。</p>
     <div class="tbl">
       <table class="phase">
         <thead><tr><th>阶段</th><th>后端提交</th><th>前端提交</th><th>内容</th></tr></thead>
@@ -250,16 +238,16 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
           <tr><td>旧表下线</td><td class="mono">3e2cb354 52bd55c0 470ffa56 b1711179</td><td>—</td><td>10 张旧表改名为 <code>deprecated_*</code>，9 张系统表加 <code>system_</code> 前缀</td></tr>
           <tr><td>模型映射 company</td><td class="mono">2d3a2370</td><td>—</td><td>Store / Restaurant / 子部门的 ORM 模型直接映射 company 表，删除改为软删除</td></tr>
           <tr><td>各菜单迁移</td><td class="mono">73875be4 … d49f0bd9</td><td class="mono">3d4f0db7 … ea616539</td><td>各菜单逐个改用 company_id；删除约 50 个公司级聚合接口；取消子部门概念</td></tr>
-          <tr><td>设置 / dev admin / 清理</td><td class="mono">e77defb8 3e0391c7 08ec08da 04cd256b 2582af89</td><td class="mono">40dd4e27 be4a31a7 f401b438 7a2cccc2</td><td>删除全部公司级角色；dev admin 对所有公司放行；新建 Admin 公司；<code>find_live_accounts</code>（第 2 版审查）</td></tr>
-          <tr><td>新 onboarding、切换公司</td><td class="mono">48b4a289 fbfc9b9c c8913856 399a81fc</td><td class="mono">d82a796f 7d2adcb2 7c802d25</td><td>Felix：onboarding 改为单页提交；新增 <code>/me/companies</code> 自建公司和 Activate（第 3 版审查）</td></tr>
-          <tr><td>公司角色</td><td class="mono">3f19b998</td><td>—</td><td>Felix：迁移 <code>23e8d26d41eb</code> 给每家公司复制一份角色；配套代码第 5 版随 <code>sprint6_permissions</code> 合入</td></tr>
-          <tr><td>文件、Team、公司信息</td><td class="mono">1adc1e82 13e16617 1d63c640 2e038191 ce79f7b5</td><td class="mono">e9b3108b d1f3e72a c49ffdb2</td><td>logo 迁入 file 表；Lily 的批量加人、最后一名 CEO 规则、Admin 用户管理；lucy 的名称地址锁和地址拆分（第 3 版审查）</td></tr>
-          <tr><td>日志、平台用户、停用、Master Database</td><td class="mono">f8a80699 ea682af9 2daff93f 6e1a7673 83611c01 2538e427 32e30221</td><td class="mono">6a2e36c6 5bbd26ed 0c9960ad</td><td>Lily：统一操作日志、Join Company、成员通知；lucy：公司停用、Master Database 重做（第 4 版审查）</td></tr>
-          <tr class="newphase"><td>新权限体系</td><td class="mono">69c5cb38 ded52c12 91ca9150 5ab121cc eaf5280f 8e156199</td><td class="mono">90d83063 dd5f1151 9609cd2e 0a7fd82d</td><td>Felix：<code>sprint6_permissions</code> 合入。权限树（91 个节点）、公司类型模板、公司角色和角色权限；<code>system_route</code> 路由权限；中间件只按权限码判定，CEO 和 dev admin 不再放行；几十个 handler 换新权限码；账号角色改指 <code>system_company_role</code>；新页面 Company Types、Menu Management、Roles &amp; Permissions；10 个新迁移</td></tr>
-          <tr class="newphase"><td>权限与账号缓存</td><td class="mono">3df9d523 ab13017b</td><td class="mono">4f754efd 9bc9e683</td><td>Felix：后端鉴权改读 Redis 的账号和角色缓存（3 分钟），写入后提交时失效；前端按 <code>X-Access-Rev</code> 刷新</td></tr>
-          <tr class="newphase"><td>弃用旧表和旧接口</td><td class="mono">b8e906f7 86aead3a 3c80afdd</td><td class="mono">3bdfd93f</td><td>Felix：删掉约 5000 行旧代码（settings、roles、entity、onboarding、permissions、My Stores / My Restaurants），前端对应页面一起删；新迁移 <code>31731a571e02</code> 把 7 张表改名 <code>deprecated_*</code>；<b>改写已推送迁移</b>的表名和 down_revision；新建 <code>legacy_models.py</code></td></tr>
-          <tr class="newphase"><td>邀请码重做</td><td class="mono">8eaef720 3e5063c2 0dc20169</td><td class="mono">f7a003b8</td><td>lucy：邀请码统一存进 <code>company_invitation</code>（迁移 <code>c4d8e2a6f1b3</code>，同时删除未认领的邀请公司），注册时才建公司；删掉 Master Database merge；onboarding 让客户公司自身参与客户关联</td></tr>
-          <tr class="newphase"><td>平台用户与日志</td><td class="mono">784f5b30 8ce6cdca 9b43adcb</td><td class="mono">887d6080</td><td>Lily：Add User / Join Company 只列已注册公司；Logs 只显示成功的登录和登出；Settings &gt; General 保存记 GENERAL 日志</td></tr>
+          <tr><td>设置 / dev admin / 清理</td><td class="mono">e77defb8 3e0391c7 08ec08da 04cd256b 2582af89</td><td class="mono">40dd4e27 be4a31a7 f401b438 7a2cccc2</td><td>删除全部公司级角色；dev admin 对所有公司放行；新建 Admin 公司（第 2 版审查）</td></tr>
+          <tr><td>新 onboarding、切换公司、公司角色、文件与 logo</td><td class="mono">48b4a289 fbfc9b9c 3f19b998 1adc1e82 …</td><td class="mono">d82a796f 7d2adcb2 e9b3108b …</td><td>Felix：onboarding 改为单页提交；<code>/me/companies</code> 自建公司；迁移 <code>23e8d26d41eb</code> 给每家公司复制一份角色；<code>/uploads</code> 改名 <code>/storage</code>（第 3 版审查）</td></tr>
+          <tr><td>Team、平台用户、公司信息（第 3 版）</td><td class="mono">13e16617 1d63c640 2e038191 ce79f7b5 …</td><td class="mono">d1f3e72a 9298f2d0 c49ffdb2 …</td><td>Lily：批量加人、改角色和状态、All Users；lucy：公司信息、地址拆分、名称和地址锁</td></tr>
+          <tr><td>操作日志、平台用户、停用（第 4 版）</td><td class="mono">f8a80699 ea682af9 6e1a7673 83611c01 2538e427 32e30221 …</td><td class="mono">6a2e36c6 5bbd26ed 0c9960ad …</td><td>Lily：统一操作日志、Join Company、成员通知；lucy：公司停用、Master Database 重做、补配送设置</td></tr>
+          <tr><td>新权限体系</td><td class="mono">69c5cb38 ded52c12 91ca9150 5ab121cc 3df9d523 ab13017b eaf5280f 2ce2e52a 3e945bde</td><td class="mono">90d83063 dd5f1151 9609cd2e 4f754efd 9bc9e683 0a7fd82d 6ea81eb0 e004c4e9 bc820add</td><td>Felix：每家公司一份角色、权限树、公司类型可用节点、角色模板、前端路由表；鉴权直接读 Redis 三级缓存；中间件不再给 CEO 放行（dev admin 的放行先删后又加回）；新增 Roles &amp; Permissions、Menu / Route Management、Company Types 页面；接口改用 <code>模块:动作</code> 权限码</td></tr>
+          <tr><td>旧表下线第二批</td><td class="mono">b8e906f7 3c80afdd d40b2d59 86aead3a 8e156199</td><td class="mono">3bdfd93f</td><td>Felix：删 My Stores / My Restaurants、entity 接口、旧权限路径和通知模块；旧权限、通知、类型角色等表改名为 <code>deprecated_*</code>；旧 ORM 类移入 <code>legacy_models.py</code>；原地改写 26 个已推送迁移</td></tr>
+          <tr><td>邀请码</td><td class="mono">8eaef720 3e5063c2 0dc20169</td><td class="mono">f7a003b8</td><td>lucy：新表 <code>company_invitation</code>（迁移 <code>c4d8e2a6f1b3</code>，硬删邀请占位公司）；删除 Master Database merge</td></tr>
+          <tr><td>平台用户、日志与成员资料</td><td class="mono">784f5b30 8ce6cdca 9b43adcb 1a7e3d9c 02109b99 dd4c0618</td><td class="mono">887d6080 ebadc663 bda0aefe</td><td>Lily：Add User 只认已注册公司；日志页只显示成功的登录和登出；GENERAL 日志；写操作清缓存；成员选择器带角色和联系方式；Complete Your Profile</td></tr>
+          <tr><td>访问状态与采购组</td><td class="mono">dc7f326a 4b1db16c</td><td>—</td><td>lucy：区分失去公司访问权的成员；采购组按 id 选择并同步（迁移 <code>0ca8a0bba508</code>）（第 5 版）</td></tr>
+          <tr class="newphase"><td>母公司下线与访问守卫</td><td class="mono">9d19c8a2</td><td class="mono">79c4cbc8 fb943c94 e4b966df</td><td>Felix：迁移 <code>049461d68471</code> 给系统表约束和索引改名、账号补外键（ON DELETE CASCADE）；迁移 <code>8011513c0d5c</code> 软删所有带子行的母公司。lucy：前端把失去访问的成员移出公司；采购组选择器、MFR 条款采购组</td></tr>
         </tbody>
       </table>
     </div>
@@ -267,94 +255,101 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>高危问题</h2>
-    <p class="prose count">状态按后端 <code>8e156199</code>、前端 <code>0c27bcf6</code> 复核。前 10 条未关闭（H6 含 F4、F5 两条），后面是本版已关闭、降级或不计入的高危，最后是范围外的 X1。</p>
+    <p class="prose count">状态按后端 <code>9d19c8a2</code>、前端 <code>e4b966df</code> 复核。前 8 张卡片是未关闭的 8 条，后面是已关闭或降级的高危，最后是范围外的 X1。</p>
     <div class="issues">
-      <article class="issue"><div class="id">N97</div><div class="body"><h3>经邀请注册的制造商，owner 拿到零权限的 CEO，什么都做不了</h3><p><code>to_company_role_id</code> 把类型角色转成公司角色时，如果公司还没有角色、company_type 又为空，<code>ensure_company_roles</code> 直接返回，于是新建一个<b>不带任何权限</b>的同名角色给 owner。lucy 的 <code>8eaef720</code> 对制造商邀请写入 <code>company_type=None</code>，所以每家新邀请的制造商都会触发。onboarding 补上 company_type 后，因为公司已有角色，不再按模板补齐；中间件也不再给 CEO 放行。owner 访问所有受保护接口都是 403，连 Roles &amp; Permissions 都打不开，只能改库。平台 admin 把 CEO 模板改名或删除后，新公司同样如此。</p></div><div class="side"><span class="by">ded52c12 · Felix；8eaef720 · lucy</span><span class="chip new">新问题</span><small>已人工核对。不要造空角色；company_type 补上后按模板补齐；修复已产生的数据</small></div></article>
-      <article class="issue"><div class="id">N98</div><div class="body"><h3>供应商无法代客户下单、复制订单</h3><p>前端 13 处仍用旧页面权限 <code>CREATE_VENDOR_ORDER</code> 判断买卖方（<code>OrderForm.tsx:94</code>、<code>useMultistepOrderForm.tsx:67</code> 等）。新权限体系下 <code>/access</code> 只返回权限树的节点码，种子里没有这个码，它恒为 false。供应商能看到 Create New Order，但流程按餐厅走：第一步选供应商要求只给餐厅的 <code>vendors:view</code>，返回 403。</p></div><div class="side"><span class="by">9609cd2e · Felix</span><span class="chip new">新问题</span><small>已人工核对。改用新权限码或公司类型判断买卖方</small></div></article>
-      <article class="issue"><div class="id">N99</div><div class="body"><h3>邀请码迁移按名称和地址的启发式条件硬删公司</h3><p><code>c4d8e2a6f1b3</code> 用「2026-09-17 之后创建、无 user_id、没有 company / subscription created 审计、名称和街道与某条临时客户记录相同」认定邀请公司，然后 <code>DELETE FROM company</code>，不备份，也不看有没有账号、联系人、订单。prod 代码里 Master Database 导入建公司时正好 <code>user_id=None</code>、不写 company 审计，没有邮箱电话时也不建订阅。这类公司如果和供应商的临时客户同名同址，会被连同联系人、电话、角色一起删掉；碰到 RESTRICT 外键则整个迁移失败。</p></div><div class="side"><span class="by">8eaef720 · lucy</span><span class="chip new">新问题</span><small>影响取决于 prod 数据：上线前在 uat 只读执行 _DOOMED 的 SELECT 核对名单</small></div></article>
-      <article class="issue"><div class="id">N35</div><div class="body"><h3>任何登录用户都能接管任意已注册用户的账号</h3><p>本轮没有修复：<code>POST /me/companies</code> 自建公司当 CEO → 凭手机号或邮箱把受害者加进来 → <code>PUT /team/members/{id}</code> 改写受害者的全局登录邮箱 → 找回密码。新权限体系下，新公司的 CEO 角色按模板自带 <code>team:create</code> / <code>team:edit</code>，整条链仍成立。</p></div><div class="side"><span class="by">fbfc9b9c 13e16617 · Felix、Lily</span><span class="chip open">未修</span></div></article>
-      <article class="issue"><div class="id">N73</div><div class="body"><h3>新建的 vendor 公司一接单，订单列表就 500</h3><p>订单的 <code>delivery_amount</code> 来自 <code>store_delivery</code>，没有这行时为 NULL，两侧订单响应都把它声明为必填 <code>Decimal</code>。<code>b8e906f7</code> 删掉 My Stores 加门店后，HEAD 上已没有任何运行时路径写这行；<code>8eaef720</code> 新增的「注册时建公司」入口也不建。</p></div><div class="side"><span class="by">c8fb1cd6 · Felix；2538e427 · lucy</span><span class="chip open">未修</span></div></article>
-      <article class="issue"><div class="id">N2</div><div class="body"><h3>dev admin / 平台 admin 权限模型构成全平台后门</h3><p>部分修复：<code>5ab121cc</code> 起中间件不再给 dev admin 放行，停用公司也能拦住 dev admin。但 <code>/dev-admin/users/{id}/accounts</code> 仍不限制目标用户和公司，dev admin 能一步给自己开任意租户的 CEO 账号；平台 admin 仍能用 <code>/account/create</code> 进 devAdmin 公司。新增的 Menu Management、Company Types、Route Management 和 permission-templates 接口也只看是否为 dev_admin / admin 公司的成员，能改全平台权限树；这两类公司里配置的受限角色只在前端生效。这些接口都不记审计日志。</p></div><div class="side"><span class="by">3e0391c7 08ec08da</span><span class="chip part">部分修复，仍为高危</span></div></article>
-      <article class="issue"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id</h3><p><code>b7d82c2e651b</code> 没变（F5），后果更具体：撞 id 的门店账号会被 <code>23e8d26d41eb</code> 复制角色进那家无关公司，新中间件据此放行。F4 部分修复，未变。</p></div><div class="side"><span class="by">2a7d08bc e3ba8005</span><span class="chip open">F5 未修，F4 部分修复</span><small>uat 执行前先做一次只读冲突核查</small></div></article>
-      <article class="issue"><div class="id">H5</div><div class="body"><h3>迁移清空所有公司的 parent_company_id</h3><p><code>d8aaccb9a900</code> 没变。旧层级只在备份表里，这张表在新库里已改名为 <code>deprecated_company_back</code>，仍在删除范围内，删表后永久丢失。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip open">未修</span><small>prod 升级前只读导出，请产品书面确认是否放弃</small></div></article>
-      <article class="issue"><div class="id">N88</div><div class="body"><h3>删表前提：待删表是多条问题唯一的数据来源</h3><p>旧层级（H5）、id 冲突核查（H6）、暂存成员（N41）、多类型（F13）、账单地址（N61）只在 <code>deprecated_company_back</code> 和 <code>deprecated_*</code> 表里。D9 没有改变这一点。本轮 <code>31731a571e02</code> 又把 7 张表改成 <code>deprecated_*</code>，其中门店、餐厅自选的子分类是 prod 上用户填写的数据，没有迁到任何在用表。</p></div><div class="side"><span class="by">删表前提</span><span class="chip worse">更严重</span><small>删表单独发版，先核查、导出、业务签字，再删</small></div></article>
-      <article class="issue done"><div class="id">N34</div><div class="body"><h3>只合入了公司角色迁移，没合入代码</h3><p>已修：<code>sprint6_permissions</code> 合入后，账号角色的外键、ORM、写入入口、权限中间件和 <code>/me/accounts</code> 都已改为 <code>system_company_role</code>。残留的「跨类型角色复制后零权限」计入 N97。</p></div><div class="side"><span class="by">3f19b998</span><span class="chip fixed">已修复 · ded52c12 5ab121cc ab13017b</span></div></article>
-      <article class="issue m"><div class="id">H6′</div><div class="body"><h3>成员能把自己改成 CEO（降为中危）</h3><p><code>b8e906f7</code> 删掉了 CEO 跳过权限检查的短路，CEO 也只按角色权限判定。但改角色只要求 <code>team:edit</code>（模板默认给了大多数员工角色），后端仍不禁止改自己；升成 CEO 后能改任意角色的权限，属于公司内越权。CEO 角色本身也没有保护，见 N103。</p></div><div class="side"><span class="by">13e16617 5bbd26ed · Lily</span><span class="chip part">部分修复 · 降为中危</span></div></article>
-      <article class="issue lo"><div class="id">N91</div><div class="body"><h3>deprecated_* 列不能按前缀删（按 D9 不计入）</h3><p>D9 确定所有 <code>deprecated_*</code> 列都不删，「删列让商品主流程 500」不会发生。保留列带来的新风险记在 N89、N90、N113。</p></div><div class="side"><span class="by">删表前提</span><span class="chip down">按 D9 不计入</span></div></article>
-      <article class="issue lo"><div class="id">H1</div><div class="body"><h3>迁移创建的 dev admin 账号（按设计接受，不列为风险）</h3><p>迁移本轮未改。留作提醒：邮箱是 yopmail 公共邮箱；迁移在每个新库都会按固定密码重建这个账号；这个账号现在还能改全平台权限树（见 N2）。</p></div><div class="side"><span class="by">a1faa9be</span><span class="chip down">按设计接受</span></div></article>
-      <article class="issue lo"><div class="id">其余</div><div class="body"><h3>前几版已关闭或降级的高危，本版确认没有回归</h3><p>N36、N1、H8、H2 仍为已修复；H3 的 <code>/account/*</code> 权限码已对齐（N5 已修复）；H4 的残留仍为低危；H7 子部门冲突仍为中危，H9 仍为低危。</p></div><div class="side"><span class="chip fixed">无回归</span></div></article>
-      <article class="issue"><div class="id">X1</div><div class="body"><h3>范围外：订单接口越权，prod 上已经存在</h3><p>不是本系列提交引入的，<code>origin/main</code> 上就是这样，不计入本报告的统计：餐厅侧订单 info 不校验成员和订单归属；invoice 的成员校验在 main 上被注释掉；门店侧 PATCH info 不校验订单属于这家门店。用户 2026-11-17 决定暂不修。</p></div><div class="side"><span class="by">存量代码</span><span class="chip open">范围外 · prod 已存在</span></div></article>
+      <article class="issue"><div class="id">N129</div><div class="body"><h3>迁移软删所有母公司，但厂商目录、订阅等数据还挂在母公司上，一批 owner 无法登录</h3><p><code>8011513c0d5c</code> 把每家没有 parent、有任意子行（含已删除子行）的公司标记删除，不搬数据、不处理账号、不做备份，downgrade 为 pass。前提「母公司已不再使用」不成立：库存和厂商商品早被归到母厂商，每家厂商都有 Default 子部门，订阅状态只在母公司行上，登录门槛过滤已删除公司。<b>本地实测</b>：软删 306 家；68 条厂商商品全部挂在被删母公司上、在用公司上 0 条；40 家 ACTIVE 订阅方被删，分支都不是 ACTIVE；62 家 INVITED 母公司被删，58 个 owner 没有任何在用账号，升级后无法登录。被标记行共用同一个事务时间戳，还能手工还原。<b>test 上已经发生</b>：279 家被删、57 个 owner 无法登录；厂商一项已手工恢复，并计划补迁移排除厂商（D16），订阅方和 owner 登录还没处理。</p></div><div class="side"><span class="by">9d19c8a2 · Felix</span><span class="chip new">新问题</span><small>修改迁移：排除厂商（已计划），订阅、未完成 onboarding 的公司也要处理；记下 id，补可用的 downgrade</small></div></article>
+      <article class="issue"><div class="id">N118</div><div class="body"><h3>任何登录用户都能拿到其他公司门店员工的登录邮箱和手机号</h3><p><code>GET /vendors/{store_id}/packers</code>、<code>/drivers</code> 只校验 token，服务层不接收调用者、不做任何成员或权限校验。这个缺口在第 4 版基线就有，但当时只返回姓名；Lily 的 <code>02109b99</code> 为了让选择器显示「Role | email」，给响应加上了邮箱、手机号和角色名，停用账号也会返回。门店 id 对下单的餐厅是可见的。</p></div><div class="side"><span class="by">02109b99 · Lily</span><span class="chip new">新问题</span><small>补门店成员校验，只返回选择器需要的字段</small></div></article>
+      <article class="issue"><div class="id">N97</div><div class="body"><h3>迁移按规则硬删「邀请占位公司」，不留备份</h3><p><code>c4d8e2a6f1b3</code> 选出 9-17 之后创建、没有 owner、邀请码没用过、并命中「被客户关联」「名称和第一段街道与供应商的临时客户相同」「VENDOR 名称为空」之一的公司，直接 <code>DELETE FROM company</code>，级联删掉公司信息、订阅、电话、配送设置和公司角色。Admin 导入、没有联系方式的公司不受保护；没有客户关联的被删公司邀请码不转存，已发出的邀请升级后失效；downgrade 不重建公司。<b>本地实测</b>：删了 43 家（含 5 家 ACTIVE），26 家的码丢失。</p></div><div class="side"><span class="by">8eaef720 · lucy</span><span class="chip new">新问题</span><small>先在 prod 副本上跑 SELECT 看会删谁；改成软删除或先导出。test 很可能已执行</small></div></article>
+      <article class="issue"><div class="id">N2</div><div class="body"><h3>dev admin 对所有公司放行，又回来了</h3><p><code>b8e906f7</code> 一度删掉了中间件里 dev admin 的放行，<code>3e945bde</code> 又加了回来：调用者自己的校验失败后，只要是 dev admin、公司没停用，就直接放行，不看权限码，也不要求在该公司有账号，<code>/account/*</code> 同样适用。「平台 admin 提权成 dev admin」一侧已堵上；本版又给 dev admin 增加了改全局权限树的接口，都没有审计。固定密码的种子账号（H1）仍在。</p></div><div class="side"><span class="by">3e0391c7 08ec08da 3e945bde</span><span class="chip worse">更严重</span></div></article>
+      <article class="issue"><div class="id">N73</div><div class="body"><h3>新建的 vendor 公司一接单，订单列表就 500</h3><p><code>3e945bde</code> 让 onboarding 收尾时给 VENDOR 补建 <code>store_delivery</code>，邀请、Admin 建公司、导入这些要走 onboarding 的路径都覆盖了。剩下公司切换器里的 Add Company：直接建出 ACTIVE 的 vendor，不经过 onboarding，也不补这行。</p></div><div class="side"><span class="by">c8fb1cd6 2538e427</span><span class="chip part">部分修复</span><small>Add Company 也补，或缺行时兜底为 0</small></div></article>
+      <article class="issue"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id（F5）</h3><p><code>b7d82c2e651b</code> 没变。第 6 版：<code>049461d68471</code> 的孤儿检查发现不了这类冲突，新外键反而会把错挂的账号固定在错误的公司上。H6 的另一半 F4（副本混进列表）因母公司被删，本版关闭。</p></div><div class="side"><span class="by">2a7d08bc e3ba8005</span><span class="chip open">F5 未修，F4 已关闭</span><small>uat 执行前先做只读冲突核查</small></div></article>
+      <article class="issue"><div class="id">H5</div><div class="body"><h3>迁移清空所有公司的 parent_company_id</h3><p><code>d8aaccb9a900</code> 没变。原值只在 <code>company_back</code> 里（新库里叫 <code>deprecated_company_back</code>），按 D9 要删。第 6 版：<code>8011513c0d5c</code> 把母公司全部软删，剩下的分支→母公司关系都指向已删除行（N129）。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip open">未修</span><small>prod 升级前只读导出层级，请产品书面确认</small></div></article>
+      <article class="issue"><div class="id">N88</div><div class="body"><h3>删表前提：deprecated_* 表是多条问题唯一的数据来源，范围又扩大了</h3><p>除了旧母子层级、id 冲突线索、暂存成员、多类型、账单地址，<code>d40b2d59</code> 又把各公司的旧权限矩阵（N99 补迁的唯一来源）、类型角色表（备份表里角色 id 的唯一解释）、通知设置表也改成了 <code>deprecated_*</code>，按 D7 都要删。</p></div><div class="side"><span class="by">删表前提</span><span class="chip worse">更严重</span><small>删表前先导出，先做完 N99 补迁</small></div></article>
+      <article class="issue done"><div class="id">N34</div><div class="body"><h3>只合入了公司角色迁移，没合入代码</h3><p>已修：配套代码经 <code>b6c1083a</code> 合入，ORM、读取方和所有写角色的入口都改到 <code>system_company_role</code>（人工核对）。已执行过中间版本的库缺 10 个迁移，记在 F6。</p></div><div class="side"><span class="by">3f19b998</span><span class="chip fixed">已修复 · ded52c12 69c5cb38</span></div></article>
+      <article class="issue done"><div class="id">N35</div><div class="body"><h3>账号接管链</h3><p>已修：<code>3e945bde</code> 删除了 <code>PUT /team/members/{id}</code>，这是唯一能改别人全局邮箱和手机号的一环（人工核对）。加人仍不需要对方确认（F58），新出现的「改写他人显示名」另列为 N122。</p></div><div class="side"><span class="by">fbfc9b9c 13e16617</span><span class="chip fixed">已修复 · 3e945bde</span></div></article>
+      <article class="issue done"><div class="id">N98</div><div class="body"><h3>（第 5 版新发现）供应商下单全部走餐厅流程</h3><p>后端不再下发 <code>CREATE_VENDOR_ORDER</code>，前端订单表单 13 处仍靠它判断买卖方。已由 <code>bc820add</code> 改为按公司类型判断（人工核对）。</p></div><div class="side"><span class="by">5ab121cc · Felix</span><span class="chip fixed">已修复 · bc820add</span></div></article>
+      <article class="issue done"><div class="id">F4</div><div class="body"><h3>（H6 的一半）门店、餐厅副本混进公司列表</h3><p>已修：母公司被 <code>8011513c0d5c</code> 软删后，各列表按 deleted_at 过滤，不再有「母公司 + 副本」重复。修法是删母公司，代价记在 N129；如果按 N129 收窄迁移、保留部分母公司，本条要重新打开。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip fixed">已修复 · 9d19c8a2</span></div></article>
+      <article class="issue lo"><div class="id">H6′</div><div class="body"><h3>有改角色权限的成员可以把自己改成 CEO（降为中危）</h3><p>中间件不再给 CEO 直接放行，CEO 只拿自己角色的权限码，所以这是公司内越权。自升的路径没变：后端不拦本人，默认模板把 <code>team:edit</code> 给了几乎所有角色。</p></div><div class="side"><span class="by">d49f0bd9 5bbd26ed</span><span class="chip down">部分修复 · 降为中危</span></div></article>
+      <article class="issue lo"><div class="id">其余</div><div class="body"><h3>不再适用、按设计接受、没有回归</h3><p>N91 按 D9（列不删）不再适用；H1 按设计接受，但它现在又能直接通过所有权限校验（N2）；F8、F14、F27、F36 按删表前提不计入；N36、N45、N1、H8、H2、H7 的 PG16 部分仍为已修复。</p></div><div class="side"><span class="chip fixed">无回归</span></div></article>
+      <article class="issue"><div class="id">X1</div><div class="body"><h3>范围外：订单接口越权，prod 上已经存在</h3><p>不是本系列提交引入的，<code>origin/main</code> 上就是这样，不计入本报告的统计：餐厅侧订单 info、invoice 不校验成员和订单归属；门店侧 PATCH info 不校验订单归属。用户 11-17 决定暂不修，本版没有重新复核。</p></div><div class="side"><span class="by">存量代码</span><span class="chip open">范围外 · prod 已存在</span></div></article>
     </div>
   </section>
 
   <section>
     <h2>删表前提下的复核（按 D9）</h2>
-    <p class="prose">D7：<code>company_back</code> 和 <code>deprecated_*</code> 表不再使用，将来删除。D9（2026-11-18）：删除范围<b>只包括这些表</b>，所有 <code>deprecated_*</code> 列和 9 张备份/映射表都保留。本版第一次按 D9 复核：「删列让主流程 500」不再成立，但保留它们带来了新问题，而且有一处和 D9 直接冲突。</p>
+    <p class="prose">D9：删除范围<b>只包括</b> <code>company_back</code> 和 <code>deprecated_*</code> 表，<code>deprecated_*</code> 列和 9 张备份/映射表都不删。<b>最大的新情况是 D9 自己的两条规定冲突了</b>：<code>b8e906f7</code> 原地改写了 10 个已推送的迁移，让 9 张备份表在新库里一建出来就叫 <code>deprecated_*</code>，按「删 <code>deprecated_*</code> 表」执行会把它们一起删掉；跑过旧版迁移的库里它们仍是旧名，同一份删表语句在两类库上结果不同。<b>需要你决定</b>：继续保留（删表清单逐表列名、排除它们），还是理解为也要删（N93）。</p>
     <div class="cats">
-      <div class="cat"><h3>结论变化 <span>已有问题</span></h3><ul>
-        <li><b>N91</b> 不再计入：列都不删</li>
-        <li><b>N93、N96</b> 部分不再计入：备份表不会被误删；成立日期在列里</li>
-        <li><b>N89</b> 范围变了：autogenerate 会为保留的列和备份表生成 drop_column / drop_table</li>
-        <li><b>N90</b> 只能删外键约束、不删列，删表后列里只剩旧 id</li>
-        <li><b>N13、N19</b> 备份表保留成为永久状态，jsonb 里的 PII 一直在</li>
-        <li><b>N88</b> 更严重：待删表又多了 7 张</li>
+      <div class="cat"><h3>结论变化 <span>按 D9</span></h3><ul>
+        <li><b>N91</b> 不再适用：列不删</li>
+        <li><b>N93</b> 更严重：与 D9 冲突；jsonb 整行 PII 会长期保留</li>
+        <li><b>N88</b> 更严重：旧权限矩阵、类型角色表、通知表也进入删除范围</li>
+        <li><b>N92</b> 恢复为中危：原来恰好挡住回滚的外键拦截没有了</li>
+        <li><b>N89</b> 部分修复：ImportError 已修，<code>include_object</code> 仍缺，且要按名单排除</li>
+        <li><b>N90</b> 未变：列保留，只删外键约束</li>
       </ul></div>
-      <div class="cat"><h3>新增风险 <span>2 条</span></h3><ul>
-        <li><b>N102</b>（中）9 张要保留的备份表在新库里被改名为 <code>deprecated_*</code> 前缀，与 D7/D9 冲突；旧库仍是旧名。<b>需要你决定</b>：改回不带 deprecated_ 的名字，还是删表按白名单排除</li>
-        <li><b>N113</b>（低）删表后保留列里的旧 id 无法解释，F5 冲突行上恰好等于一家无关公司的 id</li>
+      <div class="cat"><h3>删表前要做 <span>顺序</span></h3><ul>
+        <li>本系列在 prod 稳定后，删表单独发版</li>
+        <li>先决定 9 张备份表的去留（N93）</li>
+        <li>prod 只读导出：层级、冲突、暂存成员、多类型、账单地址、退款余额、旧权限矩阵</li>
+        <li><code>env.py</code> 加 <code>include_object</code>，按名单排除</li>
+        <li>逐表列名删，兼容新旧两种表名，不用前缀、不用 CASCADE；downgrade 直接 raise</li>
+        <li>空库和 uat 副本各跑一遍（空库现在在 <code>f05bb0b9b161</code> 就失败，F118）</li>
       </ul></div>
     </div>
-    <h3 class="sub">删表前的顺序</h3>
-    <ol class="steps">
-      <li><b>先决定 N102</b>：9 张备份表的名字。</li>
-      <li><b>本系列迁移先在 prod 跑完并稳定一个版本</b>，删表迁移单独发版，不改任何已推送迁移（N92、F6）。</li>
-      <li><b>在 prod 上只读核查并导出</b>：旧层级（H5）、id 冲突（H6）、暂存成员（N41）、多类型（F13）、账单地址（N61）、退款余额（N95）、子分类（N88）、old_id→new_id 映射（N113）。<code>pg_dump -t</code> 加密归档，手工打 RDS 快照。</li>
-      <li><b>请业务书面确认</b>：是否放弃旧层级、账单地址、紧急联系人、子分类。</li>
-      <li><b>改代码</b>：<code>env.py</code> 加 <code>include_object</code>，排除全部 <code>deprecated_*</code> 表和列、9 张备份表、<code>legacy_models.py</code> 的旧名表（N89）；处理 jsonb 备份里的 PII（N13、N93）。</li>
-      <li><b>写删表迁移</b>：<code>SET LOCAL lock_timeout</code>；先按名字删 4 条在用外键，只删约束、不删列；再逐个列出表名 <code>DROP TABLE IF EXISTS</code>，兼容新旧两套表名，不用前缀匹配、不用 CASCADE；排除备份表和 <code>deprecated__css_pii_masked</code>；downgrade 直接 raise（N90、N92、N94）。</li>
-      <li>合入前在空库上跑 <code>alembic history</code> 和 <code>upgrade heads</code>，再在 uat 副本上跑一遍；跑一次 autogenerate 确认没有生成任何 drop 语句。</li>
-    </ol>
   </section>
 
   <section>
     <h2>中危问题</h2>
-    <h3 class="sub">本版新发现的 9 条</h3>
+    <h3 class="sub">本版新发现的 1 条</h3>
+    <div class="issues">
+      <article class="issue m"><div class="id">N130</div><div class="body"><h3>任何「访问已停用」都被算到当前公司头上，会把人踢出正常的公司</h3><p>lucy 修 N121 的 <code>79c4cbc8</code>：拦截器只看错误类型就调用不带参数的 <code>reportAccessLost()</code>，处理器一律把当前公司当成失去访问的公司。切换到刚停用的公司失败、或从报价单打开兄弟门店的单据被拒时，用户会被从仍然正常的公司切走，只剩这两家时直接登出。</p></div><div class="side"><span class="by">79c4cbc8 · lucy</span><span class="chip new">新问题</span></div></article>
+    </div>
+    <h3 class="sub">第 5 版新发现的 12 条（状态按第 6 版）</h3>
     <div class="cats">
-      <div class="cat"><h3>新权限体系 <span>Felix · 7</span></h3><ul>
-        <li><b>N100</b> 升级时只按模板给角色赋权，各公司在旧 Settings &gt; Permissions 里的自定义被整体丢弃：收紧过的被放开，放宽过的被收回，没有差异报告</li>
-        <li><b>N103</b> CEO 角色可以被改名、删光权限，CEO 又只按名字判定：公司可能被锁死，「最后一名 CEO」保护失效</li>
-        <li><b>N104</b> 新接口 <code>GET /team/members/names</code> 不看账号是否停用、也不看 Team 权限，被停用的成员和 Packer、Driver 都能拉全体成员的邮箱手机号</li>
-        <li><b>N105</b> 一批权限节点后端没有执行，界面上关掉的开关直接调接口照样能用；生成发票的权限从 create__invoice 降成了菜单节点 orders</li>
-        <li><b>N106</b> 装箱单可见范围 fail-open：去掉 Packer 的 Only Assigned 反而让他看到门店全部装箱单</li>
-        <li><b>N107</b> 通知设置页下线后，Roles &amp; Permissions 里的 New Order Email 开关没有代码读取</li>
-        <li><b>N108</b> 餐厅 Partner 有下单权限却没有 <code>vendors:view</code>，下单页选不了供应商</li>
+      <div class="cat"><h3>升级后数据与功能 <span>Felix · 5</span></h3><ul>
+        <li><b>N99</b> 升级把各公司定制过的角色权限重置为模板默认值，旧矩阵不迁移</li>
+        <li><b>N119</b> CEO 模板补全了全部节点，存量公司的 CEO 没回填，缺审批、指派等权限</li>
+        <li><b>N120</b> 升级后新建公司的角色没有 code：Salesman 下拉为空，Packer/Driver 进不了 Packing Slips</li>
+        <li><b>N107</b> 餐厅 Partner 有下单权限却没有 <code>vendors:view</code>，无法下单</li>
+        <li><b>N106</b> 新订单邮件收件人：主体已修；新公司只发 CEO、不再发门店邮箱，需确认</li>
       </ul></div>
-      <div class="cat"><h3>邀请码与 D9 <span>lucy、Felix · 2</span></h3><ul>
-        <li><b>N101</b> 邀请码迁移只搬了一类码：餐厅邀请供应商、餐厅导入供应商、供应商导入客户三类已发出的码，升级后全部失效</li>
-        <li><b>N102</b> 9 张要保留的备份表在新库里被改名为 <code>deprecated_*</code> 前缀，与 D9 冲突（见上一节）</li>
+      <div class="cat"><h3>权限只在前端生效或缺保护 <span>Felix · 5</span></h3><ul>
+        <li><b>N102</b> 订单行编辑、拣货单审批、记收款、报价删除签署等开关，后端不拦</li>
+        <li><b>N103</b> admin / dev admin 的页面节点只在前端门控，受限角色在后端不起作用</li>
+        <li><b>N101</b> Roles &amp; Permissions 不保护 CEO 角色和自己的角色（改名已禁止）</li>
+        <li><b>N104</b> <code>/team/members/names</code> 不需要 Team 权限就返回全体成员的邮箱和手机号</li>
+        <li><b>N105</b> 拣货单「没有范围就看全部」</li>
+      </ul></div>
+      <div class="cat"><h3>成员与访问 <span>Lily、lucy · 2</span></h3><ul>
+        <li><b>N121</b> 被停用的成员不会被移出公司（第 6 版：<code>79c4cbc8</code> 部分修复，降为低危）</li>
+        <li><b>N122</b> 加人时把操作者填的姓名写进其他公司用户的全局资料（对方没有姓名时）</li>
       </ul></div>
     </div>
     <h3 class="sub">前几版中危的变化</h3>
     <div class="issues">
-      <article class="issue m"><div class="id">F6</div><div class="body"><h3>已推送的迁移又被改写，旧库会跳过 10 个权限迁移</h3><p><code>86aead3a</code> 把 <code>29fc58b26229</code> 的 down_revision 从 <code>23e8d26d41eb</code> 改成 <code>31731a571e02</code>，10 个权限迁移被插进链中间：跑过中间版本的库升级时把它们视为已执行，缺权限表，登录和判权 500。<code>b8e906f7</code> 改了 10 个已推送迁移的表名，<code>69c5cb38</code> 重写了 <code>23e8d26d41eb</code>。本轮共改了 18 个已推送迁移文件。uat/prod 按最终链执行，不受影响。</p></div><div class="side"><span class="by">86aead3a b8e906f7 · Felix</span><span class="chip worse">更严重</span><small>本地和开发库要从头重建</small></div></article>
-      <article class="issue m"><div class="id">N44</div><div class="body"><h3>INVITED 公司删除或停用唯一的 CEO 一直 409（升为中危）</h3><p><code>784f5b30</code> 把 Add User / Join Company 限定为 ACTIVE 公司，last-CEO 流程没跟上：已用邀请码注册、onboarding 未完成的公司，删除或停用 owner 会一直 409，前端照样显示 Add New User 但提交失败。第 4 版的绕法也失效了。</p></div><div class="side"><span class="by">784f5b30 · Lily</span><span class="chip worse">更严重 · 由低危升为中危</span></div></article>
-      <article class="issue m"><div class="id">其余</div><div class="body"><h3>部分修复、未变化或已关闭</h3><p>部分修复：N6、N17（停用或删除账号后立即失去权限）、N67、N68（页面不再显示失败登录）、N70、N72、N89。更严重：F13（错误类型还决定公司的角色权限）、测试 F51、F70、F95、F141。仍为中危、没有变化：M1、M2、M3、M4、M5、M8、M10、H7 残留、N8、N9、N11、N12、N22、N28、N37、N38、N39（只计商品分类）、N40、N41、N43、N46、N49、N69、N74。已关闭：N42 删除成员改回 <code>team:delete</code>；N3 根因转为 N100。降为低危：F88、N71。</p></div><div class="side"><span class="by">多个提交</span></div></article>
+      <article class="issue m"><div class="id">F67</div><div class="body"><h3>已删除的公司仍能被访问（第 6 版升为中危）</h3><p><code>get_company</code>、<code>get_account</code>、<code>has_account</code> 不看公司是否已删除。<code>8011513c0d5c</code> 软删 306 家母公司而不动其 377 个账号后，只挂 <code>check_access_token</code> 的接口（门店订单、发票、主发票、门店商品、聊天、写损等）仍对这批账号放行。F77、F92、N18 同因（低危）。</p></div><div class="side"><span class="by">多个提交</span><span class="chip worse">更严重</span></div></article>
+      <article class="issue m"><div class="id">N57</div><div class="body"><h3>停用账号仍收到新订单邮件（升为中危）</h3><p>新订单邮件和月结单改按权限节点取收件人后，新查询连 <code>Account.is_active</code> 都不看，Team 停用的离职成员也会收到；持有节点的账号全部停用时，也不再退回门店邮箱兜底。</p></div><div class="side"><span class="by">d40b2d59 2ce2e52a · Felix</span><span class="chip worse">更严重</span></div></article>
+      <article class="issue m"><div class="id">N7</div><div class="body"><h3>新建账号不带姓名，拣货单和订单详情会 500（升为中危）</h3><p>批量加人和 Join Company 建的账号姓名为空，被指派为拣货员或司机、或写过订单评论后，响应校验失败返回 500。<code>dd4c0618</code> 和 Complete Your Profile 只修好了 Team 等页面的显示。</p></div><div class="side"><span class="by">13e16617 ea682af9</span><span class="chip part">部分修复</span></div></article>
+      <article class="issue m"><div class="id">N44</div><div class="body"><h3>INVITED 公司的 owner 无法被停用或删除（升为中危）</h3><p><code>784f5b30</code> 把 Add User 收紧为只认 ACTIVE 公司后，onboarding 没走完的公司没有候选人可以接任 CEO，只能删整家公司。</p></div><div class="side"><span class="by">784f5b30 · Lily</span><span class="chip worse">更严重</span></div></article>
+      <article class="issue m"><div class="id">F6</div><div class="body"><h3>又原地改写了 26 个已推送的迁移</h3><p><code>86aead3a</code> 把 10 个权限迁移插到已推送的 <code>29fc58b26229</code> 前面，本地实测：停在其后版本的库确实缺这 10 个迁移建的表，从 <code>6a31a24024e6</code> 起这类库升级会直接报错。另有 <code>23e8d26d41eb</code>、<code>cd8e1f4305ce</code> 被改内容，24 个旧迁移被改建表名或 import。uat/prod 按最终链执行不受影响，test 要核实。</p></div><div class="side"><span class="by">86aead3a b8e906f7 3c80afdd d40b2d59</span><span class="chip worse">更严重</span></div></article>
+      <article class="issue m"><div class="id">其余</div><div class="body"><h3>未变化、部分修复或已降级</h3><p>仍为中危、没有变化：M1、M2、M3、M4、M5、M8、M10、H7 的子部门冲突、F17、N6、N8、N9、N11、N12、N22、N28、N37、N38、N39、N40、N41、N43、N46、N49、N69、N70、N74。F13 更严重（兜底类型被固化进角色）。部分修复：N17、N67、N68、N72、N89。测试缺口更大：F51、F70、F95、F141。已修复：N42。降为低危：N3、N71、F88；第 6 版又降了 F72、F104、N69（母公司被删后症状不再出现，依赖 N129 的迁移）。N41 第 6 版更严重（INVITED 母公司被删，owner 无法登录，计入 N129）。</p></div><div class="side"><span class="by">多个提交</span></div></article>
     </div>
   </section>
 
   <section>
     <h2>低危问题</h2>
-    <p class="prose count">第 4 版的 137 条低危里，本版修复 13 条、因功能删除不再适用 6 条，更严重 14 条（迁移缺 lock_timeout、测试缺口扩大等）。本版新增 6 条，类别如下。</p>
+    <p class="prose count">第 6 版：F50 已修复，F122、F155 不再适用；N121 降为低危；F35、F65、F77、F92、N18 因母公司软删更严重；F23 部分修复（6 张系统表的约束和索引改了名）。第 5、6 版共新增 19 条，类别如下。</p>
     <div class="cats">
-      <div class="cat"><h3>权限缓存与前端权限 <span>Felix · 新 4</span></h3><ul><li><b>N109</b> 鉴权缓存失效只靠提交后异步删除，并发回填可能让旧权限再生效最多 3 分钟</li><li><b>N110</b> 前端刷新权限失败时继续用旧权限、不提示，还会反复发失败请求</li><li><b>N111</b> 侧栏 Settings 永远显示，没勾 settings 的角色点进去是 NotFound；两个内部页没写进路由种子</li><li><b>N112</b> 前端 26 个权限码在后端不存在；Statement 对只读角色开放、后端却要求 clients:edit</li></ul></div>
-      <div class="cat"><h3>D9 与平台用户 <span>新 2</span></h3><ul><li><b>N113</b> 删表后保留列里的旧 id 无法解释，F5 冲突行上等于无关公司的 id</li><li><b>N114</b> 公司详情的 is_registered 与列表、删除守卫的同名字段含义不同</li></ul></div>
-      <div class="cat"><h3>本版关闭 <span>19</span></h3><ul><li>缓存：F54、F56、F69</li><li>前端：F147、F150、F152、N4</li><li>其他：N5、N50、N77、N85、F92、F120</li><li>随 My Stores 删除不再适用：F96、F98、F99、F148、N47、N48</li></ul></div>
+      <div class="cat"><h3>新权限体系 <span>Felix · 新 9</span></h3><ul><li><b>N100</b> 改公司类型后角色不补种（零权限主路径已修）</li><li><b>N108</b> 鉴权读缓存，撤权最长约 3 分钟滞后</li><li><b>N109</b> dev admin 分配其他公司的角色返回 500；GET 会写库</li><li><b>N111</b> 配送设置同时按权限码和角色名判断</li><li><b>N114</b> Statement 和条款模板的前后端权限码不一致</li><li><b>N115</b> 已登录用户打不开 Terms / Privacy / Cookies 和内部运维页</li><li><b>N116</b> 恢复上次账号失败就静默改开第一个账号</li><li><b>N117</b> 账号访问接口不带城市、州、邮编</li><li><b>N127</b> 编辑权限树会顺带写入未选的默认范围</li></ul></div>
+      <div class="cat"><h3>测试与合并 <span>Felix · 新 2</span></h3><ul><li><b>N112</b> 两个提交把一批测试掏空成 pass，留下必然失败的用例</li><li><b>N113</b> 合并把已删除接口的测试恢复回来</li></ul></div>
+      <div class="cat"><h3>平台用户与成员 <span>Lily · 新 3</span></h3><ul><li><b>N110</b> USER_* 事件和失败登录只写不读</li><li><b>N123</b> 酒牌通知收件人接口返回全店成员的手机号</li><li><b>N128</b> onboarding 团队步骤没跟上 secondary email 新规则</li></ul></div>
+      <div class="cat"><h3>采购组 <span>lucy · 第 6 版新 2、第 5 版 3</span></h3><ul><li><b>N131</b> MFR 条款的采购组选过就清不掉，删掉的组名留在条款上</li><li><b>N132</b> 新的采购组提交没有测试</li><li><b>N124</b> 报价单 buying_group_id 只接了一半，也不校验归属</li><li><b>N125</b> 改名同步会改写已接受的报价单，还会写入临时 UUID 名</li><li><b>N126</b> MFR Contact 导出改读未回填的新列</li></ul></div>
     </div>
   </section>
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前四版的 201 条加本版新问题 18 条。X1、X2 是范围外的存量问题，不在表内；H1 按设计接受，F8 等 5 条按已确认的前提不计入，都归入「已关闭」。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开「复核说明」可以看到对照 HEAD 的结论和证据行号。</p>
+    <p class="prose count">前五版的 233 条加本版新问题 4 条（N129–N132）。X1、X2 是范围外的存量问题，不在表内；H1 按设计接受、F8 等 4 条按删表前提不计入，都归入「已关闭」。「本版新增」筛选包括本版内已修或部分修复的新问题。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到两段复核的结论和证据行号。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -374,11 +369,12 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     </div>
     <div class="controls">
       <input id="q" type="search" placeholder="搜索编号、提交哈希、作者、文件或关键词" aria-label="搜索">
+      <button type="button" id="allLoc">展开全部位置</button>
       <span class="count" id="shown"></span>
     </div>
     <div class="tbl">
       <table class="all">
-        <thead><tr><th>编号</th><th>级别</th><th>状态</th><th>问题</th><th>提交</th><th>位置</th></tr></thead>
+        <thead><tr><th>编号</th><th>级别</th><th>状态</th><th>问题</th><th>提交</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -388,50 +384,53 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div style="display:grid;gap:12px;min-width:0">
       <h2>上线前必须处理</h2>
       <ol class="steps">
-        <li><b>修复 N98</b>：订单表单改用新权限码或公司类型判断买卖方；清理前端旧权限枚举里后端已不下发的码（N112）。</li>
-        <li><b>修复 N97</b>：<code>to_company_role_id</code> 不要造空角色；company_type 补上后按模板补齐角色和权限；修复已产生的零权限 CEO。</li>
-        <li><b>重写 <code>c4d8e2a6f1b3</code></b>（N99、N101）：按来源标记认定邀请公司，不硬删有业务数据的公司；所有已发出的码都迁进新表；上线前在 uat 只读核对删除名单。</li>
-        <li><b>权限迁移（N100）</b>：先出一份「旧矩阵 vs 新模板」差异清单，请产品决定迁移还是重置。</li>
-        <li><b>补齐新权限体系</b>：后端执行界面上能配置的节点，恢复生成发票的权限（N105）；names 接口加 Team 权限和停用检查（N104）；装箱单 fail-closed（N106）；模板和接口权限码对齐（N108）；New Order Email 改读新节点（N107）；CEO 角色按 code 锁定（N103）。</li>
-        <li><b>堵住账号接管（N35）</b>：不允许 <code>PUT /team/members/{id}</code> 改写全局邮箱和手机号；加成员复用已有用户要经对方确认（M5）。</li>
-        <li><b>修复 H6′</b>：后端禁止改自己的角色和状态，授予 CEO 要求操作者是 CEO。</li>
-        <li><b>修复 N73</b>：所有建 vendor 公司的入口都建 <code>store_delivery</code>，或者缺行时兜底。</li>
-        <li><b>收紧 dev admin（N2）</b>：<code>/dev-admin</code> 开账号限制目标用户和公司；<code>is_dev_admin</code> / <code>is_admin</code> 看角色；相关接口记审计日志。</li>
-        <li><b>补完公司停用</b>（N69、N70、N74）和<b>修操作日志</b>（N67、N68、N72、N37）。</li>
-        <li><b>在 prod 副本上演练整条迁移链</b>，重点看 id 冲突（H6）、子部门同产品（H7）、邀请公司删除和邀请码迁移（N99、N101）、权限前后差异（N100）、角色映射（F13、N6）、地址拆分、旧 onboarding（N41）、日志复制（N72）。</li>
-        <li><b>本地和开发库从头重建</b>：<code>86aead3a</code> 又改写了迁移链（F6）。</li>
-        <li><b>删表按上面的顺序做</b>，先决定 N102。</li>
+        <li><b>N129</b>：重写 <code>8011513c0d5c</code>：先把厂商商品和库存、订阅、邀请码、master invoice 等搬到分支，或保留仍有业务的母公司；删前把 id 写进保留表，补上能用的 downgrade；未走完 onboarding 的公司不要删。</li>
+        <li><b>先核实 test 环境</b>：查 test 库的 alembic 版本、是否执行过 <code>c4d8e2a6f1b3</code>（N97）和 <code>8011513c0d5c</code>（N129）；执行过的话，按同一事务时间戳核对并还原被删的母公司。</li>
+        <li><b>F67、N130</b>：鉴权函数过滤已删除公司；前端只在出错的请求属于当前公司时才判定失去访问。</li>
+        <li><b>N118</b>：packers / drivers 接口补门店成员校验，只返回选择器需要的字段；顺带收紧 N104、N123。</li>
+        <li><b>N97</b>：不要硬删公司。先在 prod 副本上跑 <code>_DOOMED</code> 的 SELECT；改成软删除或先导出；被删公司的邀请码也转存。</li>
+        <li><b>N2</b>：撤掉 <code>3e945bde</code> 加回的 dev admin 跨公司放行，至少在 prod 关闭；dev admin、平台 admin 的写操作记审计日志。</li>
+        <li><b>新权限体系的数据</b>：N99 先比对旧矩阵决定补迁还是接受重置（补迁必须在删表前）；N119 回填存量 CEO；N120 角色写 code；N107 给 Partner 补 <code>vendors:view</code>。</li>
+        <li><b>后端补权限校验</b>：N102 的写接口接上对应的权限码；N103 的 admin / dev admin 接口按页面节点校验；N105 没有范围时返回空。</li>
+        <li><b>N101、F57</b>：禁止编辑自己的角色和 CEO 角色的关键节点；Team 禁止改自己的角色；授予 CEO 要求操作者本身是 CEO。</li>
+        <li><b>N73、N121、N57、N7</b>：Add Company 也补配送设置；前端处理 403 <code>company_access_disabled</code>；收件人查询过滤停用账号；建账号都写姓名。</li>
+        <li><b>补完公司停用</b>（N69、N70、N74）、<b>修操作日志</b>（N67、N68、N72、N37），同第 4 版。</li>
+        <li><b>在 prod 副本上演练整条迁移链</b>，重点看 H6、H7、F13、N41、N72、N97、N99、N119，以及冻结点之后的两个新迁移。</li>
+        <li><b>删表按上面的顺序做</b>，先决定 9 张备份表的去留（N93）；修好空库建库（F118）。</li>
       </ol>
     </div>
     <div style="display:grid;gap:12px;align-content:start;min-width:0">
-      <h2>需要你或产品确认</h2>
+      <h2>范围外，建议立即处理</h2>
       <ul class="steps">
-        <li><b>9 张备份表的名字（N102）</b>：改回不带 deprecated_ 的名字，还是删表时按白名单排除？</li>
-        <li>升级时各公司自定义的权限是迁移过来还是统一重置（N100）？</li>
-        <li>成员能否改自己的角色、能否把自己改成 CEO（H6′）？</li>
-        <li>停用母公司时，门店、餐厅、子部门是否一起停用（N69）？</li>
-        <li>停用期间合作方看不到在途订单、发票和对账单，是否接受？</li>
-        <li>New Order Email 由谁在哪里配置（N107）？</li>
-        <li>旧层级、账单地址、紧急联系人、退款余额、门店餐厅子分类是否放弃（H5、N61、N96、N95、N88）？</li>
-      </ul>
-      <h2 style="margin-top:12px">范围外</h2>
-      <ul class="steps">
-        <li><b>X1</b>：main 上三个订单接口的成员和归属校验（用户决定暂不修）。</li>
+        <li><b>X1</b>：在 main 上热修三个订单接口的成员和归属校验。</li>
         <li><b>X2</b>：<code>sms_sender</code>、<code>email_sender</code> 不要打印消息正文。</li>
+      </ul>
+      <h2 style="margin-top:12px">需要你或产品确认</h2>
+      <ul class="steps">
+        <li>9 张备份表已被改成 <code>deprecated_*</code>：按 D9 保留，还是一起删（N93）？</li>
+        <li>升级时各公司的定制权限重置成模板，是否接受（N99）？</li>
+        <li>新公司的新订单邮件只发 CEO、不再发门店邮箱，是否有意（N106）？</li>
+        <li>My Stores / My Restaurants、Notifications 设置页整块下线，是否有意？</li>
+        <li>成员能否把自己改成 CEO（F57）？停用母公司时分支是否一起停用（N69）？</li>
+        <li><code>8011513c0d5c</code> 把所有母公司软删，这是否就是「放弃旧母子层级」的决定（H5）？厂商目录、订阅这些挂在母公司上的数据要怎么处理（N129）？</li>
+      </ul>
+      <h2 style="margin-top:12px">已推送、未合入 sprint6</h2>
+      <ul class="steps">
+        <li><b>前端 <code>804e85da</code></b>（<code>feature/sprint6_company</code>）：只把公司类型改成翻译后的名称，不计入问题；与 sprint6 当前代码合并时有冲突。</li>
       </ul>
       <h2 style="margin-top:12px">流程</h2>
       <ul class="steps">
-        <li>迁移和它依赖的代码必须同批合入 sprint 分支。</li>
-        <li>不再改已推送迁移的内容或 down_revision（本轮又改了 18 个）。</li>
-        <li><code>env.py</code> 加 <code>include_object</code> 之前，不要用 autogenerate 生成迁移（N89）。</li>
-        <li>鉴权、权限和数据删除相关的改动必须带测试。</li>
+        <li>不再改已推送迁移，一律新增迁移（第 5 版改了 26 个，第 6 版没有再改）。</li>
+        <li>sprint 合进 test 之前，确认迁移在「已经执行过上一版」的库上也能跑通。</li>
+        <li>提交标题要如实：「test file」「fix bug」里有业务和权限改动。</li>
+        <li>删旧表时不要把测试掏空成 pass；鉴权和数据删除相关的改动必须带测试。</li>
       </ul>
     </div>
   </section>
 
   <footer>
-    <p>第 5 版：复核到后端 <code>8e156199</code>、前端 <code>0c27bcf6</code>（2026-11-18）。第 4 版：后端 <code>a4db1e5f</code>、前端 <code>6eb46852</code>。第 3 版：后端 <code>f6891d8d</code>、前端 <code>1aedac54</code>。第 2 版：后端 <code>2582af89</code>、前端 <code>7a2cccc2</code>。第 1 版：后端 <code>d49f0bd9</code>、前端 <code>ea616539</code>。</p>
-    <p>所有结论都来自代码阅读，没有连库或运行测试验证。页面中的固定密码已打码。删表相关结论以团队确认的前提为准：D7（company_back 与 deprecated_* 表将来删除）、D9（只删这些表，deprecated_* 列和 9 张备份/映射表保留）。</p>
+    <p>第 6 版：复核到后端 <code>9d19c8a2</code>、前端 <code>e4b966df</code>（2026-11-19）。第 5 版：后端 <code>4b1db16c</code>、前端 <code>bc820add</code>（2026-11-18）。第 4 版：后端 <code>a4db1e5f</code>、前端 <code>6eb46852</code>。第 3 版：后端 <code>f6891d8d</code>、前端 <code>1aedac54</code>。第 2 版：后端 <code>2582af89</code>、前端 <code>7a2cccc2</code>。第 1 版：后端 <code>d49f0bd9</code>、前端 <code>ea616539</code>。</p>
+    <p>结论来自代码阅读；第 5、6 版另在本地 test 数据副本上执行了 sprint6 迁移、在临时空库上试过 upgrade（用户要求，见沟通与决策记录 D12），经用户同意以只读会话查了 test 库（D15）；没有连接 uat/prod 的数据库，没有运行测试。页面中的固定密码已打码。删表相关结论以 D7、D9 为准。</p>
   </footer>
 </div>
 
@@ -445,11 +444,42 @@ const ST = { new: ['本版新增', 'new'], worse: ['更严重', 'worse'], still_
 const PREV = { new: '上一版新增', worse: '更严重', still_present: '仍存在', partially_fixed: '部分修复', fixed: '已修复', obsolete: '不再适用', accepted: '按设计接受', waived: '按前提不计入' };
 const f = { sev: 'all', st: 'all' };
 const CLOSED = ['fixed', 'obsolete', 'accepted', 'waived'];
+// 展开状态按编号记住，筛选、搜索重新渲染后保持
+const openNote = new Set();
+const openLoc = new Set();
+// 只因位置命中搜索词的行自动展开位置（看得出为什么命中）；只在搜索词变化时重算，手动收起后不会再被筛选重新打开
+let autoLoc = new Set();
+let allLocOn = false;
+const allLoc = document.getElementById('allLoc');
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+// 多处位置用「；」或「;」分隔，展开后一行一处
+function splitLoc(s) { return String(s || '').split(/\s*[；;]\s*/).map(x => x.trim()).filter(Boolean); }
+function locOpen(id) { return openLoc.has(id) || autoLoc.has(id); }
+function syncAllLoc() {
+  allLocOn = DATA.every(d => !splitLoc(d.file).length || locOpen(d.id));
+  allLoc.textContent = allLocOn ? '收起全部位置' : '展开全部位置';
+}
+function refreshAutoLoc() {
+  const term = q.value.trim().toLowerCase();
+  autoLoc = new Set(!term ? [] : DATA.filter(d => String(d.file || '').toLowerCase().includes(term) &&
+    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by].join(' ').toLowerCase().includes(term)).map(d => d.id));
+}
+function locCell(d) {
+  const locs = splitLoc(d.file);
+  if (!locs.length) return { btn: '', pane: '' };
+  const open = locOpen(d.id);
+  const id = esc(d.id);
+  return {
+    btn: `<button type="button" class="tog" data-t="loc" data-id="${id}" aria-expanded="${open}" aria-controls="loc-${id}">位置${locs.length > 1 ? ` <span class="k">${locs.length} 处</span>` : ''}</button>`,
+    pane: `<div class="pane loc" id="loc-${id}"${open ? '' : ' hidden'}><ul>${locs.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`,
+  };
+}
 function stMatch(d) {
   if (f.st === 'all') return true;
   if (f.st === 'closed') return CLOSED.includes(d.st);
   if (f.st === 'changed') return d.chg;
+  // 本版新发现：上一版没有这条（prev 为空），不论本版内是否已修
+  if (f.st === 'new') return !d.prev;
   return d.st === f.st;
 }
 function render() {
@@ -461,21 +491,48 @@ function render() {
     const closed = CLOSED.includes(d.st);
     const was = d.psev && d.psev !== d.sev && !closed && d.st !== 'new' ? `<span class="was">上一版 ${SEV[d.psev] || d.psev}</span>` : '';
     const prev = d.prev && d.prev !== d.st ? `<span class="was">上一版：${PREV[d.prev] || d.prev}</span>` : '';
-    const fix = d.fix ? `<span class="was">${esc(d.fix)}</span>` : '';
+    const fix = d.fix ? `<span class="was fx">${esc(d.fix)}</span>` : '';
     const by = d.by ? `<span class="was">${esc(d.by)}</span>` : '';
-    return `<tr><td class="n">${esc(d.id)}${d.lab ? `<span class="lab">${esc(d.lab)}</span>` : ''}</td>` +
+    const id = esc(d.id);
+    const noteOpen = openNote.has(d.id);
+    const loc = locCell(d);
+    return `<tr><td class="n">${id}${d.lab ? `<span class="lab">${esc(d.lab)}</span>` : ''}</td>` +
       `<td><span class="sev ${d.sev}">${SEV[d.sev] || d.sev}</span>${was}</td>` +
       `<td><span class="chip ${st[1]}">${st[0]}</span>${prev}${fix}</td>` +
-      `<td class="txt">${esc(d.text)}<details><summary>${d.st === 'new' ? '详情与证据' : '复核说明'}</summary><p>${esc(d.note)}</p></details></td>` +
-      `<td class="n">${esc(d.hash || '—')}${by}</td><td class="where">${esc(d.file || '—')}</td></tr>`;
+      `<td class="txt">${esc(d.text)}<div class="acts">` +
+      `<button type="button" class="tog" data-t="note" data-id="${id}" aria-expanded="${noteOpen}" aria-controls="note-${id}">${!d.prev ? '详情与证据' : '复核说明'}</button>` +
+      `${loc.btn}</div><div class="pane" id="note-${id}"${noteOpen ? '' : ' hidden'}>${esc(d.note)}</div>${loc.pane}</td>` +
+      `<td class="h">${esc(d.hash || '—')}${by}</td></tr>`;
   }).join('');
   shown.textContent = `显示 ${list.length} / ${DATA.length} 条`;
 }
-document.querySelectorAll('.controls button').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('.controls button[data-k]').forEach(b => b.addEventListener('click', () => {
   f[b.dataset.k] = b.dataset.v;
   document.querySelectorAll(`.controls button[data-k="${b.dataset.k}"]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   render();
 }));
-q.addEventListener('input', render);
+rows.addEventListener('click', e => {
+  const b = e.target.closest('button.tog');
+  if (!b) return;
+  const open = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(open));
+  document.getElementById(b.getAttribute('aria-controls')).hidden = !open;
+  const set = b.dataset.t === 'loc' ? openLoc : openNote;
+  if (open) set.add(b.dataset.id); else set.delete(b.dataset.id);
+  if (b.dataset.t === 'loc') {
+    if (!open) autoLoc.delete(b.dataset.id);
+    syncAllLoc();
+  }
+});
+allLoc.addEventListener('click', () => {
+  const expand = !allLocOn;
+  openLoc.clear();
+  autoLoc = new Set();
+  if (expand) DATA.forEach(d => { if (splitLoc(d.file).length) openLoc.add(d.id); });
+  syncAllLoc();
+  render();
+});
+q.addEventListener('input', () => { refreshAutoLoc(); syncAllLoc(); render(); });
+syncAllLoc();
 render();
 </script>

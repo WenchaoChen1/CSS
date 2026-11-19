@@ -1,10 +1,10 @@
 # 05-数据库运维 —— 建库 / 数据同步与恢复 / 脱敏 / 库账号与改密 / 对象 owner（原 05-数据同步）
 
-本目录共 **23 个脚本**（2026-08-22 实测 `ls *.sh | wc -l`），覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 备份 → 脱敏 → 删库重建 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
+本目录共 **25 个脚本**（2026-11-18 实测 `ls *.sh | wc -l`），覆盖 RDS 库的全生命周期运维：建库 → 灌数据（同步/恢复）→ 备份 → 脱敏 → 删库重建 → 建账号 → 改密 → 移交对象 owner。用法详见下面的脚本清单。
 
 通用注意：
 
-- ⚠️ 在**本机**执行（经 SSH/S3/SSM 落到 AWS 内机器）的是：`backup-env-db.sh`、`backup-db-in-rds.sh`、`restore-dump-via-gw.sh`、`restore-old-env-backup.sh`、`anonymize-db.sh`、`mask-residual-pii.sh`、`reown-via-gw.sh`、`drop-env-databases.sh`、`rename-db.sh`、`sync-rds-to-intranet.sh`、`sync-s3-env-bucket.sh`、`db-tunnel.sh`。其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
+- ⚠️ 在**本机**执行（经 SSH/S3/SSM 落到 AWS 内机器）的是：`backup-all-envs.sh`、`backup-env-db.sh`、`backup-db-in-rds.sh`、`restore-dump-via-gw.sh`、`restore-old-env-backup.sh`、`anonymize-db.sh`、`mask-residual-pii.sh`、`reown-via-gw.sh`、`drop-env-databases.sh`、`rename-db.sh`、`sync-rds-to-intranet.sh`、`sync-s3-env-bucket.sh`、`db-tunnel.sh`。其余脚本 **必须在 VPC 内机器上执行**（RDS 在私有子网，本机不可达）——上应用机或经网关机隧道，需 Docker；PG 客户端一律经 `docker run postgres:16` 提供，机器无需装 pg 工具。
 - master 密码从 Secrets Manager 取（`rds!` 前缀 secret），命令行传参即可，勿写进文件；各库账号密码见 `运维访问速查.local.md`。
 - 库名规范（2026-07-28 拍板）：`css-<env>-main` / `css-<env>-ocr`，含连字符——SQL 内脚本已用双引号处理，DSN 里可直接使用。
 - ⚠️ **PG 版本对应**：导数据前核对源/目标 **大版本**（新实例 PG16.14），pg_dump/pg_restore 客户端版本**不得低于服务端大版本**；跨大版本恢复前先在测试库演练。
@@ -75,6 +75,33 @@ ONLY=main ./backup-db-in-rds.sh uat 20260901
   （2026-08-22 实查：分配 20GB、剩余 ≈17.2GB、已开启自动扩容上限 100GB——扩容能救急但会持续计费，且**缩不回去**。）
 - ✅ 2026-08-13 首次执行：`backup_20260813_test_main`（150 表/43MB）+ `backup_20260813_test_ocr`（4 表/8MB），test 重建前留档。
 - ✅ 2026-11-06 support 三环境下线前留档（同链路、用户要求英文名）：`backup_20261106_support_{ref,demo,sync}_{main,ocr}_final` 六库（owner=postgres，css_dev 只读；ref 147 表/40MB、demo 155 表/72MB ⚠️未脱敏老 dev 数据、sync 147 表/40MB）。原 `css-support-*` 六库与 `css_app_support_*` 三角色已 DROP，本机另有 `备份/数据库/css-support-*_final_2026-11-06.dump`。
+
+### `backup-all-envs.sh` — 一次备份多个环境：本地文件 + 库内副本（本机不需要 aws CLI，也不需要数据库密码）
+
+```bash
+./backup-all-envs.sh [--local|--rds] [test|uat|prod ...]   # 不给环境 = 三个都做；不给 --local/--rds = 两种产物都做
+./backup-all-envs.sh                       # test uat prod：本地文件 + 库内副本
+./backup-all-envs.sh --local test uat      # 只落本地文件
+ONLY=main ./backup-all-envs.sh --rds prod  # 只在 css-prod 内复制 main 库
+```
+
+- 产物与上面两个脚本相同：本地文件 = `备份/数据库/<env>/<env>_<main|ocr>_<时间戳>.dump`（同 `backup-env-db.sh`）；库内副本 = `backup_<日期>_<env>_<main|ocr>`（同 `backup-db-in-rds.sh`，test/uat 在 css-non-prod，prod 在 css-prod）。
+- **和那两个脚本的区别**：它们要在本机用 aws CLI 取密码（或手填 css_ops 密码），本脚本不用。本机只查 RDS 地址和 master secret 的 ARN（先试 aws CLI，没有或失败就用 python boto3），secret 的值在堡垒机上用实例角色现取，密码不出 AWS。堡垒机角色没有 `rds:DescribeDBInstances`，所以 ARN 必须本机查。
+- **防半成品**：本地文件先写 `.part`，pg_dump 成功且文件头是 PGDMP 才改成正式名，Ctrl-C 中断会删掉 `.part`；库内副本先恢复到 `<副本名>_inprogress`，校验通过才改成正式名，失败就删掉这个临时库。
+- **库内副本的校验**：pg_dump / pg_restore 任一端非 0 即失败；源/副本的表数或 alembic 版本不同即失败；只有「表名=行数」清单不同时算「需人工确认」（多半是复制期间源库有写入，副本本身是一致快照），会列出逐表差异。只比 public schema 的表数与行数，不校验数据内容。
+- **退出码**：0=全部成功，1=有失败项，2=没有失败但有副本需人工确认。
+- 副本已存在、或有上次中断留下的 `_inprogress` 时跳过并记失败（绝不覆盖）；css_dev 只读自动授予；含 prod 时要交互输入 `prod` 确认（`ASSUME_YES=1` 旁路）；pg_dump 带 `--lock-wait-timeout=60s`，尽量避开 test/uat 推送部署的时段。可选变量：`ONLY`、`DATE_TAG`、`OUT_ROOT`、`AWS_PROFILE`，见脚本头注释。
+- 2026-11-18 入库前实测（css-non-prod，自测库已删、无残留）：复制成功路径（建 `_inprogress` → 校验 → 授 css_dev → 改名）、源库不存在时判失败并自动删半成品、行数不同时返回「需人工确认」、副本已存在时跳过，以及经 boto3 回退的本地落盘，都按预期工作。
+- 🚨 副本用完要 DROP，规则同 `backup-db-in-rds.sh` 段。
+- ✅ 2026-11-17 首次执行（当时还是临时脚本，次日固化入库时补了上面的防半成品和严格判定），三个环境、两种产物全部成功：
+
+  | 环境 | 本地文件（`备份/数据库/<env>/`） | 库内副本 | 表 / 行数（源与副本行数清单一致） | alembic |
+  |---|---|---|---|---|
+  | test | `test_{main,ocr}_20261117_135756.dump`（11M / 12K） | css-non-prod `backup_20261117_test_{main,ocr}`（93MB / 8MB） | 167 表 / 326,941 行；4 表 / 2 行 | `731ddff784cc` |
+  | uat | `uat_{main,ocr}_20261117_135756.dump`（6.0M / 12K） | css-non-prod `backup_20261117_uat_{main,ocr}`（56MB / 8MB） | 167 表 / 134,084 行；4 表 / 1 行 | `731ddff784cc` |
+  | prod | `prod_{main,ocr}_20261117_135919.dump`（5.5M / 12K） | css-prod `backup_20261117_prod_{main,ocr}`（53MB / 8MB） | 166 表 / 120,655 行；4 表 / 1 行 | `731ddff784cc` |
+
+- ✅ 2026-11-18 再次备份 test（入库后的正式脚本首次实跑，`./backup-all-envs.sh test`，退出码 0）：本地 `test_{main,ocr}_20261118_141404.dump`（11M / 12K）；css-non-prod 新建 `backup_20261118_test_{main,ocr}`（94MB / 8MB，css_dev 只读已授）；main 167 表 / 327,084 行、alembic `731ddff784cc`，ocr 4 表 / 2 行、alembic `2026_03_25_0002`，源与副本表数、行数清单 md5、alembic 全部一致。
 
 ### `restore-dump-via-gw.sh` — 在本机把本地 pg_dump 备份经 S3+SSM 由网关机恢复进私网 RDS（无需上机）
 

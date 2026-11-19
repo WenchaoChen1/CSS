@@ -42,7 +42,7 @@ import sys
 from pathlib import Path
 
 CLOSED = ('fixed', 'obsolete', 'accepted', 'waived')
-KEEP = ('accepted', 'waived')  # 按用户决定关闭的状态：复核结果不改它，除非 decisions.overrides 显式给 st
+KEEP = ('accepted', 'waived')  # 用户已确认的处理，复核结果不覆盖，只有 overrides 里写了 st 才改
 
 
 def load_secret(backend: Path) -> str | None:
@@ -50,7 +50,7 @@ def load_secret(backend: Path) -> str | None:
     hits = list(backend.glob('core_app/src/app/migrations/versions/*4b52dd3297e5*.py'))
     if not hits:
         return None
-    m = re.search(r"^PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", hits[0].read_text(), re.M)
+    m = re.search(r"^PASSWORD\s*=\s*['\"]([^'\"]+)['\"]", hits[0].read_text(encoding='utf-8'), re.M)
     return m.group(1) if m else None
 
 
@@ -72,9 +72,9 @@ def main() -> None:
             s = s.replace(x, '<固定密码>')
         return s
 
-    rows = json.loads(Path(a.findings).read_text())
-    res = json.loads(Path(a.result).read_text())
-    dec = json.loads(Path(a.decisions).read_text())
+    rows = json.loads(Path(a.findings).read_text(encoding='utf-8'))
+    res = json.loads(Path(a.result).read_text(encoding='utf-8'))
+    dec = json.loads(Path(a.decisions).read_text(encoding='utf-8'))
     rc = {x['id']: x for x in res['recheck']}
     ver = res['review']['verified']
     ov = dec.get('overrides', {})
@@ -153,7 +153,7 @@ def main() -> None:
     text = json.dumps(out, ensure_ascii=False, indent=1)
     for s in secrets:
         assert s not in text, '输出里仍有固定密码原文'
-    Path(a.out).write_text(text)
+    Path(a.out).write_text(text, encoding='utf-8')
 
     op = [r for r in out if r['st'] not in CLOSED]
     print('总数', len(out), '未关闭', len(op), dict(collections.Counter(r['sev'] for r in op)))
