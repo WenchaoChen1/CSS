@@ -149,11 +149,29 @@ button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visibl
 .sev.medium { background: var(--med-bg); color: var(--med); }
 .sev.low { background: var(--low-bg); color: var(--low); }
 .was { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; }
-.all td.where { font-family: var(--font-mono); font-size: 12px; color: var(--muted); min-width: 160px; max-width: 260px; overflow-wrap: anywhere; }
 .all td.txt { min-width: 320px; }
-.all td.txt details { margin-top: 4px; }
-.all td.txt summary { font-size: 12px; color: var(--accent); cursor: pointer; width: fit-content; }
-.all td.txt details p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* 提交列和修复哈希允许换行，否则一条长说明会把整张表撑到几千像素宽 */
+.all td.h { font-family: var(--font-mono); color: var(--muted); font-size: 12px; width: 180px; min-width: 150px; max-width: 200px; overflow-wrap: anywhere; }
+.all td.h .was, .all .was.fx { white-space: normal; overflow-wrap: anywhere; max-width: 200px; }
+/* 每行的「复核说明」「位置」两个展开按钮，原来单独的位置列并进问题格 */
+.all .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.all .tog {
+  font: inherit; font-size: 12px; line-height: 1.5; padding: 1px 10px 1px 8px; border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--accent);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.all .tog::before { content: "▸"; font-size: 10px; transition: transform 120ms ease; }
+.all .tog[aria-expanded="true"] { background: var(--code-bg); border-color: var(--accent); }
+.all .tog[aria-expanded="true"]::before { transform: rotate(90deg); }
+.all .tog:hover { border-color: var(--accent); }
+.all .tog .k { font-family: var(--font-mono); color: var(--muted); }
+.all .pane { font-size: 13px; color: var(--muted); margin-top: 6px; white-space: pre-line; overflow-wrap: anywhere; }
+.all .pane[hidden] { display: none; }
+.all .pane.loc { white-space: normal; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.all .pane.loc ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
+.all .pane.loc li { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .all .tog, .all .tog::before { transition: none; } }
 .lab { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; white-space: nowrap; font-family: var(--font-mono); }
 
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
@@ -163,7 +181,6 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <style>
 .issue.lo { border-left-color: var(--low); }
-.all td.txt details p { white-space: pre-line; }
 .cat ul b { font-family: var(--font-mono); font-weight: 500; color: var(--fg); }
 </style>
 
@@ -352,11 +369,12 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     </div>
     <div class="controls">
       <input id="q" type="search" placeholder="搜索编号、提交哈希、作者、文件或关键词" aria-label="搜索">
+      <button type="button" id="allLoc">展开全部位置</button>
       <span class="count" id="shown"></span>
     </div>
     <div class="tbl">
       <table class="all">
-        <thead><tr><th>编号</th><th>级别</th><th>状态</th><th>问题</th><th>提交</th><th>位置</th></tr></thead>
+        <thead><tr><th>编号</th><th>级别</th><th>状态</th><th>问题</th><th>提交</th></tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -426,7 +444,36 @@ const ST = { new: ['本版新增', 'new'], worse: ['更严重', 'worse'], still_
 const PREV = { new: '上一版新增', worse: '更严重', still_present: '仍存在', partially_fixed: '部分修复', fixed: '已修复', obsolete: '不再适用', accepted: '按设计接受', waived: '按前提不计入' };
 const f = { sev: 'all', st: 'all' };
 const CLOSED = ['fixed', 'obsolete', 'accepted', 'waived'];
+// 展开状态按编号记住，筛选、搜索重新渲染后保持
+const openNote = new Set();
+const openLoc = new Set();
+// 只因位置命中搜索词的行自动展开位置（看得出为什么命中）；只在搜索词变化时重算，手动收起后不会再被筛选重新打开
+let autoLoc = new Set();
+let allLocOn = false;
+const allLoc = document.getElementById('allLoc');
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+// 多处位置用「；」或「;」分隔，展开后一行一处
+function splitLoc(s) { return String(s || '').split(/\s*[；;]\s*/).map(x => x.trim()).filter(Boolean); }
+function locOpen(id) { return openLoc.has(id) || autoLoc.has(id); }
+function syncAllLoc() {
+  allLocOn = DATA.every(d => !splitLoc(d.file).length || locOpen(d.id));
+  allLoc.textContent = allLocOn ? '收起全部位置' : '展开全部位置';
+}
+function refreshAutoLoc() {
+  const term = q.value.trim().toLowerCase();
+  autoLoc = new Set(!term ? [] : DATA.filter(d => String(d.file || '').toLowerCase().includes(term) &&
+    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by].join(' ').toLowerCase().includes(term)).map(d => d.id));
+}
+function locCell(d) {
+  const locs = splitLoc(d.file);
+  if (!locs.length) return { btn: '', pane: '' };
+  const open = locOpen(d.id);
+  const id = esc(d.id);
+  return {
+    btn: `<button type="button" class="tog" data-t="loc" data-id="${id}" aria-expanded="${open}" aria-controls="loc-${id}">位置${locs.length > 1 ? ` <span class="k">${locs.length} 处</span>` : ''}</button>`,
+    pane: `<div class="pane loc" id="loc-${id}"${open ? '' : ' hidden'}><ul>${locs.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>`,
+  };
+}
 function stMatch(d) {
   if (f.st === 'all') return true;
   if (f.st === 'closed') return CLOSED.includes(d.st);
@@ -444,21 +491,48 @@ function render() {
     const closed = CLOSED.includes(d.st);
     const was = d.psev && d.psev !== d.sev && !closed && d.st !== 'new' ? `<span class="was">上一版 ${SEV[d.psev] || d.psev}</span>` : '';
     const prev = d.prev && d.prev !== d.st ? `<span class="was">上一版：${PREV[d.prev] || d.prev}</span>` : '';
-    const fix = d.fix ? `<span class="was">${esc(d.fix)}</span>` : '';
+    const fix = d.fix ? `<span class="was fx">${esc(d.fix)}</span>` : '';
     const by = d.by ? `<span class="was">${esc(d.by)}</span>` : '';
-    return `<tr><td class="n">${esc(d.id)}${d.lab ? `<span class="lab">${esc(d.lab)}</span>` : ''}</td>` +
+    const id = esc(d.id);
+    const noteOpen = openNote.has(d.id);
+    const loc = locCell(d);
+    return `<tr><td class="n">${id}${d.lab ? `<span class="lab">${esc(d.lab)}</span>` : ''}</td>` +
       `<td><span class="sev ${d.sev}">${SEV[d.sev] || d.sev}</span>${was}</td>` +
       `<td><span class="chip ${st[1]}">${st[0]}</span>${prev}${fix}</td>` +
-      `<td class="txt">${esc(d.text)}<details><summary>${!d.prev ? '详情与证据' : '复核说明'}</summary><p>${esc(d.note)}</p></details></td>` +
-      `<td class="n">${esc(d.hash || '—')}${by}</td><td class="where">${esc(d.file || '—')}</td></tr>`;
+      `<td class="txt">${esc(d.text)}<div class="acts">` +
+      `<button type="button" class="tog" data-t="note" data-id="${id}" aria-expanded="${noteOpen}" aria-controls="note-${id}">${!d.prev ? '详情与证据' : '复核说明'}</button>` +
+      `${loc.btn}</div><div class="pane" id="note-${id}"${noteOpen ? '' : ' hidden'}>${esc(d.note)}</div>${loc.pane}</td>` +
+      `<td class="h">${esc(d.hash || '—')}${by}</td></tr>`;
   }).join('');
   shown.textContent = `显示 ${list.length} / ${DATA.length} 条`;
 }
-document.querySelectorAll('.controls button').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('.controls button[data-k]').forEach(b => b.addEventListener('click', () => {
   f[b.dataset.k] = b.dataset.v;
   document.querySelectorAll(`.controls button[data-k="${b.dataset.k}"]`).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   render();
 }));
-q.addEventListener('input', render);
+rows.addEventListener('click', e => {
+  const b = e.target.closest('button.tog');
+  if (!b) return;
+  const open = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(open));
+  document.getElementById(b.getAttribute('aria-controls')).hidden = !open;
+  const set = b.dataset.t === 'loc' ? openLoc : openNote;
+  if (open) set.add(b.dataset.id); else set.delete(b.dataset.id);
+  if (b.dataset.t === 'loc') {
+    if (!open) autoLoc.delete(b.dataset.id);
+    syncAllLoc();
+  }
+});
+allLoc.addEventListener('click', () => {
+  const expand = !allLocOn;
+  openLoc.clear();
+  autoLoc = new Set();
+  if (expand) DATA.forEach(d => { if (splitLoc(d.file).length) openLoc.add(d.id); });
+  syncAllLoc();
+  render();
+});
+q.addEventListener('input', () => { refreshAutoLoc(); syncAllLoc(); render(); });
+syncAllLoc();
 render();
 </script>
