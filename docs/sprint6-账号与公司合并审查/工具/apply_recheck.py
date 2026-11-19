@@ -107,6 +107,8 @@ def main() -> None:
             chg=bool(x.get('changed_since_prev')) or f['id'] in ov or st != f['st'],
             # 团队答复（原话、批次、一句话核实结论）原样保留到下一版
             **{k: f[k] for k in ('reply', 'replyb', 'replyv') if k in f},
+            # 部分修复的「已修好 / 还剩」只在状态没变时带过去；每版复核后应按新代码重写
+            **({k: f[k] for k in ('done', 'remain') if k in f} if st == f['st'] == 'partially_fixed' else {}),
         ))
     if missing:
         sys.exit(f'recheck 结果里缺少这些 id：{missing}')

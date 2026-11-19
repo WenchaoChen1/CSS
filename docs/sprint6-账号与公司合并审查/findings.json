@@ -70,7 +70,9 @@
   "chg": true,
   "reply": "不需要过滤，不存在伪公司的说法，现在全部都是公司",
   "replyb": 1,
-  "replyv": "对门店和餐厅成立；但 5b319dae 的 36cd67a87d67 恢复了厂商母公司，每家厂商又多出一条名为 Default 的子部门，重开为部分修复（中危）。"
+  "replyv": "对门店和餐厅成立；但 5b319dae 的 36cd67a87d67 恢复了厂商母公司，每家厂商又多出一条名为 Default 的子部门，重开为部分修复（中危）。",
+  "done": "门店和餐厅这一半：9d19c8a2 的迁移 8011513c0d5c 软删了带子行的母公司，列表里不再有「母公司+副本」重复；b8e906f7 也去掉了新建门店入口。",
+  "remain": "5b319dae 的迁移 36cd67a87d67 恢复了厂商母公司，又和名为 Default 的子部门行并存；供应商的厂商列表、Master Database、Add User 里每家厂商都多出一条 Default（manufacturer_relationships/repositories.py:197-200）。"
  },
  {
   "id": "F5",
@@ -387,7 +389,9 @@
   "chg": true,
   "reply": "已修复",
   "replyb": 1,
-  "replyv": "部分成立：6 张表的约束和索引已改名；另外 9 张仍是旧名，5b319dae 又删了 11 个测试文件。状态不变。"
+  "replyv": "部分成立：6 张表的约束和索引已改名；另外 9 张仍是旧名，5b319dae 又删了 11 个测试文件。状态不变。",
+  "done": "9d19c8a2 的迁移 049461d68471 把 da8ba148ea59 改名的 6 张在用表（system_account、system_user 等）的约束和索引改成新表名，ORM 同步了。",
+  "remain": "31731a571e02、6a31a24024e6 改名的另外 9 张表（权限表、log_audit_*、system_confirmation_*）约束和索引仍是旧名，生成迁移时会有噪音；5b319dae 又删了 11 个测试文件（GET /companies/roles 等被测功能仍在），新迁移也都没有测试。"
  },
  {
   "id": "F25",
@@ -536,7 +540,9 @@
   "chg": true,
   "reply": "现在都已经过滤软删标记了",
   "replyb": 1,
-  "replyv": "鉴权链路成立；但 find_accounts 和两处查 owner 账号仍不过滤已删除账号。状态不变。"
+  "replyv": "鉴权链路成立；但 find_accounts 和两处查 owner 账号仍不过滤已删除账号。状态不变。",
+  "done": "鉴权链路：ab13017b 的 find_account_id 和 _build_account 要求账号和公司都未删除，被删账号不能再进入公司。",
+  "remain": "find_accounts 默认仍返回已删账号（accounts/repositories.py:101-109）；完成 onboarding（onboardings/services.py:416）和邀请码注册建 owner 账号时也不排除已删行，owner 在该公司只剩已删账号时不会补建，进不了自己的公司（拒绝访问，非越权）。"
  },
  {
   "id": "F50",
@@ -593,7 +599,9 @@
   "chg": true,
   "reply": "问题已不存在",
   "replyb": 2,
-  "replyv": "主问题已修（13e16617 改成只约束未删除行）；dev admin 分配账号时可能恢复已删除的那行、撞唯一索引返回 500，维持部分修复。"
+  "replyv": "主问题已修（13e16617 改成只约束未删除行）；dev admin 分配账号时可能恢复已删除的那行、撞唯一索引返回 500，维持部分修复。",
+  "done": "主问题：13e16617 把唯一约束改成只约束未删除的账号，被移出团队的成员可以重新加入，不再永久 409。",
+  "remain": "dev admin 给用户分配公司时，取已有账号不过滤已删除行、也不排序（dev_admin_accounts/repositories.py:240-273）；成员被移出又加回后，可能恢复已删除那行、撞唯一索引，dev admin 看到 500。"
  },
  {
   "id": "F54",
@@ -628,7 +636,9 @@
   "chg": true,
   "reply": "只给devadmin使用，所以是正常的",
   "replyb": 2,
-  "replyv": "不成立：/account/* 没挂 check_dev_admin，平台管理员和在该公司有 team:* 权限的成员都能调；前端确实没有页面在用。状态不变，回问是否收窄到 dev admin 或下线。"
+  "replyv": "不成立：/account/* 没挂 check_dev_admin，平台管理员和在该公司有 team:* 权限的成员都能调；前端确实没有页面在用。状态不变，回问是否收窄到 dev admin 或下线。",
+  "done": "3e0391c7 给 /account/* 加了权限判断，普通成员需在该公司有 team:* 权限或只能操作自己的账号；9d19c8a2 补外键后不能往不存在的公司建账号。",
+  "remain": "接口没挂 check_dev_admin，平台管理员仍能经 /account/create 在 ADMIN 公司给任何人开账号，使其成为平台管理员；也能往已停用或已软删的公司建账号（main_app/accounts/transport/handlers.py:55-58、:194）。"
  },
  {
   "id": "F44",
@@ -853,7 +863,9 @@
   "chg": true,
   "reply": "问题现在已经不存在了",
   "replyb": 2,
-  "replyv": "就原文属实，但做法是把测试改成 pass 或删掉；onboarding/tests/tools.py:22 的随机 company_id 仍违反新外键，判部分修复。"
+  "replyv": "就原文属实，但做法是把测试改成 pass 或删掉；onboarding/tests/tools.py:22 的随机 company_id 仍违反新外键，判部分修复。",
+  "done": "测试里已不再按 BusinessType 过滤 Role.type：d40b2d59 把相关测试和 fixture 改成 pass，5b319dae 删掉了 get_company_roles 等测试。",
+  "remain": "onboarding/tests/tools.py:22 的 complete_onboarding 仍用随机 company_id 建账号，违反 9d19c8a2 新加的外键，4 处调用它的测试会在准备数据时失败（按代码推断，未运行）；角色种子和非 owner 权限路径也没有测试了。"
  },
  {
   "id": "F66",
@@ -929,7 +941,9 @@
   "chg": true,
   "reply": "此接口已不再使用",
   "replyb": 2,
-  "replyv": "部分成立：/me/accounts 的 5 分钟缓存已删；但批量改子公司类型时不清访问缓存，权限最多滞后 180 秒。状态不变。"
+  "replyv": "部分成立：/me/accounts 的 5 分钟缓存已删；但批量改子公司类型时不清访问缓存，权限最多滞后 180 秒。状态不变。",
+  "done": "ab13017b 删掉了 /me/accounts 的 5 分钟列表缓存，现在每次直接查库，角色变动、删除成员后账号列表不再滞后。",
+  "remain": "Master Database 批量改子公司类型时不清访问缓存（master_database/repositories.py:406-432），缓存里仍是旧的公司类型，这些子公司成员的权限和页面最多滞后 180 秒。"
  },
  {
   "id": "F70",
@@ -986,7 +1000,9 @@
   "chg": true,
   "reply": "母公司已完全删除，不是问题",
   "replyb": 2,
-  "replyv": "部分成立：餐厅和供应商母公司确实删了；但 36cd67a87d67 恢复了厂商母公司，厂商成员在子部门没有账号会 403。状态不变。"
+  "replyv": "部分成立：餐厅和供应商母公司确实删了；但 36cd67a87d67 恢复了厂商母公司，厂商成员在子部门没有账号会 403。状态不变。",
+  "done": "315ec3c4 的迁移 9d18fcda7ab1 把母公司成员账号复制到各门店、餐厅和子部门；9d19c8a2 软删母公司后，餐厅和供应商已没有母公司，不再需要父公司兜底。",
+  "remain": "5b319dae 恢复了厂商母公司，只在母公司有账号的成员访问子部门仍会 403（middlewares.py:130-135）；餐厅/供应商成员若被 9d18fcda7ab1 漏复制，母公司已删、分支又没账号，整个业务都进不去，只能靠 Admin Join Company 手工补。"
  },
  {
   "id": "F30",
@@ -1149,7 +1165,9 @@
   "note": "本轮有改善：8011513c0d5c 没有改视图过滤，而是直接软删所有旧母公司，迁移后它们在门店/餐厅/子部门的主要列表和发票匹配里不再出现。剩下的是发票匹配 limit 1 不排序、不排除停用公司，以及 Master Database 新设的父子关系（按「每行公司独立」的新模型，这属于预期行为），所以降为 low。注意两点：uat/prod 还没有执行 8011513c0d5c；如果 8011513c0d5c 收窄范围、保留厂商、Liquor 总部或付费订阅方的母公司，保留下来的行会重新被当成门店或子部门，本条要回到 medium。\n证据：视图过滤代码没变：core/stores/models.py:150-155 _only_stores，:154 `cls.company_type.in_(STORE_TYPE_CODES)`；core/restaurants/models.py:107-113 _only_restaurants（:112 RESTAURANT_TYPE_CODES）；core/manufacturer_subdivisions/models.py:48-57（:54 `cls.type == CompanyTypeEnum.MANUFACTURER`）；core/accounts/models.py:20-22 business_type_case 仍然是 CLIENT→RESTAURANT、VENDOR→STORE。数据侧的变化：8011513c0d5c:31-34 把「自身没有 parent、且至少有一行子公司」的公司全部标为 deleted_at=now()，迁移后旧母公司行不会再出现在过滤了 deleted_at 的列表里，例如供应商目录 core/stores/repositories.py:176 `listed = (store.deleted_at.is_(None), ...)`、发票匹配 core/companies/repositories.py:489 `company.deleted_at.is_(None)`。:174 的注释 `(old parent companies included)` 因此已经过时。仍然存在的部分：core/companies/repositories.py:480-500 find_restaurant_by_name_or_email，:497 `base.where(condition).limit(1)` 没有 ORDER BY，也不排除 DISABLED；core/invoices/services.py:1181-1186 _resolve_restaurant、:1267 `restaurant_id = restaurant.id`，而候选列表 :1206/:1221 已排除 DISABLED。core/master_database/services.py:928-956 仍可设置 parent_company_id。不过滤 deleted_at 的读路径（如 core/chats/repositories.py:362）仍会把已删除的母公司当成门店或餐厅候选（记在 F130）。onboarding 的修复仍在：core/onboardings/services.py:484-498，:494 `restaurant_ids.insert(0, company.id)`。",
   "fix": "48b4a289 c8913856 3e5063c2 9d19c8a2",
   "by": "",
-  "chg": true
+  "chg": true,
+  "done": "9d19c8a2 的迁移 8011513c0d5c 软删了旧母公司，它们不再被当成门店或餐厅出现在供应商目录和发票匹配里。",
+  "remain": "发票识别后按客户名或邮箱找餐厅时只取任意一条（companies/repositories.py:497 limit 1、不排序），也不排除已停用餐厅；有同名或已停用的餐厅时，供应商保存发票后生成的订单可能挂到错的餐厅上。"
  },
  {
   "id": "F73",
@@ -1261,7 +1279,9 @@
   "note": "本轮未改动：4 个新提交都没碰 Team 前后端，行号与第 5 版一致，只有路由装饰器的准确行号是 handlers.py:105-119。CEO 在中间件里已经没有豁免，有 team:edit 的人仍可在界面上把自己改成 CEO。8011513c0d5c 软删的母公司里，find_account_id 过滤了已删除公司，那里的账号都会 403，所以对本条没有影响。\n证据：core/team/services.py:251-286 update_member_role，docstring :259-261 `any role of the business's own type, CEO included`，只在 :274 拦“最后一个 CEO 被降级”，没有本人操作限制（对照 :304 `if not is_active and member.user_id == user_id`、:909）；:307-325 停用唯一 CEO 时 new_ceo_member_id 可以填操作者本人；路由 main_app/team/transport/handlers.py:105-119 PATCH /members/{member_id}/role 只要求 `team:edit`（:118）；旧 POST :417 `role.name == COMPANY_OWNER and role.belongs_to_company` 永远不成立（permission_company/models.py:33-35 恒返回 None），:429 仍是 todo；middlewares.py:93-98 `The CEO is no exception`，:109-116 dev admin 兜底放行；前端 TeamMemberInfo/ui/Information/Information.tsx:62-81 只看 canEdit，保存走 useTeamMemberInfo.tsx:119 patchTeamMemberRole。",
   "fix": "5ab121cc b8e906f7 ded52c12",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "5ab121cc、b8e906f7 去掉了中间件对 CEO 的直接放行（_is_active_company_owner 已删），CEO 只拿自己角色里的权限码。",
+  "remain": "有 team:edit 的成员仍能用改角色接口把自己改成 CEO（team/services.py:251-286 不拦本人，前端也给本人显示角色下拉）；旧 POST /members 的 CEO 拦截恒不生效（services.py:417），属公司内越权。"
  },
  {
   "id": "F58",
@@ -1373,7 +1393,9 @@
   "note": "第 5 版之后未改动：折叠逻辑和 description 没修，制造商和平台 admin 调公司级接口仍会 403。8011513c0d5c 之后，传已删除母公司 id 时 find_account_id 找不到账号，也是 403（dev admin 除外，属 N2）；“父公司 id 语义”实际上已经用不了。另外，主会话统计到有 72 行 price_tier 直接挂在母公司上，对这些母公司来说第 5 版“返回空”的说法不准确。门店级路由 :722-725 不过滤已删除公司，这些层级按 id 仍读得到（F77 同源）。维持 low。\n证据：后端未改：core/price_tiers/repositories.py:13-27 list_for_company 仍只有 `PriceTier.company_id == company_id, PriceTier.deleted_at.is_(None)`(:21-22)，没有按门店折叠。main_app/companies/transport/handlers.py:140-156：:141 path、:143 description 'One entry per tier position across the stores this company owns.'、:149 `check_permissions(required_permissions=['my_catalog:view'])`、:155 list_for_company。e7c3a91f5b28:65 `'my_catalog:view': _V`，:31 _V 只含四类 vendor。vendor/transport/handlers.py:707-725：:715 只有 check_access_token，:722 get_company（不过滤 deleted_at），:723 只拦 DISABLED，:725 list_for_company。前端 bc820add..HEAD 没碰：src/hooks/usePriceTiers.ts:41-49（:44 `activeAccount.isCompany ? getCompanyPriceTiers…`，:47 `enabled: isModuleEnabled`）；src/stores/userStore.ts:98-99 isCompanyAccount。8011513c0d5c 软删了母公司；check_permissions 经 account_access.py:49-62 find_account_id(:59 `Company.deleted_at.is_(None)`) 取账号。",
   "fix": "3e0391c7",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "3e0391c7 的迁移 e7b3d9a1c5f2 给开了价格层级模块（目前只有 Liquor_Vendor）但还没有层级的公司补种了默认 TierA–D，含旧母公司。",
+  "remain": "公司级接口仍只返回该公司自己名下的层级，不汇总旗下门店的，与接口说明不符；母公司已软删，按母公司 id 调用会 403（dev admin 除外），厂商和平台管理员没有 my_catalog:view 也是 403（companies/transport/handlers.py:142-156）。"
  },
  {
   "id": "F118",
@@ -1405,7 +1427,9 @@
   "note": "写 deprecated 表、外键错位这部分修复没有回退，带公司角色的 Account fixture 仍然没有。本轮变化：Felix 9d19c8a2 给 system_account.company_id 加了外键，测试里唯一的 Account fixture 用随机 company_id，提交时会违反外键。由此导致的 5 个用例失败记在 N30，这里不重复计数。维持 low。\n证据：已修的部分没有回退：tests 下仍没有往 deprecated 会员表写数据、也没有 `account_id=<member>.id` 的写法。替代 fixture 仍然没有：main_app/team/tests/conftest.py:21-27 `_create_company_member` 和 :30-35 seeded_company_permissions 都是 `pass`；settings/tests/companies/tools.py:20-23 add_user_to_company_members 是 `pass`；team/tests/update_team_member/test_update_team_member__success.py:22、:34 只剩 `pass`，:41-60 不发请求就 `assert token.revoked`。tests 里唯一建 Account 的地方 main_app/onboarding/tests/tools.py:22 `blend(model=Account, user_id=user_id, company_id=uuid4())`，而 9d19c8a2 把 core/accounts/models.py:57 改成 `company_id ... sa.ForeignKey('company.id', ondelete='CASCADE')`，049461d68471:103-105 在库里建了 system_account_company_id_fkey；pkg/for_tests/factory/__init__.py:180-184 blend 会直接 commit。",
   "fix": "3c80afdd b8e906f7",
   "by": "",
-  "chg": true
+  "chg": true,
+  "done": "3c80afdd、b8e906f7 改了测试：不再往 deprecated 会员表写数据，也不再把会员 id 当 account_id 写进有外键的表。",
+  "remain": "测试里仍没有带公司角色的 Account 造数工具，Team 的造成员函数只是 pass，相关用例造不出成员；唯一建 Account 的 onboarding/tests/tools.py:22 用随机 company_id，9d19c8a2 加外键后有 5 个用例会报错（记在 N30），影响开发和 CI。"
  },
  {
   "id": "F98",
@@ -1437,7 +1461,9 @@
   "note": "Felix 的 9d19c8a2（迁移 8011513c0d5c）把现有母公司行全部软删除，执行过的环境里母公司账号已不再出现在切换器和权限中间件中，「总公司账号登录后菜单为空」的症状随之消失。根因代码没改：已删除的母公司对 get_company/has_account 路径仍是一家门店；管理端批量编辑还能产生新的未删除母公司；餐厅的商品分类仍挂在已删除母公司名下，说明迁移所说的「母公司已不再使用」并不成立。严重度降为 low；这次迁移本身的数据影响（不可回滚、备份表将来要删）建议单独跟踪。\n证据：已缓解（用数据迁移规避，没改代码）：迁移 8011513c0d5c:225-231 把没有上级、且至少有一个子行的公司标记为 deleted_at=now()。之后 core/accounts/repositories.py:128 find_live_accounts（/me/accounts 切换器）和 permission_company/services/account_access.py:49-62 find_account_id（权限中间件）都会排除这些公司，stores/repositories.py:176 `listed = (store.deleted_at.is_(None), ...)` 也把它们从供应商目录里排除。根因仍在：core/accounts/models.py:16-24 business_type_case 仍是 `(Company.type == CompanyTypeEnum.VENDOR, BusinessEntityType.STORE.value)`，注释 `whether or not it has a parent company`；quotation/services.py:183-190 _get_vendor_store、stores/services.py:466-475 _get_store_company 用不过滤 deleted_at 的 get_company，配合 companies/repositories.py:378-404 的 get_account/has_account（stores/services.py:507、stores/orders/services.py:166 等），已删除的母公司对它的在用账号来说仍是一家能下单、写数据的门店（只能直接调接口）。master_database/services.py:928-956 批量编辑仍可把任何在用公司设为父公司，产生新的未删除母公司，迁移只执行一次。stores/repositories.py:174 注释 `(old parent companies included)` 已过时。前端 src/hooks/useVendorStoreId.ts:10 未改。迁移说母公司 `are no longer used`，但 core/products/repositories.py:318-333 resolve_owning_company 仍把餐厅映射到 parent_company_id（只检查餐厅行本身是否删除），由 products/services.py:368/432 调用，餐厅的商品分类仍在已删除的 CLIENT 母公司名下读写。8011513c0d5c 的 downgrade 为 pass，唯一备份是按 D7 将来要删的 deprecated_company_back。uat/prod 尚未执行。",
   "fix": "9d19c8a2",
   "by": "",
-  "chg": true
+  "chg": true,
+  "done": "9d19c8a2 的迁移 8011513c0d5c 软删了母公司，跑过迁移的环境里母公司账号不再进切换器和权限校验，「总公司登录后菜单为空」不再出现。",
+  "remain": "代码仍把供应商/餐厅母公司当门店/餐厅，已删母公司的在用账号直接调接口仍能下单、写数据；Master Database 批量编辑还能把在用公司设成新母公司，迁移管不到（master_database/services.py:929-957）；uat/prod 还没执行该迁移。"
  },
  {
   "id": "F99",
@@ -1565,7 +1591,9 @@
   "note": "第 5 版之后未改动：根因（roles.ts 没有登记 dev_admin，dev admin 账号的 user.role 为 NONE）还在。本轮 3 个前端提交的新增行里没有新的 user.role/toUserRole 消费者，9d19c8a2 没动角色相关字段，所以剩余影响面和第 5 版一样，只有 onboarding 的拣货/司机跳转和 OrderProvider。\n证据：前端 e4b966df（bc820add..HEAD 未改 src/constants/roles.ts、userStore.ts、PrivateRoute.tsx、onboarding.ts、TeamMemberInfo）：src/constants/roles.ts:30-38 ROLE_GROUP_BY_TYPE 仍是 7 项，没有 'dev_admin'/'admin'；:97-102 toUserRole `if (!group || !role?.code) return UserRole.NONE`；src/stores/userStore.ts:88 `role: toUserRole(member.role)`；剩下的消费者 src/app/ui/PrivateRoute.tsx:22/34 → src/utils/onboarding.ts:14 `[UserRole.STORE_PACKER, UserRole.STORE_DRIVER].includes(role)`；src/ui/pages/TeamMemberInfo/useTeamMemberInfo.tsx:40 `CEO_ROLE_NAME = 'CEO'`、:104-107 按名称识别 CEO。后端 9d19c8a2：core/permission_company/services/account_access.py:239 `'type': row.type`（dev admin 公司即 'dev_admin'）；main_app/me/services.py:46 `code=role.code`；permission_company/services/company_role.py:95-96 禁止 CEO 改名；core/accounts/models.py:34 role_id 外键未变（9d19c8a2 在这个文件里只改了唯一约束名和 company_id 外键）；core/roles/page_permissions.py:157、:274 仍有 'dev_admin'。",
   "fix": "7a2cccc2 e77defb8 f401b438 9298f2d0 90d83063 3bdfd93f ded52c12 e004c4e9 2ce2e52a",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "Team 成员页、拣货单、审批等不再靠 user.role 判断（90d83063、3bdfd93f、e004c4e9），管理员登录跳转改按公司类型（f401b438）。",
+  "remain": "roles.ts 仍没登记 dev_admin/admin，dev admin 账号在前端的角色仍是「无角色」(NONE)；目前只剩登录跳转的拣货员/司机判断和下单页 OrderProvider 在读它，影响小，但以后再按角色判断会误判 dev admin（src/constants/roles.ts:30-38）。"
  },
  {
   "id": "F114",
@@ -1581,7 +1609,9 @@
   "note": "lucy 79c4cbc8 补上了第 5 版指出的缺口：axios 拦截器识别 403 company_access_disabled，AccessUpdatedNotice 会把用户换到切换器里第一家能进入的公司，一家都没有就登出。所以「成员被停用」「公司停用」这两种情况现在会触发处理；切换弹窗失败没有提示、500/网络错误静默变成空权限这两点仍在，维持 low。新副作用（建议作为 lucy 79c4cbc8 的新条目另记，可按 medium 跟踪）：handler 不看出错的请求属于哪家公司，一律把触发时的 activeAccount 当作失去访问的公司。比如切换器列表还没加载时，从报价单打开一家已停用（或本人账号已被关闭）公司的关联单据，会把用户从当前正常的公司踢走，并提示他失去了当前公司的访问权；如果他只有这两家公司，会直接被登出。切换器列表过期时选中刚被停用的公司，或者切换完成后旧公司的请求迟到返回 403，也会走到同一条误判路径。\n证据：前端 79c4cbc8（lucy 11-18 14:49）：src/config/axios/privateHttp.ts:83 `if (error?.response?.data?.type === ErrorTypes.COMPANY_ACCESS_DISABLED) reportAccessLost()`；src/utils/accessRev.ts:72-83 reportAccessLost/onAccessLost；src/ui/widgets/AccessUpdatedNotice/AccessUpdatedNotice.tsx:172-221，其中 :175 `const lost = useUserStore.getState().activeAccount`，:177-178 重新取 /me/accounts 并调用 `firstEnterableAccount(accounts, lost.id)`，:179-182 找不到就 signOut，:183 switchAccount 后弹出 Access Updated，:211-217 catch 只处理 COMPANY_ACCOUNT_DISABLED，其他错误直接吞掉；src/utils/switcherOrder.ts:266-272 firstEnterableAccount；挂载点 src/app/ui/layout/PrivateLayout/PrivateLayout.tsx:35（:23 仍挂着只认 404 的 useLostAccessGuard，它的 :11-17 注释还写着停用后返回 404，已经过时）。后端 9d19c8a2：main_app/me/services.py:139-140、:142-143 对**路径里的目标公司**返回 company_access_disabled，handlers.py:253-259 统一为 403；middlewares/permissions/middlewares.py:115、:137 同类 403。仍未改：src/hooks/auth/useSwitchAccount.ts:53-83 只有 try/finally；src/ui/features/ChangeAccountForm/useAccountForm.ts:23-27 失败时不 closeModal；ChangeAccountForm.tsx:173 `form.handleSubmit(form.onSubmit)()` 不处理 rejection；src/hooks/auth/useGetUserData.ts:110-116 只 console.error，:127-128 `permissions ?? []`、`routes ?? []`；src/app/utils/queryClientErrorHandler.ts:42-44 default 只 console.error。误判入口：src/hooks/useOpenQuotationDocument.ts:70 列表为空时 hasLinkedDocumentAccess 放行，:80-86 用 fetchQuery 取单据所属公司的 access。",
   "fix": "be4a31a7 9bc9e683 bda0aefe 79c4cbc8",
   "by": "",
-  "chg": true
+  "chg": true,
+  "done": "9bc9e683 让启动时上次账号打不开就退回默认账号；79c4cbc8 在成员或公司被停用（403）时自动换到可进入的公司，没有就登出。",
+  "remain": "权限接口遇到 500 或断网时，权限和菜单静默变空，用户看到页面 Not Found 却没有任何提示（useGetUserData.ts:110-116、:127-128）；在切换公司弹窗里切换失败时，弹窗不关也不报错（useAccountForm.ts:23-27）。"
  },
  {
   "id": "F115",
@@ -1597,7 +1627,9 @@
   "note": "第 5 版之后未改动。79c4cbc8 新增的自动换公司走的是 useSwitchAccount（先取 access 再切换），没有新增直切入口，placeholderData 窗口期的错配和第 5 版一样。补充一点：报价单在列表已加载时直切到一家已停用的公司，新身份的 access 会返回 403，再由 F114 的新 handler 以这家公司为准换到第一家可进入的公司，而不是回到原来的公司。这段窗口期内仍沿用旧权限。\n证据：前端 e4b966df（bc820add..HEAD 未改 useGetUserData.ts、userStore.ts、useOpenQuotationDocument.ts、useSwitchAccount.ts）：src/hooks/auth/useGetUserData.ts:73-77 `placeholderData: (previousData, previousQuery) => previousQuery?.queryKey[2] === getAccessToken() ? previousData : undefined`，仍沿用上一个账号的 access；src/stores/userStore.ts:220 changeActiveAccount 直接改选；src/hooks/useOpenQuotationDocument.ts:75-79 切换器列表已加载时 `changeActiveAccount(accountId)` 直切，不预取 access；:80-86 列表未加载时先 fetchQuery access，:111-114 失败时提示。新增的 src/ui/widgets/AccessUpdatedNotice/AccessUpdatedNotice.tsx:183 `await switchAccount(next.company.id)` 走 useSwitchAccount.ts:55-58，先取 access 再 setActiveAccount。",
   "fix": "be4a31a7 9bc9e683",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "be4a31a7、9bc9e683 让主切换入口先取新账号的权限再切换，用切换器正常换公司时不再错配。",
+  "remain": "从报价单打开另一家公司的关联单据时（切换器列表已加载），仍直接切公司、不先取权限，新权限到达前页面短暂沿用旧公司的菜单和权限（useOpenQuotationDocument.ts:75-79、useGetUserData.ts:73-77）；多公司用户会碰到。"
  },
  {
   "id": "F116",
@@ -1645,7 +1677,9 @@
   "note": "第 5 版之后未改动：残留的依赖、两处 mock 和名不副实的用例与第 5 版一致。fb943c94 的测试类型修正没有新增 react-abac mock。\n证据：前端 e4b966df（bc820add..HEAD 未改 package.json 和下面两份测试）：package.json:40 `\"deepmerge\": \"4.3.1\"`、:48 `\"react-abac\": \"0.1.17\"`，src 里没有业务代码引用（git grep deepmerge 在 src 下无结果）；src/ui/pages/Client/useClient.invite.test.tsx:33-35 `jest.mock('react-abac', ...)`，:40 mock 的 company 仍带已删除的 isLiquorVendor；src/ui/pages/Clients/ui/ClientsTable/ClientsTable.invite.test.tsx:10-16 usePermissions mock 一律 `hasPermissions: () => true`，:24-26 react-abac mock，:112-113 用例「despite no create-client permission」设置的 canImportClients=false 不影响被测组件（ClientsTable.tsx:39 用的是 usePermissions）。fb943c94 只改了 ImageListUploader.test.tsx 的 isLoading 字段；git grep react-abac HEAD 仍只有 package.json:48 和上面两处 mock。",
   "fix": "9bc9e683",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "9bc9e683 删掉了无人调用的 useMakeApiPermission 钩子，以及两份测试里对应的 mock。",
+  "remain": "package.json 仍留着业务代码没用到的 deepmerge、react-abac，两份测试还在 mock react-abac；ClientsTable 的「无建客户权限」用例其实没模拟无权限（usePermissions 一律返回 true），测不到它声称的场景（ClientsTable.invite.test.tsx:112-113）。"
  },
  {
   "id": "F146",
@@ -1821,7 +1855,9 @@
   "note": "本轮未改动（9d19c8a2 只给 system_user 改了索引名，前端 79c4cbc8 改的 ChangeAccountForm 只调整了排序函数，不涉及姓名）。Team、后台 Users 页读写 system_user 姓名的修复没有回退。发票 salesperson、取消人、邀请邮件发件人仍读账号姓名，新建的账号不带姓名，可能显示「None None」。维持 low。\n证据：9d19c8a2 对 core/users/models.py 只改了索引名（:38-39 uq_system_user_email_lower / uq_system_user_phone_number，:82-86 ix_system_user_action_log_*），:28-29 first_name/last_name 定义不变。已修的部分：core/auth/services.py:270-271 注册写入 system_user 姓名；core/settings/services.py:96-98 GET 读 `user.first_name or ''`。仍然存在的部分：core/orders/services.py:365-370 get_salesperson_name `return f'{account.first_name} {account.last_name}'`，没有判空；core/team/services.py:432-438、:740-746 用 AccountCreateDTO 建账号时不带姓名。",
   "fix": "fbfc9b9c d1f3e72a dd4c0618",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "注册时姓名写进 system_user（fbfc9b9c），Team、后台 Users 改为读写 system_user 上的姓名（dd4c0618，前端 d1f3e72a）。",
+  "remain": "发票/对账单的销售员、订单取消人、邀请邮件发件人仍读账号上的姓名，而 Team 加人、批量加人新建的账号不带姓名，这些位置会显示「None None」或空白（core/orders/services.py:365-370）。"
  },
  {
   "id": "N1",
@@ -1933,7 +1969,9 @@
   "note": "本轮未改动：9d19c8a2 对 accounts/models.py 只改了 company_id 外键和唯一约束名，账号上的 first_name/last_name 列仍可为空（:59-60）；team、settings、orders、me 等模块和前端 General Settings、CompleteProfileModal 都没有提交。剩余问题与第 5 版一致：新建成员的账号姓名为空，在 /me/accounts、对账单销售员、取消人、聊天成员、邀请发件人等处显示为空或 \"None None\"，被指派为拣货员/司机或写过订单评论时，相关响应会因必填 first_name 返回 500。8011513c0d5c 软删母公司不影响这条。\n证据：后端 HEAD 9d19c8a2：core/settings/services.py:97-98 GET 读 `user.first_name or ''`；:128 注释仍写 `(Team lists read it)`；:129-134 update_company_member_profile 只改当前账号；:144-151 update_user 改全局姓名；main_app/settings/transport/requests.py:25-26 `min_length=1`。core/team/services.py:90 `_member_names` 读 system_user，用于 :189-192 和 :390-392；:432-437 单个添加的 AccountCreateDTO 不带姓名，:441-449 只在 user 没有姓名时写 system_user；:651-661 批量添加、:740-746 `_create_member_account` 也不带姓名。仍读账号姓名的位置：main_app/me/services.py:36-42；core/permission_company/services/account_access.py:140-141、184-185；core/orders/services.py:365-370 `f'{account.first_name} {account.last_name}'`（:1896 canceled_by；clients/statements/services.py:287 销售员）；chats/models.py:211-217；companies/services.py:485；companies/repositories.py:608；clients/liquor_licenses/repositories.py:95、233。必填 str 导致 500：main_app/orders/transport/responses.py:25 `MemberOut.first_name: str`、main_app/vendor/transport/responses.py:782 `StoreMemberOut.first_name: str`。前端 useGeneralSettings.tsx:107、139 不变。",
   "fix": "fbfc9b9c dd4c0618 ebadc663",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "dd4c0618 让 Team 等页面统一读 system_user 上的姓名；前端 ebadc663 加了强制填写的 Complete Your Profile，新用户先补全姓名。",
+  "remain": "Team 批量加人、Join Company 等新建的账号姓名为空：/me/accounts、销售员、取消人、聊天成员等处显示空或「None None」；这类成员被指派为拣货员/司机或写过订单评论后，拣货单和订单详情会 500（main_app/orders/transport/responses.py:25）。"
  },
  {
   "id": "N8",
@@ -1981,7 +2019,9 @@
   "note": "第 5 版之后未改动，仍为部分修复：country/mailingCountry 在 MfrContactCard 只读展示，却只能在被隐藏的 Information 页修改；d5a1c9e3f7b4 覆盖地址仍无备份。e4b966df 在 MfrContactCard 新增的厂商采购组区块和 Terms 采购组下拉不涉及地址/国家字段，只是行号 :82→:83。\n证据：后端 9d19c8a2（manufacturer_profile、settings、迁移 d5a1c9e3f7b4 在 4b1db16c..HEAD 未改动）：core/manufacturer_profile/repositories.py:11 `COMPANY_ADDRESS_FIELDS = ('address', 'city', 'state', 'zip_code')`，:30 find_by_company、:46 save_for_company；迁移 d5a1c9e3f7b4 覆盖 company.address 仍无备份。前端 e4b966df：src/ui/features/MfrInfoForm/ui/MasterDataSection/MasterDataSection.tsx:72 `textField('country')`、:86 `textField('mailingCountry')`；使用方只有 src/ui/pages/MfrContactCard/MfrContactCard.tsx:83-85 `<MasterDataSection control={form.control} readOnly`（e4b966df 加 import 后由 :82 移到 :83）和被隐藏的 src/ui/pages/Settings/ui/InformationSettings/InformationSettings.tsx:78；src/ui/pages/Settings/type.ts:17 HIDDEN_SETTINGS_TABS 仍含 SettingsTabs.INFORMATION。",
   "fix": "2e038191 ce79f7b5 c49ffdb2",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "lucy 的 2e038191、ce79f7b5（后端）和 c49ffdb2（前端）把厂商地址统一存到 company 表，在公司信息页一起保存。",
+  "remain": "country 和 mailingCountry 在厂商联系卡上只读显示，却只能在已隐藏的 Settings → Information 页修改，厂商实际改不了国家；迁移 d5a1c9e3f7b4 用 profile 地址覆盖 company.address 时没留备份，执行后原地址找不回。"
  },
  {
   "id": "N11",
@@ -2093,7 +2133,9 @@
   "note": "本轮相关后端代码未改动，结论不变：/account/update 停用和 /account/delete 仍不做自身检查、最后一名 CEO 检查、吊销 token、移出聊天和操作日志，清缓存仍是唯一修好的一项，维持 medium。新提交的影响有两点。第一，8011513c0d5c 让 306 家母公司下的 377 个在用账号挂在已删除公司上。普通成员走 find_account_id（permission_company/services/account_access.py:49-62，排除已删除公司），已无法通过 _may 操作这些账号；平台管理员（handlers.py:55）和 dev admin（middlewares.py:109-116）仍可以。第二，前端 79c4cbc8（lucy）在收到 company_access_disabled 时把成员切到其他公司，只改善了 /account/update 停用后的前端体验，没有补上后端缺口。删除账号后中间件返回的是无权限错误，不会触发这个切换。\n证据：后端 9d19c8a2 没有改动 accounts handlers/services/repositories、team、action_log（git diff 4b1db16c..HEAD 只涉及 accounts/models.py、users/models.py 和两个新迁移）。main_app/accounts/transport/handlers.py:55-58 平台管理员在非 dev admin 公司直接 `return True`；:225 `is_own_details_only = _is_own(...) and 'is_active' not in body.model_fields_set`，:226-230 过了 `_may(...,'team:edit')` 就直接 `service.update_account(...)`；:260-262 只要过了 `_may(...,'team:delete')` 就 `service.delete_account(account_id=body.id)`。core/accounts/services.py:123-132 的 update_account/delete_account 没有附带动作，也不调 record()。已修好的部分仍在：core/accounts/repositories.py:226、:237 `forget_access_after_commit(self._session, account_ids=[account_id])`。main_app/middlewares/action_log.py:72 起的 LOGGED_ROUTES 仍没有 /account/*，:98 还留着已删除的 PUT /team/members/{member_id}。对照 core/team/services.py:288 update_member_status（:309 is_last_live_ceo，:335 revoke_all_tokens，:336 record）、:893 delete_team_member（:911 最后一名 CEO 检查，:923-924 soft_delete_user + revoke_all_tokens，:928/:931 record，:935-943 remove_member_from_chats）。main_app/middlewares/permissions/middlewares.py:109-116：dev admin 只排除 DISABLED 公司；core/companies/repositories.py:98-117 get_company 不过滤 deleted_at。",
   "fix": "ab13017b",
   "by": "",
-  "chg": false
+  "chg": false,
+  "done": "ab13017b 让 /account/update 和 /account/delete 改完后清掉权限缓存，改动立即生效。",
+  "remain": "这两个接口仍不拦删/停自己和最后一名 CEO，也不吊销登录、不移出聊天、不写日志。有 team:edit/delete 权限的人或平台管理员直接调接口，可能删光 CEO，被删的人仍在聊天里，Team > Logs 无记录（accounts/transport/handlers.py:225、:262）。"
  },
  {
   "id": "N18",
@@ -2141,7 +2183,9 @@
   "note": "本轮未改动，结论和行号不变。8011513c0d5c 只软删有子公司的母公司，Admin 和 devAdmin 下面没有子公司，所以仍以 ACTIVE 订阅者出现在 Subscribers 里；bulk-edit 仍能绕过停用守卫，这两个类型在权限页上也仍然看不到。 第 6 版：第 4 版的部分修复（批量删除拒绝已注册公司、禁止停用 ADMIN 类型）没有回归，维持部分修复。\n证据：后端 4b1db16c..HEAD 只有 9d19c8a2，没有改动下列文件。已修复的部分没有回归：core/master_database/repositories.py:111-112 `_company_item_query().where(Company.type != CompanyTypeEnum.ADMIN, ...)`。仍然存在：core/subscribers/repositories.py:109-112 只按 `subscriber_status.in_([ACTIVE, EXPIRED])` 和 `deleted_at.is_(None)` 过滤，:124 `order_by(Company.created_at.desc())`；master_database/services.py:917 bulk_edit_companies 在 :954/:956/:960 仍可写 type/parent_company_id/subscriber_status，没有 ADMIN 判断；:847 `if not enabled and company.type == CompanyTypeEnum.ADMIN` 只看当前 type；main_app/admin/master_database/transport/handlers.py:208-227 的 /bulk-edit 仍在（第 5 版写成 admin/master_database/...，实际路径在 main_app/ 下）。migrations/versions/2026_11_10_1000-a9d3f7b2e6c1_add_admin_company.py:49-50 `INSERT INTO company (...) VALUES (..., 'ADMIN', :role_type, 'ACTIVE', ...)` 未改；全部迁移里只有 4b52dd3297e5:46 / 9d18fcda7ab1:48 插入 company_type_role，没有向 company_type 插入 admin/dev_admin。permission_base/repositories/company_type_permission.py:40-42 company_type_exists 只认 company_type 表；permission_base/services/company_type_permission.py:31、:40 和 permission_template/services/role_template.py:29 仍在 company_type_exists 为假时返回 not found。新迁移 8011513c0d5c:10-11 docstring 明说 Admin、devAdmin 下面没有子公司，不会被软删；a9d3f7b2e6c1 和 4b52dd3297e5 都没有设 parent_company_id。",
   "fix": "6e1a7673 8eaef720",
   "by": "",
-  "chg": true
+  "chg": true,
+  "done": "6e1a7673 禁止停用 ADMIN 类型公司、批量删除拒绝已注册公司；8eaef720 让 Master Database 列表不再显示 Admin 公司。",
+  "remain": "Admin、devAdmin 公司仍作为 ACTIVE 订阅者出现在 Subscribers 页（subscribers/repositories.py:108-113 没排除）；company_type 表没有这两个类型，权限配置页查不到；bulk-edit 接口能先改掉 Admin 公司的类型再停用，绕过停用保护。"
  },
  {
   "id": "N21",
@@ -2621,7 +2665,9 @@
   "note": "本轮未改动。onboarding 的 submit 和 Activate 两条路径仍由 3e5063c2 修好；切换器 Add Company 新建的餐厅公司仍不是 REGISTERED，也不做客户关联，供应商侧的匹配和导入找不到它。8011513c0d5c 软删了有子行的母公司，客户匹配本来就过滤 deleted_at，这部分对本条没有新影响。\n证据：后端 9d19c8a2（onboardings、clients、main_app/me 在 4b1db16c..HEAD 无 diff）：core/onboardings/services.py:484-498 `if company.type == CompanyTypeEnum.CLIENT: ... if company.company_type in RESTAURANT_TYPE_CODES: await self._companies_service.update_company(company_id=company.id, data=CompanyUpdateDataDTO(company_status=RestaurantStatus.REGISTERED))`(:490-493) → :496 逐个 link_unregistered_client_to_restaurant，submit(:382-385) 和 activate(:405-415) 都会走到。剩下的入口：main_app/me/services.py:148-204 add_company 直接 create_company(:171-186) + create_company_members(:191-203)，不设 company_status，也不做客户关联；clients/repositories.py:872 `restaurant_model.company_status == RestaurantStatus.REGISTERED`，匹配时 :728-729、:870-871 也要求 company_type 属于餐厅类型且 deleted_at 为空。",
   "fix": "3e5063c2",
   "by": "Felix",
-  "chg": false
+  "chg": false,
+  "done": "3e5063c2 修好了 onboarding 提交和 Activate 两条路径：餐厅公司标为已注册，并关联供应商侧的未注册客户。",
+  "remain": "从公司切换器 Add Company 新建的餐厅公司既不标为已注册，也不做客户关联（main_app/me/services.py:148-204）。供应商按已注册餐厅匹配、导入客户时找不到它，供应商那边已有的对应未注册客户也不会自动挂上。"
  },
  {
   "id": "N51",
@@ -2717,7 +2763,9 @@
   "note": "本轮未改动：Admin 仍能用 Add User 或 Join Company 把自己以任意角色（含 CEO）加进任意已注册租户；审计照常写库，但 USER_* 在界面上看不到（另见 N110）。8011513c0d5c 软删的母公司不在 get_addable_companies 结果里，不会多出可加入的租户。\n证据：后端 9d19c8a2（middlewares/admin、main_app/admin、core/admin_users 本轮都没提交）：core/admin_users/services.py:364-394 add_users 不检查 groups 里的联系人是不是操作者本人；:404-435 join_companies 不接收操作者参数；main_app/admin/users/transport/handlers.py:138 `service.join_companies(user_id, data.groups)` 不传 request.state.user_id（:82 add_users 传了但只用于记日志）；get_self_action_forbidden_error 只在 services.py:196、:228、:248、:273。审计写入：:181-185 ACCOUNT_EDIT、:207-210 USER_ENABLE/DISABLE、:235 ACCOUNT_ENABLE/DISABLE、:280 ACCOUNT_DELETE、:298 USER_DELETE；team/services.py:688 ACCOUNT_CREATE、:705-709 USER_CREATE、:827 ACCOUNT_CREATE。展示：core/users/repositories.py:192、:211、:224-229 只显示登录/登出，:156 Team > Logs 只显示 type=ACCOUNT。",
   "fix": "f8a80699 ea682af9",
   "by": "Lily",
-  "chg": false
+  "chg": false,
+  "done": "f8a80699、ea682af9 让 Admin 面板的 Add User、开关、删除、指派新 CEO 都写入审计日志。",
+  "remain": "Add User 和 Join Company 仍不拦操作者本人：CSS Admin 能把自己以任意角色（含 CEO）加进任意已注册公司（admin_users/services.py:364-435，handlers.py:138 不传操作者）。USER_* 审计只写库，界面上查不到（见 N110）。"
  },
  {
   "id": "N57",
@@ -2749,7 +2797,9 @@
   "note": "本轮未改动，维持部分修复。Master Database 单公司 PUT 仍只写 address 单列，不同步 city/state/zip；前端已不调用它，只能直接调 API 触发。\n证据：后端相关文件在 4b1db16c..HEAD 没有改动：main_app/admin/master_database/transport/handlers.py:399-400 `@master_database_router.put(path='/{company_id}', ...)`；requests.py:127-131 UpdateCompanyInfoIn 只有 `address: str | None = Field(default=None, max_length=255)`，没有 city/state/zip；core/master_database/dto.py:261-266 AdminCompanyUpdateDTO 只有 address；core/master_database/services.py:1194-1197 `persistable_company_fields = {'name', 'type', 'email', 'address'}` → update_company_fields_no_commit。前端 src/api/admin.ts:459 updateCompany 仍然没有调用方（git grep 只命中定义本身）。死代码：core/stores/dto.py:205-220 StoreUpdateDTO、core/restaurants/dto.py:27-33 RestaurantUpdateDTO 仍只有 address/remit_to。",
   "fix": "b8e906f7 8eaef720",
   "by": "lucy",
-  "chg": false
+  "chg": false,
+  "done": "b8e906f7 删掉了 My Stores/My Restaurants 编辑接口，8eaef720 删掉了 Master Database 合并接口，这两处只写单列地址的问题随之消失。",
+  "remain": "Master Database 单公司编辑 PUT /admin/master-database/{company_id} 仍只改 address 一列，不同步 city/state/zip（master_database/services.py:1195），改完后街道和城市、州、邮编对不上。前端已不调用，只有直接调 API 才会碰到。"
  },
  {
   "id": "N59",
@@ -2893,7 +2943,9 @@
   "note": "本轮未改动，结论不变：Team > Logs 不区分成败，失败和匿名请求照样写入，能按账号 id 往任意公司的 Team > Logs 写伪造记录；失败的登出仍显示为「Logout」；8ce6cdca 修好的用户 Logs 和 All Users > Logs 部分没有回归。8011513c0d5c 软删的母公司已经进不去，它们的 Team > Logs 看不到，影响面没有扩大；049461d68471 加的 CASCADE 外键会在硬删公司时把日志的 account_id 置空，但当前应用代码里没有硬删公司的入口。\n证据：后端 9d19c8a2（action_log.py、core/users/repositories.py、domains.py、team 传输层、main.py 自 4b1db16c 起未改动；users/models.py 只改了索引名）：main_app/middlewares/action_log.py:94 `/admin/accounts/delete` → ACCOUNT_DELETE；:96-101 Team 路由，:98 仍登记已删除的 `PUT /team/members/{member_id}`；:199 `if log.entries or (found is not None and status >= 400):`；:257-262 只做 `select(Account.id).where(Account.id.in_(...))` 的存在性检查，不核对公司；:264-266 没有账号时写一条匿名记录。main.py:118 `app.add_middleware(ActionLogMiddleware)` 在外层，main_app/app.py:70 `APIRouter(prefix='/api', dependencies=[Depends(check_api_key)])` 在内层。core/users/repositories.py:146-157 get_team_action_logs 只有 `type == LogType.ACCOUNT, Account.company_id == company_id`，没有 status 条件；:224-229 _signed_in_or_out 中 LOGOUT 不看 status。core/users/domains.py:130-134 event_label 只对 LOGIN 返回 'Login failed'；team/transport/handlers.py:240 `action=event_label(log.event, log.status)`。已修部分仍有效：repositories.py:180-194 get_login_logs、:207-211 get_user_logs 都用 `_signed_in_or_out()`。",
   "fix": "8ce6cdca",
   "by": "Lily",
-  "chg": false
+  "chg": false,
+  "done": "8ce6cdca 让用户 Logs 和 All Users > Logs 只列登录和登出、并隐去失败的登录，失败或伪造的成员操作记录不再出现在这两页。",
+  "remain": "Team > Logs 仍不分成败：被拒的删除、停用照样显示「User deleted / disabled」；未登录者知道账号 id 就能往该账号所在公司的 Team > Logs 写假记录（action_log.py:199、:257-266）。用户 Logs 和 All Users > Logs 里失败的登出仍显示为「Logout」。"
  },
  {
   "id": "N68",
@@ -2909,12 +2961,14 @@
   "note": "本轮未改动，结论不变：页面已不再读出失败的登录行（8ce6cdca 的修复没有回归），但登录失败仍把请求里的 contact 不限长度写进 details，也没有限流，拿到前端公开的 API Key 就能匿名写入大量超大行。9d19c8a2 只把 system_user_action_log 的索引改了名，不影响这条。\n证据：后端 9d19c8a2（core/auth、main_app/auth、action_log.py、nginx 配置自 4b1db16c 起未改动）：core/auth/services.py:54-57 `_sign_in_details` → `{'contact_type': ..., 'contact': data.contact}`；:315、:319 pre_sign_in 失败时 `record(LogEvent.LOGIN, details=_sign_in_details(data), ...)`；main_app/auth/transport/requests.py:80-82 PreSignInIn 的 `email: Optional[str] = Field(..., default=None)` 没有 max_length；main_app/middlewares/action_log.py:31 PARAMS_LIMIT = 4096，:130-142 build_params 只截断 params，:284 `details=entry.details` 原样写入；git grep limit_req/slowapi/ratelimit/throttl 0 个命中；core_app/nginx/nginx.conf:3、deploy/config/frontend-nginx.conf:15 `client_max_body_size 100M`。已修部分：core/users/repositories.py:180-194 get_login_logs `.where(_signed_in_or_out())`，:224-229 `and_(event == LOGIN, status < 400)`。",
   "fix": "8ce6cdca",
   "by": "Lily",
-  "chg": false
+  "chg": false,
+  "done": "8ce6cdca 让各日志页不再显示失败的登录，All Users > Logs 等页面不会再被大量失败登录行淹没。",
+  "remain": "登录失败仍把请求里的邮箱/手机号原样写进日志，不限长度也没有限流（auth/services.py:54-57、:315、:319）。拿到前端公开的 API Key 就能匿名刷入大量超大日志行（请求体上限 100M），持续撑大 system_user_action_log 表。"
  },
  {
   "id": "N69",
   "lab": "",
-  "sev": "low",
+  "sev": "medium",
   "psev": "medium",
   "orig": "medium",
   "st": "partially_fixed",
@@ -2922,10 +2976,12 @@
   "text": "停用公司只改被点的那一行，不级联到 parent_company_id 指向它的门店/餐厅/子部门行：在母公司上停用后，成员凭分支账号照常登录和作业，合作方照常看到分支、下单、聊天，合作方通知一封都发不出",
   "hash": "6e1a7673 83611c01 c3ff5fb9 f8a80699",
   "file": "core_app/src/app/internal/core/master_database/services.py",
-  "note": "Felix 的 9d19c8a2（迁移 8011513c0d5c）把所有带子行的母公司软删了：Master Database 不再列出它们，set_company_enabled 对它们返回 404，「停用母公司、分支照常作业」这个主场景在迁移后不再出现。但停用不级联的代码没改，bulk-edit 接口仍能重新建立母子关系，这条路径只能直接调 API；详情 is_registered 的口径不一致也还在。另外，迁移只写 deleted_at、不传 status：如果升级前有母公司已是 DISABLED 而分支仍是 ACTIVE，删除母公司后这个状态会固定下来，后台也看不到原来的母公司，建议 uat/prod 升级前先统计这类母公司。降为 low。\n证据：Felix 9d19c8a2 迁移 2026_11_18_1700-8011513c0d5c_delete_parent_companies.py:31-34 `UPDATE company c SET deleted_at = now(), updated_at = now() WHERE c.parent_company_id IS NULL AND c.deleted_at IS NULL AND EXISTS (SELECT 1 FROM company child WHERE child.parent_company_id = c.id)`，只写 deleted_at，不改 status，也不把母公司的 DISABLED 传给子行；:39-40 downgrade `pass`。迁移后母公司在后台已经无法操作：core/master_database/repositories.py:68 列表 `.where(Company.deleted_at.is_(None))`，:152-156 get_companies_by_ids 过滤 deleted_at，所以 services.py:839-841 set_company_enabled 对母公司返回 not found；admin_users/repositories.py:242-246 Add User 候选也过滤已删除公司。根因代码没变：services.py:832-864 set_company_enabled 仍只更新本行（:863 `invalidate_codes_sent_by_no_commit(company_id, now)`、:864 `bulk_update_companies_no_commit(company_ids=[company_id], ...)`）。仍能新建母子关系：services.py:928-956 bulk_edit_companies 可以写 `base_update_data['parent_company_id'] = parent_value`（接口 main_app/admin/master_database/transport/handlers.py:254；前端 src/api/admin.ts:75-93 bulkEditCompanies 没有调用方）。权限判断仍只看本行：main_app/middlewares/permissions/middlewares.py:136 `account['company'].get('status') == CompanyStatusEnum.DISABLED`、:114 只判请求的那一行；core/permission_company/services/account_access.py:89 `Company.status != CompanyStatusEnum.DISABLED`。口径不一致仍在：core/master_database/services.py:271 详情 `is_registered=company.status == CompanyStatusEnum.ACTIVE`，与 core/companies/registration.py:10-17 参考 status_before_disabled 的 is_registered() 不一致。层级接口 repositories.py:496 `parent = company.parent_company if company.parent_company_id else None` 不过滤已删除的母公司。前端 lucy 79c4cbc8 的 src/config/axios/privateHttp.ts:83 `if (error?.response?.data?.type === ErrorTypes.COMPANY_ACCESS_DISABLED) reportAccessLost()` → widgets/AccessUpdatedNotice 切到 firstEnterableAccount（utils/switcherOrder.ts:254-260），补上了第 5 版附带候选里 useLostAccessGuard.ts:30 只处理 404 的缺口。",
+  "note": "Felix 的 9d19c8a2（迁移 8011513c0d5c）把所有带子行的母公司软删了：Master Database 不再列出它们，set_company_enabled 对它们返回 404，「停用母公司、分支照常作业」这个主场景在迁移后不再出现。但停用不级联的代码没改，bulk-edit 接口仍能重新建立母子关系，这条路径只能直接调 API；详情 is_registered 的口径不一致也还在。另外，迁移只写 deleted_at、不传 status：如果升级前有母公司已是 DISABLED 而分支仍是 ACTIVE，删除母公司后这个状态会固定下来，后台也看不到原来的母公司，建议 uat/prod 升级前先统计这类母公司。降为 low。\n证据：Felix 9d19c8a2 迁移 2026_11_18_1700-8011513c0d5c_delete_parent_companies.py:31-34 `UPDATE company c SET deleted_at = now(), updated_at = now() WHERE c.parent_company_id IS NULL AND c.deleted_at IS NULL AND EXISTS (SELECT 1 FROM company child WHERE child.parent_company_id = c.id)`，只写 deleted_at，不改 status，也不把母公司的 DISABLED 传给子行；:39-40 downgrade `pass`。迁移后母公司在后台已经无法操作：core/master_database/repositories.py:68 列表 `.where(Company.deleted_at.is_(None))`，:152-156 get_companies_by_ids 过滤 deleted_at，所以 services.py:839-841 set_company_enabled 对母公司返回 not found；admin_users/repositories.py:242-246 Add User 候选也过滤已删除公司。根因代码没变：services.py:832-864 set_company_enabled 仍只更新本行（:863 `invalidate_codes_sent_by_no_commit(company_id, now)`、:864 `bulk_update_companies_no_commit(company_ids=[company_id], ...)`）。仍能新建母子关系：services.py:928-956 bulk_edit_companies 可以写 `base_update_data['parent_company_id'] = parent_value`（接口 main_app/admin/master_database/transport/handlers.py:254；前端 src/api/admin.ts:75-93 bulkEditCompanies 没有调用方）。权限判断仍只看本行：main_app/middlewares/permissions/middlewares.py:136 `account['company'].get('status') == CompanyStatusEnum.DISABLED`、:114 只判请求的那一行；core/permission_company/services/account_access.py:89 `Company.status != CompanyStatusEnum.DISABLED`。口径不一致仍在：core/master_database/services.py:271 详情 `is_registered=company.status == CompanyStatusEnum.ACTIVE`，与 core/companies/registration.py:10-17 参考 status_before_disabled 的 is_registered() 不一致。层级接口 repositories.py:496 `parent = company.parent_company if company.parent_company_id else None` 不过滤已删除的母公司。前端 lucy 79c4cbc8 的 src/config/axios/privateHttp.ts:83 `if (error?.response?.data?.type === ErrorTypes.COMPANY_ACCESS_DISABLED) reportAccessLost()` → widgets/AccessUpdatedNotice 切到 firstEnterableAccount（utils/switcherOrder.ts:254-260），补上了第 5 版附带候选里 useLostAccessGuard.ts:30 只处理 404 的缺口。\n\n2026-11-19 补充（按后端 dd2e1556 核对，回到中危）：第 6 版降为低危时写明「如果保留部分母公司，要回到中危」。5b319dae 的 36cd67a87d67:26-34 把所有已删除的顶层 MANUFACTURER 恢复为在用，厂商母公司和子部门行又同时存在，条件已触发。Master Database 停用厂商母公司时，master_database/services.py:833-865 的 set_company_enabled 只更新这一行（:865 company_ids=[company_id]），子部门行不跟着停；权限中间件（middlewares.py:136）和默认账号（account_access.py:89）只看账号所在那一行的状态，成员凭 9d18fcda7ab1 复制到子部门的账号照常作业。门店、餐厅的母公司仍是删除状态，不受影响。另外 02d1c1a3 把详情的 is_registered 改为调用 is_registered(company)（services.py:271），第 6 版说的「口径不一致」已不存在。",
   "fix": "9d19c8a2",
   "by": "Lily、lucy",
-  "chg": true
+  "chg": true,
+  "done": "9d19c8a2 软删了带子行的母公司，门店、餐厅不再有「母公司停用、分支照常作业」；02d1c1a3 统一了详情页「已注册」的口径。",
+  "remain": "停用仍只改被点的那一行，不级联到子行（master_database/services.py:865）。36cd67a87d67（5b319dae）恢复了厂商母公司，停用它后子部门行不跟着停，成员凭子部门账号照常作业；bulk-edit 接口也还能重建母子关系。"
  },
  {
   "id": "N70",
@@ -2957,7 +3013,9 @@
   "note": "本轮没有改动停用作废、注册校验、激活这几处逻辑，团队已修复的部分也没有回归。Admin 已生成但还没发送的码，在公司停用后仍然能用来注册，并且注册会写进这家停用公司。8011513c0d5c 软删了现有母公司，但代码仍会通过 _create_store/_create_restaurant 建新的母子层级，所以「母公司停用后，门店行发出的码不作废」在新数据上仍然可能发生。顺带说明：那 306 家被软删的母公司（INVITED 的那部分在 company_invitation 里还有 admin 码），它们的码现在会因为 :570 的 deleted_at 过滤被判为无效。这是新迁移带来的影响，不属于本条。\n证据：后端 HEAD 9d19c8a2（本轮 4b1db16c..HEAD 只改了 accounts/models.py、users/models.py 和两个新迁移，本条相关文件都没动）。剩余问题：core/master_database/services.py:861-863 停用时 `if not registered: await self._repository.invalidate_live_invitation_code_no_commit(company_id, now)` + `invalidate_codes_sent_by_no_commit`；core/master_database/repositories.py:184-191 只作废 `invitation.sent_at.is_not(None)` 且 `sent_at >= now - timedelta(days=INVITATION_CODE_VALIDITY_DAYS)`（:189）的码；core/companies/company_invitations.py:238-239 `invalidate_sent_by` 只匹配 `inviter_company_id == inviter_company_id`；services.py:399-408 `_invitation_failure` 的 admin 分支只经 repositories.py:566-572 `get_live_company_with_phones`（:570 只查 `deleted_at.is_(None)`），不看 DISABLED；core/master_database/invitation_codes.py:66-70 `if invitation_code_sent_at is None: return False`；services.py:692-704 激活时写入 `'user_id': new_user_id, 'subscriber_status': SubscriberStatusEnum.ACTIVE` 后调用 `create_owner_account_no_commit`，不检查停用。已修部分仍成立：services.py:578-584 只有未发送且未作废的当前码才复用，否则走 `_issue_admin_code`；company_invitations.py:112 `issue()`、:244 `materialize`。stores/repositories.py:254-266 `_create_store(... company_id=company_id)`、restaurants/repositories.py:398-410 `_create_restaurant(... company_id=company_id)` 仍会建出有母公司的子行。",
   "fix": "8eaef720",
   "by": "lucy",
-  "chg": false
+  "chg": false,
+  "done": "8eaef720 把每个邀请码单独存进 company_invitation、逐码作废；停用再启用后重新 Send 会发新码，不再一律判过期。",
+  "remain": "停用公司时不作废 Admin 已生成但还没发送的码（master_database/repositories.py:184-191 只作废已发送且未过期的），拿它仍能注册，注册写进这家停用公司并建出 owner 账号；母公司停用时，子行发出的码也不作废。"
  },
  {
   "id": "N72",
@@ -2973,7 +3031,9 @@
   "note": "日志迁移和 Team > Logs 查询本轮未改动。8011513c0d5c 软删母公司后，正常访问路径（find_account_id、_build_account）进不了已删除的母公司，挂在母公司账号上的那一份因此看不到了（升级前写入 Redis 的旧缓存未失效的情况除外）。但每个分支各一份、没有标记的副本仍然显示，而且被看到的「真实」记录现在只剩这些分支副本，问题本身没有减轻。Admin Logs 那一半仍按 8ce6cdca 不成立，维持部分修复、medium。\n证据：迁移本身未改（git diff 4b1db16c..HEAD 不涉及）：core_app/src/app/migrations/versions/2026_11_13_1620-7c1e4a9d2b58_user_action_log_event_type.py:20-23 \"each other one gets a copy\"；:95 `row_number() OVER (PARTITION BY log_id ORDER BY company_id)`；:101 `JOIN system_account AS actor ON actor.user_id = l.user_id AND actor.company_id = member.company_id`；:116-122 `INSERT ... gen_random_uuid() ... WHERE lc.n > 1`。迁移链里 9d18fcda7ab1 排在 7c1e4a9d2b58 之前，所以公司级操作在母公司和每个分支各有一份。Team > Logs：core_app/src/app/internal/core/users/repositories.py:146-157 get_team_action_logs，:156 `.where(UserActionLog.type == LogType.ACCOUNT, Account.company_id == company_id)`，不去重，调用方 core/team/services.py:963。Admin Logs：同文件 :207-214 get_user_logs + :224-229 `_signed_in_or_out`（8ce6cdca）。本轮新增：8011513c0d5c:31-34 `UPDATE company SET deleted_at = now() ... WHERE parent_company_id IS NULL AND EXISTS (child)`；internal/core/permission_company/services/account_access.py:49-62 find_account_id 要求 `Company.deleted_at.is_(None)`。",
   "fix": "8ce6cdca",
   "by": "Lily",
-  "chg": true
+  "chg": true,
+  "done": "8ce6cdca 让 Admin 的用户 Logs 只显示登录和登出，迁移复制出的团队日志副本不再在那里重复显示。",
+  "remain": "迁移 7c1e4a9d2b58 把历史团队日志给每个分支各复制一份且不带标记，Team > Logs 不去重（users/repositories.py:156），门店会看到本店没发生过的操作，上线后永久留在 prod 数据里；36cd67a87d67 恢复厂商母公司后，母公司那份也重新可见。"
  },
  {
   "id": "N73",
@@ -2989,7 +3049,9 @@
   "note": "本轮未改动：在切换器里用 Add Company（/me/companies）新建的 vendor 仍然没有 store_delivery，一接单两边的订单列表就会 500，用户无法自行补建。8011513c0d5c 没有碰 store_delivery：已删除母公司名下的 110 行留着，挂在这些母公司上的历史订单仍按 order.store_id 读到它们，没有带来新的 500，但也没有新增建行路径。前端 3 个提交不涉及这条。 第 6 版定级说明：复核代理判为仍存在；3e945bde 修好的 onboarding 路径没有回归，只剩 Add Company 一个入口，维持部分修复。\n证据：core_app/src/app/internal/main_app/me/services.py:148-204 add_company，:171 `create_company(...)` 直接建出 ACTIVE 公司并给 CEO 账号，没有调用 ensure_store_delivery。补建只在 onboarding 收尾：core/onboardings/services.py:475-478 `if company.type == CompanyTypeEnum.VENDOR: await self._companies_service.ensure_store_delivery(...)`（_finish_onboarding :417，调用方 :382 submit_onboarding、:405 activate_company）；companies/repositories.py:836 ensure_store_delivery。stores/repositories.py:280 `StoreDelivery(company_id=store_model.id)` 仍是死代码。orders/models.py:276-290 delivery_amount 是对 `StoreDelivery.company_id == store_id` 的标量子查询，没有 coalesce；orders/domains.py:264 `delivery_amount: Decimal`，:379 `class OrderPreview(Order)`。1e76218f5233:24-34 只做一次性补行（`parent_company_id IS NULL`），:37-38 downgrade 为 pass。9d19c8a2 没有改这些文件。",
   "fix": "",
   "by": "lucy、Felix（根因 c8fb1cd6）",
-  "chg": true
+  "chg": true,
+  "done": "vendor 走完 onboarding（含切换器里的 Activate）时会自动补建 store_delivery，自己注册、被邀请、被导入的都包括在内（3e945bde）。",
+  "remain": "在公司切换器里用 Add Company 新建的 vendor 仍然不建 store_delivery（me/services.py:171）。这家 vendor 一接单，vendor 和餐厅两边的订单列表都会 500，用户自己没法补救。"
  },
  {
   "id": "N74",
@@ -3021,7 +3083,9 @@
   "note": "本轮未改动：本轮后端只改了 4 个文件，前端三个提交都没碰 admin 写接口。79c4cbc8 新增的 company_access_disabled 处理面向的是普通成员，和这里的平台管理员接口无关。merge 已删除这一部分没有回归；bulk-edit 和 Master Database 导入仍然可以修改停用公司，行号不变。\n证据：main_app/admin/master_database/transport/handlers.py:201-204 `_ensure_enabled` 仍然只在 :368、:421、:479、:509、:534 被调用；:207-232 `/bulk-edit`（:220 bulk_edit_companies）和 :235-263 `/bulk-edit/preview`（:246）不调用它；core/master_database/services.py:917 起的 bulk_edit_companies 不检查 status，:1009-1010 `await self._invitations.refresh_company_snapshot(edited_company_id)`；core/master_database/import_/importer.py:491-524 `_update_company`/`_replace_company` 仍执行 `update(Company).where(Company.name == name, Company.deleted_at.is_(None))`（:501、:514），不看 DISABLED；非测试代码中 grep merge_execute/merge_preview/transfer_members 的结果为 0；前端 src/api/admin.ts:92 bulkEditCompanies、:115 bulkEditPreview 仍是没人调用的导出。",
   "fix": "8eaef720 f7a003b8",
   "by": "lucy",
-  "chg": false
+  "chg": false,
+  "done": "前端早已不用的 merge（合并公司）接口已从后端删除（8eaef720），前端残留的调用代码也由 f7a003b8 删掉。",
+  "remain": "前端在用的 Master Database 导入按公司名直接覆盖资料，不看公司是否停用（importer.py:501、:514），平台管理员导入时可能改到停用公司。/bulk-edit 也不检查停用，前端虽已不调用，直接调接口仍能改。"
  },
  {
   "id": "N76",
@@ -3085,7 +3149,9 @@
   "note": "第 5 版之后未改动。停用公司的 Team 写操作仍由中间件统一拦下；Lily 的桩仍返回 False，TeamService 自己的只读保护仍是死代码，维持 low。\n证据：桩仍在：core/companies/services.py:572-575 `async def is_company_disabled(...)` ... 'until then no company is disabled' `return False`；core/team/services.py:215-222 _check_team_writable 在 :221 调用它（_check_team_writable 的调用方在 :229、:511）。Team 写接口都挂了 check_permissions：main_app/team/transport/handlers.py:86（POST /members/batch）、:120（PATCH role）、:157（PATCH status）、:413（DELETE）、:447（POST /members）。停用拦截：middlewares.py:136-137（有账号者）、:111-115（dev admin 分支判断 DISABLED）。对照：admin_users/repositories.py:149-152 是真实实现。",
   "fix": "b8e906f7",
   "by": "Lily",
-  "chg": false
+  "chg": false,
+  "done": "停用公司的 Team 加人、改角色、删成员已由权限中间件统一拦下（b8e906f7 合入），3e945bde 给 dev admin 放行时也排除了停用公司。",
+  "remain": "CompaniesService.is_company_disabled 仍是固定返回 False 的桩（companies/services.py:572-575），TeamService 自己的停用只读检查形同虚设。现在全靠中间件拦截，以后如果有 Team 写入口不经过中间件，就没有第二道保护。"
  },
  {
   "id": "N80",
@@ -3245,7 +3311,9 @@
   "note": "核心问题本轮未改动：legacy_models 仍以 13 个旧表名注册进 target_metadata，env.py 没有 include_object，autogenerate 会生成幻影建表，也会对所有 deprecated_*、备份表生成 drop_table，并在 ix_role_created_at 这类旧索引名上撞名。9d19c8a2 和 049461d68471 只是让 da8ba148ea59 改名的 6 张 system_ 表的索引名与 ORM 默认名对齐，消除了这几张表的索引漂移（例如原来的 ix_account_company_id）。31731a571e02 改名的 system_confirmation_*、log_audit_* 以及 deprecated 表的旧索引名没有处理，所以仍是部分修复、medium。\n证据：未变：core_app/src/app/migrations/legacy_models.py:39-80 Role（'role'）/Permission（'permission'）/CompanyRolePermission（'company_role_permission'）/Notification（'notification'），:82-160 APIEntity、*Member（:94 等 `ForeignKey('role.id')`）、RestaurantCategoryM2M、CompanyCompanyTypeModel，都继承 APIModel（pkg/models.py:18-25，created_at 带 index=True）。core_app/src/app/migrations/env.py:26 `target_metadata = Base.metadata`，:49-54、:61-65 的 context.configure 仍没有 include_object；Makefile:44 `alembic revision --autogenerate`。本轮变化：internal/core/accounts/models.py:57 `ForeignKey('company.id', ondelete='CASCADE'), index=True`、:44 `uq_system_account_user_id_company_id`、users/models.py:53-54、:82-86 改用新名，与 049461d68471 的改名一致（原 DB 名见 8c6f5e1a90b1:54-55 ix_account_created_at / ix_account_company_id）。049461d68471:18-19 跳过 deprecated_ 表；31731a571e02 改名的在用表 system_confirmation_code/session（auth/models.py:15、:65）仍挂着 ix_confirmation_*_created_at（55ce4a3bbce6:63、:122）。",
   "fix": "3c80afdd",
   "by": "删表前提",
-  "chg": true
+  "chg": true,
+  "done": "旧迁移改为从 migrations/legacy_models.py 导入旧表类，删表后 alembic 命令不会再 ImportError（3c80afdd）；6 张 system_ 表的索引名已对齐（9d19c8a2）。",
+  "remain": "开发者跑 autogenerate 生成迁移时，结果里会混进重建 13 张旧表、删除 deprecated_* 和备份表的语句（env.py 没有 include_object），不手工删掉就可能误删备份。system_confirmation_*、log_audit_* 的旧索引名也还没对齐。"
  },
  {
   "id": "N90",
@@ -3418,10 +3486,12 @@
   "text": "公司角色只在公司还没有任何角色时按模板生成一次：company_type 为空时先造出零权限的同名角色，之后补上类型或改类型都不再补种，owner 和成员拿不到权限或拿不到新类型独有的节点",
   "hash": "ded52c12",
   "file": "core_app/src/app/internal/core/permission_company/account_roles.py",
-  "note": "本轮未改动，第 5 版的部分修复仍然有效：零权限 CEO 的主路径已修。剩下的问题是改公司类型后不补种角色，新类型独有的节点拿不到，CEO 可以在 Roles & Permissions 里手工补勾，所以仍为 low。company_type 为空的公司走完 onboarding 时会遇到 ValueError，这一点也仍然存在。\n证据：后端 4b1db16c..HEAD 只改了 accounts/models.py 和 users/models.py，相关文件都没有动。已修：internal/core/permission_company/account_roles.py:101-102 `if found is None: raise ValueError(...)`；internal/core/master_database/repositories.py:808-809 `role_id = None` / `if company_type:`；internal/core/onboardings/services.py:434 `await self._companies_service.ensure_roles(company_id=company.id)`。仍在：account_roles.py:35-36 `if has_roles: return`、:38-39 `if not company_type: return`；internal/core/companies/repositories.py:892-900 replace_company_types 只设类型和默认品类，不补种也不重映射角色；internal/core/master_database/services.py:1246-1247 编辑公司时调用 replace_company_types_no_commit；internal/core/permission_company/services/account_permission.py:39 `for node_id in role_node_ids & type_node_ids`。",
+  "note": "本轮未改动，第 5 版的部分修复仍然有效：零权限 CEO 的主路径已修。剩下的问题是改公司类型后不补种角色，新类型独有的节点拿不到，CEO 可以在 Roles & Permissions 里手工补勾，所以仍为 low。company_type 为空的公司走完 onboarding 时会遇到 ValueError，这一点也仍然存在。\n证据：后端 4b1db16c..HEAD 只改了 accounts/models.py 和 users/models.py，相关文件都没有动。已修：internal/core/permission_company/account_roles.py:101-102 `if found is None: raise ValueError(...)`；internal/core/master_database/repositories.py:808-809 `role_id = None` / `if company_type:`；internal/core/onboardings/services.py:434 `await self._companies_service.ensure_roles(company_id=company.id)`。仍在：account_roles.py:35-36 `if has_roles: return`、:38-39 `if not company_type: return`；internal/core/companies/repositories.py:892-900 replace_company_types 只设类型和默认品类，不补种也不重映射角色；internal/core/master_database/services.py:1246-1247 编辑公司时调用 replace_company_types_no_commit；internal/core/permission_company/services/account_permission.py:39 `for node_id in role_node_ids & type_node_ids`。\n\n2026-11-19 补充（按后端 dd2e1556 核对）：第 6 版列的「company_type 为空的公司走完 onboarding 会 ValueError」已不成立：submit 的 SubmitOnboardingIn.company_type（onboarding/transport/requests.py:93）和 Activate 的 AddCompanyIn.company_type（me/transport/requests.py:12）都是必填，onboardings/services.py:176-192 先写入 company_type 再进 _finish_onboarding（:362、:392）。仍然存在的是改类型后不补种、不重新映射角色：account_roles.py:35-36 有角色就直接返回；5b319dae 的 set_company_type（companies/repositories.py:867-890）和 master_database/services.py:1248 只改 company_type 和默认品类。",
   "fix": "3e945bde 2ce2e52a",
   "by": "Felix",
-  "chg": false
+  "chg": false,
+  "done": "公司还没定类型时，不再先造出零权限的同名角色；onboarding 收尾会按类型模板补种带权限的角色，新公司 CEO 能拿到完整权限（3e945bde、2ce2e52a）。",
+  "remain": "公司已有角色后再改类型（Admin 编辑公司等），不会补种或重新映射角色（account_roles.py:35-36 有角色就直接返回）。新类型独有的权限节点没有任何角色拿得到，需要 CEO 去 Roles & Permissions 手工补勾。"
  },
  {
   "id": "N101",
@@ -3437,7 +3507,9 @@
   "note": "本轮未改动。改名绕过「最后一名 CEO」保护的路径仍已堵住。仍未修：有编辑权的非 CEO 可以给自己的角色勾上全部节点、清空 CEO 角色的节点；CEO 取消自己的编辑节点后，公司内无法恢复，只能靠 dev admin 代改（dev admin 跨租户放行记在 N2）。79c4cbc8 的 company_access_disabled 前端处理与本条无关。\n证据：后端 internal/core/permission_company/services/company_role.py（4b1db16c..HEAD 未改）:95-96 `if role.role_name == COMPANY_OWNER and role_name != COMPANY_OWNER: ... 'The CEO role cannot be renamed'`；:100-101 只做 check_type_nodes，没有「操作者本人角色」或「CEO 角色节点」的保护；:111-121 delete_role 只看 role_in_use。internal/main_app/middlewares/permissions/middlewares.py:95 `The CEO is no exception`，:97-116 dev admin 放行。前端 src/ui/pages/RolesPermissionsDetail/ui/RoleEditor.tsx（bc820add..HEAD 未改）:242 `<ReadOnlyFieldset readOnly={!canEdit}>`，:250 `disabled={data.role.roleName === CEO_ROLE_NAME}`，:269 PermissionTree 对 CEO 角色仍然可编辑，:273 `canDelete && data.role.roleName !== CEO_ROLE_NAME`。",
   "fix": "2ce2e52a 6ea81eb0 bc820add",
   "by": "Felix",
-  "chg": false
+  "chg": false,
+  "done": "CEO 角色已不能改名，前端也不再显示 CEO 角色的删除按钮（后端 2ce2e52a，前端 6ea81eb0、bc820add），借改名绕过「最后一名 CEO」保护的路径已经堵住。",
+  "remain": "有角色编辑权的非 CEO 仍能给自己的角色勾上全部权限，或清空 CEO 角色的权限（company_role.py:101 只校验节点是否属于公司类型）。CEO 如果取消了自己的编辑权，公司内没人能恢复，只能找 dev admin 代改。"
  },
  {
   "id": "N102",
@@ -3517,7 +3589,9 @@
   "note": "第 5 版之后未改动：主体（按角色节点 new_order_email 取收件人、自建角色可收）仍保持修好，未回归。剩余问题照旧：在 Team 被停用的成员仍会收到新订单邮件（也不看 User.is_active 用户级开关），新公司 CEO 模板带 new_order_email 后不再发门店邮箱这一点仍待产品确认。\n证据：后端 HEAD 9d19c8a2：core/orders/services.py:137 `NEW_ORDER_EMAIL_PERMISSION = 'new_order_email'`，:379-388 _collect_vendor_notification_emails 按 `get_account_contacts_by_permission(company_id=store_id, code=NEW_ORDER_EMAIL_PERMISSION)` 取收件人，无人有该节点才用 fallback_emails，:1623-1626 下单调用（store_id=order_data.vendor_id）；core/companies/repositories.py:604-618 get_account_contacts_by_permission 条件只有 `Account.company_id == company_id`、`Account.deleted_at.is_(None)`、角色有该节点、`User.email.is_not(None)`，仍无 `Account.is_active.is_(True)`（同文件 :387/:401/:415 其它查询都有）；core/permission_company/models.py:70-82 roles_with_permission 不看节点 status。",
   "fix": "d40b2d59 2ce2e52a",
   "by": "Felix",
-  "chg": false
+  "chg": false,
+  "done": "新订单邮件的收件人改为按角色上的 New Order Email 权限节点来取，公司自建的角色也能收到（2ce2e52a）。",
+  "remain": "在 Team 里被停用的成员仍会收到新订单邮件，收件人查询不看账号是否停用，也不看用户级开关（companies/repositories.py:604-618）。另外，新公司 CEO 模板带上该节点后就不再发到门店邮箱，这是否符合预期还待产品确认。"
  },
  {
   "id": "N107",
@@ -3757,7 +3831,9 @@
   "note": "79c4cbc8 让前端识别 403 company_access_disabled：会话中途被停用的成员会被切到第一家可进的公司，没有可进的公司就登出，第 5 版说的前后端契约错位已经补上。还剩几处小问题（low，不单列）：useLostAccessGuard.ts:11-17 的注释和 PrivateLayout.tsx:22 的注释仍按旧的 404 契约描述；监听器对任意一条 company_access_disabled 响应都会触发，不区分请求针对的是哪家公司；isHandling 在切换完成后的 finally 里复位，如果旧公司的请求晚到并返回 403，会以新公司作为「失去访问的公司」再切一次（只有两家公司的用户可能因此被登出）；没有为 AccessUpdatedNotice 和 switcherOrder 补测试。 第 6 版定级说明：复核代理判为已修复；新审查 1 条候选并入：79c4cbc8 的 AccessUpdatedNotice 只挂在 PrivateLayout，平台管理员走的 AdminLayout 没有监听者，会话中被停用的管理员不会被移出（要刷新才离开）。改为部分修复、low。79c4cbc8 的拦截器把别家公司的 403 也算到当前公司，另列为 N130。\n证据：前端 79c4cbc8（lucy）：src/config/axios/privateHttp.ts:83 `if (error?.response?.data?.type === ErrorTypes.COMPANY_ACCESS_DISABLED) reportAccessLost()`，这个拦截器在 :87 驼峰化拦截器之前注册，读的是后端原始响应体；src/models/errors.ts:27 新增 COMPANY_ACCESS_DISABLED；src/utils/accessRev.ts:72-83 reportAccessLost/onAccessLost；src/ui/widgets/AccessUpdatedNotice/AccessUpdatedNotice.tsx:36-66 先 fetch /me/accounts（staleTime 0），再用 `firstEnterableAccount(accounts, lost.id)` 选出下一家，有就 switchAccount 并弹 Access Updated，没有就登出；src/utils/switcherOrder.ts:9-15 用 isSwitchedOff 排除停用账号和已停用公司；PrivateLayout.tsx:35 挂载。后端未变：me/services.py:139-143、me/transport/handlers.py:253-257（映射为 FORBIDDEN）、middlewares/permissions/middlewares.py:136-137；/me/accounts 会列出已停用账号和已停用公司（me/services.py:224-227 include_switched_off=True），所以这种情况下列表不会为空。账号被删除和母公司被 8011513c0d5c 软删的情况返回 404（account_access.py:57-59 过滤 Company.deleted_at），仍由 useLostAccessGuard.ts:30 处理。",
   "fix": "79c4cbc8",
   "by": "lucy、Lily",
-  "chg": true
+  "chg": true,
+  "done": "前端已能识别 403 company_access_disabled：会话中被停用的成员会被切到下一家能进的公司，没有能进的公司就登出（79c4cbc8）。",
+  "remain": "平台管理员页面（AdminLayout）没有挂这个监听，管理员在会话中被停用后不会被移出，要刷新才离开。另外，旧公司的请求如果晚到并返回 403，会再触发一次切换，只有两家公司的用户可能因此被直接登出。"
  },
  {
   "id": "N122",
@@ -3805,7 +3881,9 @@
   "note": "lucy 的前端 e4b966df 在 Edit Info 保存时按名称从本公司采购组反查 id 一起提交，「每次保存都把 id 置空、改名同步不生效」这一半已修好（前提是采购组列表已加载完；未加载或请求失败时会提交 null，把已有 id 清掉）。后端本轮未改：PATCH 仍不校验 buying_group_id 是否属于报价单的 vendor 公司，名称与 id 可各自传值互不对应，不存在的 id 仍在 commit 时触发外键错误返回 500，响应也仍不返回 id（前端改用名称反查绕过）。条款侧校验仍不排除 is_enabled=False 的组。 第 6 版：新审查 1 条候选并入（同上；列表未就绪时提交 null 的结果与修复前相同，不算回归）。\n证据：前端 e4b966df（lucy）：src/ui/pages/Quotation/ui/QuotationInfo/EditInfoModal.tsx:182-184 `...(buyingGroup && { buyingGroupId: companyBuyingGroups?.find(group => group.name === buyingGroup)?.id ?? null })`，:98-106 选项只列 isEnabled 的组并按 createdAt 倒序；src/models/quotations/detail.ts:215 `buyingGroupId?: string | null`（响应模型 :174 仍只有 buyingGroup）。后端本轮未改（9d19c8a2 不涉及）：core/quotation/services.py:138-139 `_UPDATABLE_QUOTATION_FIELDS` 含 buying_group / buying_group_id，:1296-1297 `if 'buying_group' in fields: fields.setdefault('buying_group_id', None)`，:1299-1301 原样 setattr；main_app/quotation/transport/requests.py:143-144；handlers.py:855-873 只 `_require_vendor(actor)`；main_app/quotation/transport/responses.py:274 只有 buying_group，不返回 id；core/quotation/models.py:151-152 外键 company_info_buying_group.id ondelete SET NULL；core/companies/repositories.py:773-777 改名同步只按 buying_group_id 匹配；对照 core/manufacturer_terms/services.py:118-122 用 list_buying_groups(vendor_id) 校验（repositories.py:739-742 不过滤 is_enabled）。",
   "fix": "e4b966df",
   "by": "lucy",
-  "chg": true
+  "chg": true,
+  "done": "Edit Info 保存时按名称从本公司采购组反查出 id 一起提交，「每次保存都把 id 清空、改名同步不生效」已修好（e4b966df）。",
+  "remain": "后端 PATCH 仍不校验 buying_group_id 是否属于报价单的供应商：直接调接口能挂上别家公司的采购组，传不存在的 id 会返回 500（quotation/services.py:1296-1301）。前端采购组列表没加载完就保存，仍会把已有 id 清空。"
  },
  {
   "id": "N125",
@@ -3837,7 +3915,9 @@
   "note": "e4b966df 让列表页也只显示 terms.buying_group（提交说明明确不再回退旧 group affiliation），并让条款卡片可以选择、写入采购组，导出与列表不一致的问题由此消除，新数据也有了写入入口。仍未解决：存量 group_affiliation 没有迁移到 buying_group，现在列表、导出、卡片都不再显示它（卡片原来的 Group Affiliation 下拉也被替换），是否回填需要产品决定；导出用例仍断言 'Preferred Group Member'，在 HEAD 上必然失败。 第 6 版：新审查 1 条候选并入：e4b966df 让列表、卡片、导出统一只认新列，修好了不一致；但存量 group_affiliation 现在任何界面都看不到、也改不了，是否回填需要产品决定。\n证据：前端 e4b966df（lucy）：src/ui/pages/MfrContact/useMfrContact.ts:96 `buyingGroups: item.buyingGroups ?? []`（删除了回退到 groupAffiliation 的 toBuyingGroups）；features/MfrInfoForm/ui/TermsSection/TermsSection.tsx:88-102 Group Affiliation 下拉换成采购组下拉，types.ts:177/246 读写 terms.buyingGroup/buyingGroupId，groupAffiliation 不再在前端任何页面显示或提交（grep 仅剩 models 类型和 i18n 文案键）。后端本轮未改：core/manufacturer_relationships/reports.py:42 `'buying_group': ', '.join(item.buying_groups)`；repositories.py:281、:332 只取 VendorManufacturerTerms.buying_group；迁移 2026_11_18_1600-0ca8a0bba508_quotation_buying_group_id.py:12-13 不回填；测试 main_app/vendor/manufacturer_relationships/tests/export_manufacturers/test_export_manufacturers__success.py:56 只设 group_affiliation，:79 `assert alpha['Buying Group'] == 'Preferred Group Member'`，4b1db16c..HEAD 未改。",
   "fix": "e4b966df",
   "by": "lucy",
-  "chg": true
+  "chg": true,
+  "done": "列表页、条款卡片和 CSV 导出现在都只认新列 terms.buying_group，导出与列表不一致的问题已消除，卡片也能选择并写入采购组（e4b966df）。",
+  "remain": "存量的 group_affiliation 没有回填到新列，现在任何页面都看不到也改不了，老数据相当于被藏起来了，是否回填待产品决定。导出用例仍断言 'Preferred Group Member'（test_export_manufacturers__success.py:79），跑测试必然失败。"
  },
  {
   "id": "N127",
