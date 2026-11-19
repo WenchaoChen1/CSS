@@ -173,6 +173,11 @@ button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visibl
 .all .reply .rk { display: inline-block; font-size: 11px; font-weight: 600; color: var(--accent); margin-right: 6px; white-space: nowrap; }
 .all .reply .rv { color: var(--muted); }
 .all .reply .rv .rk { color: var(--muted); }
+/* 部分修复：修好了哪一半、还剩哪一半，直接显示（类名不能用 part，和状态标签 .chip.part 冲突） */
+.all .prog { margin-top: 6px; padding: 6px 10px; border-left: 3px solid var(--med); background: var(--med-bg); border-radius: 0 6px 6px 0; font-size: 13px; display: grid; gap: 3px; }
+.all .prog .rk { display: inline-block; font-size: 11px; font-weight: 600; margin-right: 6px; white-space: nowrap; }
+.all .prog .rk.ok { color: var(--ok); }
+.all .prog .rk.left { color: var(--med); }
 .all .pane.loc { white-space: normal; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
 .all .pane.loc ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
 .all .pane.loc li { overflow-wrap: anywhere; }
@@ -296,7 +301,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <article class="issue"><div class="id">N97</div><div class="body"><h3>迁移按规则硬删「邀请占位公司」，不留备份</h3><p><code>c4d8e2a6f1b3</code> 选出 9-17 之后创建、没有 owner、邀请码没用过、并命中「被客户关联」「名称和第一段街道与供应商的临时客户相同」「VENDOR 名称为空」之一的公司，直接 <code>DELETE FROM company</code>，级联删掉公司信息、订阅、电话、配送设置和公司角色。Admin 导入、没有联系方式的公司不受保护；没有客户关联的被删公司邀请码不转存，已发出的邀请升级后失效；downgrade 不重建公司。<b>本地实测</b>：删了 43 家（含 5 家 ACTIVE），26 家的码丢失。</p></div><div class="side"><span class="by">8eaef720 · lucy</span><span class="chip new">新问题</span><small>先在 prod 副本上跑 SELECT 看会删谁；改成软删除或先导出。test 很可能已执行</small></div></article>
       <article class="issue"><div class="id">N2</div><div class="body"><h3>dev admin 对所有公司放行，又回来了</h3><p><code>b8e906f7</code> 一度删掉了中间件里 dev admin 的放行，<code>3e945bde</code> 又加了回来：调用者自己的校验失败后，只要是 dev admin、公司没停用，就直接放行，不看权限码，也不要求在该公司有账号，<code>/account/*</code> 同样适用。「平台 admin 提权成 dev admin」一侧已堵上；本版又给 dev admin 增加了改全局权限树的接口，都没有审计。固定密码的种子账号（H1）仍在。</p></div><div class="side"><span class="by">3e0391c7 08ec08da 3e945bde</span><span class="chip worse">更严重</span></div></article>
       <article class="issue"><div class="id">N73</div><div class="body"><h3>新建的 vendor 公司一接单，订单列表就 500</h3><p><code>3e945bde</code> 让 onboarding 收尾时给 VENDOR 补建 <code>store_delivery</code>，邀请、Admin 建公司、导入这些要走 onboarding 的路径都覆盖了。剩下公司切换器里的 Add Company：直接建出 ACTIVE 的 vendor，不经过 onboarding，也不补这行。</p></div><div class="side"><span class="by">c8fb1cd6 2538e427</span><span class="chip part">部分修复</span><small>Add Company 也补，或缺行时兜底为 0</small></div></article>
-      <article class="issue"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id（F5）</h3><p><code>b7d82c2e651b</code> 没变。第 6 版：<code>049461d68471</code> 的孤儿检查发现不了这类冲突，新外键反而会把错挂的账号固定在错误的公司上。H6 的另一半 F4（副本混进列表）因母公司被删，本版关闭。</p></div><div class="side"><span class="by">2a7d08bc e3ba8005</span><span class="chip open">F5 未修，F4 已关闭</span><small>uat 执行前先做只读冲突核查</small></div></article>
+      <article class="issue"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id（F5）</h3><p><code>b7d82c2e651b</code> 没变。第 6 版：<code>049461d68471</code> 的孤儿检查发现不了这类冲突，新外键反而会把错挂的账号固定在错误的公司上。H6 的另一半 F4（副本混进列表）因母公司被删，第 6 版关闭；2026-11-19 厂商母公司被 <code>36cd67a87d67</code> 恢复后重开，改为部分修复（中危）。</p></div><div class="side"><span class="by">2a7d08bc e3ba8005</span><span class="chip open">F5 未修，F4 部分修复</span><small>uat 执行前先做只读冲突核查</small></div></article>
       <article class="issue"><div class="id">H5</div><div class="body"><h3>迁移清空所有公司的 parent_company_id</h3><p><code>d8aaccb9a900</code> 没变。原值只在 <code>company_back</code> 里（新库里叫 <code>deprecated_company_back</code>），按 D9 要删。第 7 版：厂商母公司被 <code>36cd67a87d67</code> 恢复，「分支指向已删除行」现在只对门店和餐厅成立；已删除的厂商子公司也被清空了 parent，会被一并恢复。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip open">未修</span><small>prod 升级前只读导出层级，请产品书面确认</small></div></article>
       <article class="issue lo"><div class="id">N88</div><div class="body"><h3>deprecated_* 表是多条问题唯一的数据来源（按 D22 不计入）</h3><p>用户确认 <code>deprecated_</code> 开头的表以后都会删除，审查时当作不存在（D22）。本条的风险完全建立在「这些表还能用来找回或核查数据」上，所以不再计入；它列出的数据丢失分别由 F3（旧层级）、F5、N41、F13、N61、N99、N129、N133、N3 跟踪，按 D22 视为已丢失。</p></div><div class="side"><span class="by">删表前提</span><span class="chip down">按 D22 不计入</span></div></article>
       <article class="issue done"><div class="id">N34</div><div class="body"><h3>只合入了公司角色迁移，没合入代码</h3><p>已修：配套代码经 <code>b6c1083a</code> 合入，ORM、读取方和所有写角色的入口都改到 <code>system_company_role</code>（人工核对）。已执行过中间版本的库缺 10 个迁移，记在 F6。</p></div><div class="side"><span class="by">3f19b998</span><span class="chip fixed">已修复 · ded52c12 69c5cb38</span></div></article>
@@ -384,7 +389,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前六版（含第 6 版补充）的 238 条、另一台电脑补录的 2 条（N134、N135），加本版新问题 4 条（N136–N139）。X1、X2 是范围外的存量问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「本版新增」筛选包括本版内已修或部分修复的新问题。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
+    <p class="prose count">前六版（含第 6 版补充）的 238 条、另一台电脑补录的 2 条（N134、N135），加本版新问题 4 条（N136–N139）。X1、X2 是范围外的存量问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「本版新增」筛选包括本版内已修或部分修复的新问题。级别是复核后的当前级别（已关闭的显示关闭前级别）。「部分修复」的条目下面直接写了修好了哪部分、还剩什么（按后端 <code>bd254f8e</code>、前端 <code>f9ae662e</code> 核对）；团队答复过的条目下面有团队原话和核实结论；点开说明可以看到各版复核的结论和证据行号。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -504,7 +509,7 @@ function syncAllLoc() {
 function refreshAutoLoc() {
   const term = q.value.trim().toLowerCase();
   autoLoc = new Set(!term ? [] : DATA.filter(d => String(d.file || '').toLowerCase().includes(term) &&
-    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by, d.reply, d.replyv].join(' ').toLowerCase().includes(term)).map(d => d.id));
+    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by, d.reply, d.replyv, d.done, d.remain].join(' ').toLowerCase().includes(term)).map(d => d.id));
 }
 function locCell(d) {
   const locs = splitLoc(d.file);
@@ -528,7 +533,7 @@ function stMatch(d) {
 function render() {
   const term = q.value.trim().toLowerCase();
   const list = DATA.filter(d => (f.sev === 'all' || d.sev === f.sev) && stMatch(d) &&
-    (!term || [d.id, d.lab, d.text, d.hash, d.file, d.note, d.fix, d.by, d.reply, d.replyv].join(' ').toLowerCase().includes(term)));
+    (!term || [d.id, d.lab, d.text, d.hash, d.file, d.note, d.fix, d.by, d.reply, d.replyv, d.done, d.remain].join(' ').toLowerCase().includes(term)));
   rows.innerHTML = list.map(d => {
     const st = ST[d.st] || [d.st, 'open'];
     const closed = CLOSED.includes(d.st);
@@ -541,10 +546,13 @@ function render() {
     const loc = locCell(d);
     const reply = d.reply ? `<div class="reply"><div><span class="rk">团队答复</span>${esc(d.reply)}</div>` +
       (d.replyv ? `<div class="rv"><span class="rk">核实</span>${esc(d.replyv)}</div>` : '') + '</div>' : '';
+    const prog = d.done || d.remain ? '<div class="prog">' +
+      (d.done ? `<div><span class="rk ok">已修好</span>${esc(d.done)}</div>` : '') +
+      (d.remain ? `<div><span class="rk left">还剩</span>${esc(d.remain)}</div>` : '') + '</div>' : '';
     return `<tr><td class="n">${id}${d.lab ? `<span class="lab">${esc(d.lab)}</span>` : ''}</td>` +
       `<td><span class="sev ${d.sev}">${SEV[d.sev] || d.sev}</span>${was}</td>` +
       `<td><span class="chip ${st[1]}">${st[0]}</span>${prev}${fix}</td>` +
-      `<td class="txt">${esc(d.text)}${reply}<div class="acts">` +
+      `<td class="txt">${esc(d.text)}${prog}${reply}<div class="acts">` +
       `<button type="button" class="tog" data-t="note" data-id="${id}" aria-expanded="${noteOpen}" aria-controls="note-${id}">${!d.prev ? '详情与证据' : '复核说明'}</button>` +
       `${loc.btn}</div><div class="pane" id="note-${id}"${noteOpen ? '' : ' hidden'}>${esc(d.note)}</div>${loc.pane}</td>` +
       `<td class="h">${esc(d.hash || '—')}${by}</td></tr>`;
