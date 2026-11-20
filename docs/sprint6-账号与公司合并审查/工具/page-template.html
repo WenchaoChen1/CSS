@@ -207,7 +207,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     </div>
     <div class="verdict">
       <strong>结论：仍然不能上 uat / prod</strong>
-      <p><b>这一轮进展很大：未关闭从 163 条降到 103 条，高危从 7 条降到 4 条。</b>开发按「第 6 版补充」页面修改后答复了 145 条，逐条核实：成立 43、部分成立 36、不成立或没答到点 20、按设计接受 24、按前提不计入 22。N73（高危）已修好，N2 的 dev admin 全公司放行已去掉（降为中危），N97（高危）团队已用 SQL 查过 uat/prod，按前提不计入但升级前要再查一次。</p>
+      <p><b>这一轮进展很大：未关闭从 163 条降到 107 条，高危从 7 条降到 4 条。</b>开发按「第 6 版补充」页面修改后答复了 145 条，逐条核实：成立 43、部分成立 36、不成立或没答到点 20、按设计接受 24、按前提不计入 22。N73（高危）已修好，N2 的 dev admin 全公司放行已去掉（降为中危），N97（高危）团队已用 SQL 查过 uat/prod，按前提不计入但升级前要再查一次。</p>
       <p><b>还没解决的高危 4 条</b>：N140（Bill To 取餐厅 CEO 的登录邮箱和手机号，本轮没改，也不在团队答复范围内）、N129（部分修复：INVITED 母公司已恢复，订阅和主发票问题仍在；团队「母公司全删」的说法和代码不一致）、H5、H6。<b>新问题</b>：N148（中危）<code>8b980708773e</code> 恢复范围过宽，系列之前删掉的 INVITED 公司也会回来；N149–N152（低）。不成立的答复里最需要回问的是 F73、F127：答复说「全部按新权限结构控制」，后端写损和分类写接口其实仍不校验权限。</p>
     </div>
     <p class="correction prose"><b>test 环境：</b>这些提交都已在 test 上。<code>b176ff9a</code> 推送的 <code>476ff599ad47</code> 旧版在所有库上都会失败，test 部署曾因此中断，<code>e050bab3</code> 修正后才继续；建议在 test 上查一下有没有公司被设成 admin 类型。本版没有连接任何数据库，也没有运行测试；迁移链单一 head <code>8b980708773e</code>，从 uat/prod 的 <code>731ddff784cc</code> 升级执行 92 个，不重跑。</p>
@@ -215,18 +215,18 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>103</b><span>当前未关闭（第 8 版 163 条：关闭 65、新增 5）</span></div>
+      <div class="stat"><b>107</b><span>当前未关闭（第 8 版 163 条：关闭 61、新增 5）</span></div>
       <div class="stat h"><b>4</b><span>高危（N73 修复、N97 按前提不计入、N2 降为中危）</span></div>
-      <div class="stat m"><b>28</b><span>中危（新增 N148；按设计接受 N99、N101–N103 等）</span></div>
+      <div class="stat m"><b>32</b><span>中危（新增 N148；N99、N101–N103 你决定不接受，改回未关闭）</span></div>
       <div class="stat l"><b>71</b><span>低危（新增 N149–N152）</span></div>
       <div class="stat n"><b>5</b><span>第 9 版新发现（N148–N152）</span></div>
     </div>
     <h2>第 8 版的 252 条问题的现状</h2>
     <div class="flow">
-      <div class="fx"><b>154</b><span>已关闭或不计入</span><ul><li>本版关闭 65 条：已修复或不再适用 26（含 N73）、按设计接受 19、按前提不计入 20（含 N97）</li><li>累计：已修复 72、不再适用 17、按设计接受 29、按前提不计入 36</li></ul></div>
-      <div class="pt"><b>40</b><span>部分修复</span><ul><li>N2 dev admin 放行已去掉，仍可给自己开账号</li><li>N129 INVITED 母公司已恢复</li><li>N120 Packer/Driver 登录落在 Quotations</li></ul></div>
+      <div class="fx"><b>150</b><span>已关闭或不计入</span><ul><li>本版关闭 61 条：已修复或不再适用 26（含 N73）、按设计接受 15、按前提不计入 20（含 N97）</li><li>累计：已修复 72、不再适用 17、按设计接受 25、按前提不计入 36</li></ul></div>
+      <div class="pt"><b>41</b><span>部分修复</span><ul><li>N2 dev admin 放行已去掉，仍可给自己开账号</li><li>N129 INVITED 母公司已恢复</li><li>N120 Packer/Driver 登录落在 Quotations</li></ul></div>
       <div class="wr"><b>6</b><span>更严重</span><ul><li>F4 恢复的母公司和门店副本同时出现</li><li>F6 又改写了 test 已执行的迁移</li><li>N133 又多一类恢复过宽；F51、F63、N141</li></ul></div>
-      <div class="op"><b>52</b><span>仍存在</span><ul><li>N140 Bill To 泄露 CEO 登录信息</li><li>F73、F127 后端不校验权限</li><li>N136 test 合并带进的回退</li></ul></div>
+      <div class="op"><b>55</b><span>仍存在</span><ul><li>N140 Bill To 泄露 CEO 登录信息</li><li>F73、F127 后端不校验权限</li><li>N136 test 合并带进的回退</li></ul></div>
     </div>
     <p class="count prose">复核方法：252 条分 35 批逐条复核，有答复的同时按 D19 判断答复是否成立；新提交从 7 个方向审查，25 条候选对抗式验证后新增 4 条、补记 1 条、并入 10 条、驳回 4 条（2 条记为范围外）。人工核对了 N73 的修复和 N2 的放行已去掉。没有连接数据库，没有运行测试。</p>
   </section>
@@ -251,7 +251,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li><b>成立 43</b>：N73、N8、N9、N11、N12、N38、N39、N40、N49 等，代码里找到了修复</li>
         <li><b>部分成立 36</b>：N129、N2、N17、N41、N57、N68、N105 等，写明还剩什么</li>
         <li><b>不成立 20</b>：F73、F127「全部按新权限控制」后端其实不拦；F77、F113、F149「已处理」找不到提交；F97 接口仍在用；N133、N119「没问题」没给理由</li>
-        <li><b>按设计接受 24</b>：N99、N101、N102、N103、N72、N58、F136 是中危取舍，请你确认代价</li>
+        <li><b>按设计接受 24</b>：其中 N99、N101、N102、N103 你决定不接受，改回未关闭（D23）；N72、N58、F136 等仍有代价</li>
         <li><b>按前提不计入 22</b>：N97 升级前要再查一次；测试类按团队取舍；N90、F118 不关闭</li>
       </ul></div>
       <div class="cat"><h3>第 7 版复核 <span>没有推翻</span></h3><ul>
@@ -477,7 +477,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       </ul>
       <h2 style="margin-top:12px">需要你或产品确认</h2>
       <ul class="steps">
-        <li>第 3 批答复按设计接受的中危取舍：N99（升级把各公司权限重置成模板）、N101（有编辑权就能给自己提权）、N102（很多按钮权限后端不拦）、N103（admin 公司受限角色在后端不起作用）、N72、N58、F136，是否都接受？</li>
+        <li>N99、N101、N102、N103 已决定不接受、改回未关闭（D23）；N72、N58、F136、N10、N110 仍按设计接受，是否都接受？</li>
         <li><s>9 张备份表按 D9 保留还是一起删（N93）？</s> 已按 D22 处理：<code>deprecated_*</code> 表以后都会删。</li>
         <li>升级时各公司的定制权限重置成模板，是否接受（N99）？</li>
         <li>新公司的新订单邮件只发 CEO、不再发门店邮箱，是否有意（N106）？</li>
