@@ -1,0 +1,994 @@
+[
+ {
+  "key": "N129_pre_parents",
+  "findings": "N129",
+  "env": "pre",
+  "title": "预测 8011513c0d5c 会软删的母公司数（按 type × 升级时算出的 status 分组），以及其中哪些会被 36cd67a87d67 / 8b980708773e 恢复、哪些升级后仍被删",
+  "based_on": "8011513c0d5c_delete_parent_companies.py:31-34（顶层、未删、有任意子行含已删子行）；d8aaccb9a900:56 先清空全部 parent_company_id，所以现有公司全部变顶层；b7d82c2e651b:108-134 子行 = store.company_id / restaurant.company_id / manufacturer_subdivision.manufacturer_company_id（含已删行）；status 复刻 d6b0f4a8c2e5:37-74 三条 UPDATE（account 由 8c6f5e1a90b1:28-84 从 company_member 原样拷贝，故用 company_member 判断）；36cd67a87d67:26-29 恢复全部顶层 MANUFACTURER；8b980708773e:30-35 恢复 INVITED 且 user_id 非空的；c4d8e2a6f1b3:21-63 _DOOMED（created_at >= 2026-09-17、user_id 为空的 CLIENT/VENDOR 可能先被物理删除）",
+  "interpret": "每行一个 type × 预测 status。n_soft_deleted_by_8011 是 8011513c0d5c 会软删的母公司数。MANUFACTURER 行会全部被 36cd67a87d67 恢复。n_restored_by_8b98 是 INVITED 且有 owner、会被 8b980708773e 恢复的数量。n_still_deleted_after_upgrade 是升级完仍被删除的母公司数，大于 0 说明 N129 会在该库实际发生；其中 n_subscriber_active 是订阅在用的。n_all_children_deleted 是没有在用子行的母公司数：9d18fcda7ab1 不会给它们复制账号，成员会完全失去入口。n_may_be_hard_deleted_by_c4d8_first 是上限：这些公司可能先被 c4d8e2a6f1b3 物理删除，不为 0 时要单独核对。status 是按迁移规则预测出来的，现库里没有这个字段。"
+ },
+ {
+  "key": "N129_pre_assets",
+  "findings": "N129",
+  "env": "pre",
+  "title": "8011513c0d5c 要软删的母公司上挂着多少 vendor_product、厂商目录、库存、自有 master invoice、未用邀请码和成员账号（按 type × 升级后去向分组）",
+  "based_on": "8011513c0d5c:31-34；36cd67a87d67:26-29；8b980708773e:30-35（owner 非空且无 owner 账号 => d6b0f4a8c2e5:68-74 置 INVITED）；vendor_product.vendor_id 迁移中不改（1f7c3a9e5b28:7-12 只动 store_product）；库存 6a2f8c4e1d93:125-133 把 manufacturer_subdivision_product 全部移到产品所属厂商（母公司）；9a3e5c7d2f41:58 只把 store_id/restaurant_id 非空的 master_invoice 改挂门店/餐厅，两者都空的留在母公司；c4d8e2a6f1b3:90-126 未用邀请码按 company_id 迁入 company_invitation（不和 client 关联的就是 Admin 码）；8c6f5e1a90b1 company_member -> account",
+  "interpret": "重点看 fate=stays_deleted 的行，这些母公司升级后仍被删除，各列计数就是会失去入口的数据量：n_vendor_product（供应商目录）、n_own_master_invoice（母公司自己上传的 master invoice）、n_open_admin_code（没有 owner 的母公司上还没用的管理员邀请码，迁到 company_invitation 后仍是未使用，但公司已删）、n_open_client_link_code（供应商发给它的客户邀请链接）、n_live_member_accounts（在用成员账号）。n_manufacturer_product 和 n_inventory_rows 在 stays_deleted 行里正常应为 0（厂商母公司都会被恢复），不为 0 说明有挂着厂商目录的非厂商类型母公司。restored_by_* 的行只作参照。stays_deleted 行全为 0 或不存在，说明 N129 剩余部分在该库没有实际影响。"
+ },
+ {
+  "key": "N129_pre_users",
+  "findings": "N129",
+  "env": "pre",
+  "title": "升级后仍被删的母公司上的成员，有多少人会一个可用账号都不剩",
+  "based_on": "8011513c0d5c:12-13 docstring（账号不动，但已删公司里的账号不再可用）；9d18fcda7ab1:35-41、61-103 只把母公司账号复制到未删除的子行；8c6f5e1a90b1:28-84 四张成员表 -> account；8011513c0d5c:31-34、36cd67a87d67:26-29、8b980708773e:30-35",
+  "interpret": "n_users_with_live_account_in_stays_deleted_parent 是升级后仍被删除的母公司上，有在用成员账号的用户数。n_users_left_without_usable_account 是其中升级后一个可用账号都不剩的用户数，大于 0 就是升级后无法正常进入系统的真实用户。这是下限：只要母公司还有在用子行，就假定 9d18fcda7ab1 一定能复制账号过去（实际上角色匹配不上时不会复制），所以真实数只会更大。同一用户在不同类型的母公司都有账号时，会在每个类型下各算一次。"
+ },
+ {
+  "key": "N129_post_still_deleted",
+  "findings": "N129",
+  "env": "post",
+  "title": "test 上被软删、至今仍处于删除状态的顶层母公司（区分是否属于 8011513c0d5c 那一批，以及 sprint6 前是否在用）",
+  "based_on": "8011513c0d5c:31 同一条 UPDATE 写入 deleted_at = updated_at = now()，env.py transaction_per_migration=True，所以整批时间戳相同（取出现最多的 deleted_at 当作该批）；5365a6cf834e:19-20 deprecated_company_back 是 sprint6 复制前 company 的完整快照（只读参照，用来判断 sprint6 前是否已删）",
+  "interpret": "in_8011_batch=true 的行是被 8011513c0d5c 软删、又没被 36cd67a87d67 / 8b980708773e 恢复的母公司，batch_deleted_at 是这次迁移在 test 上的执行时间。n_live_before_sprint6 是 sprint6 之前在用、被这次迁移删掉的，就是 N129 在 test 上的实际受害数；n_subscriber_active 是其中订阅在用的，n_with_live_child 是门店或餐厅副本还在用的。in_8011_batch=true 的行里如果出现 MANUFACTURER，或 status=INVITED 且 n_with_owner>0，说明恢复迁移没有按预期生效。in_8011_batch=false 的行只作参照。如果某批由应用自己批量删除、条数比 8011 那批还多，batch 会认错，这时看 batch_deleted_at 是否等于迁移执行时间。"
+ },
+ {
+  "key": "N129_post_assets",
+  "findings": "N129",
+  "env": "post",
+  "title": "test 上 8011513c0d5c 批次中仍被删除的母公司，挂着多少 vendor_product、目录、库存、master invoice、未用邀请码、账号，以及失去全部可用账号的用户数",
+  "based_on": "8011513c0d5c:31-34；6a2f8c4e1d93:125-133（库存改挂 company_id = 产品所属厂商）；9a3e5c7d2f41:58；c4d8e2a6f1b3:90-126（Admin 码 inviter_company_id 为空）；8011513c0d5c:12-13 已删公司里的账号不再可用",
+  "interpret": "只统计 8011513c0d5c 那一批、至今仍被删除的母公司。n_vendor_product、n_master_invoice、n_manufacturer_product、n_inventory_rows 大于 0，说明这些数据在 test 上已经失去入口（N129 剩余部分已实际发生）。n_product_rows 正常应为 0，不为 0 说明有产品挂在已删的母公司上。n_open_admin_code 是失效的管理员邀请码数。n_users_no_live_company_account 是在任何未删公司里都没有在用账号的用户数，大于 0 就是 test 上已经无法正常使用的账号（test 数据已脱敏）。返回 0 行说明这一批里没有仍被删除的母公司。"
+ },
+ {
+  "key": "N148_pre_restored",
+  "findings": "N148,F4",
+  "env": "pre",
+  "title": "预测 8b980708773e 会恢复的公司数，拆成两类：被 8011513c0d5c 刚删的，和现在 uat/prod 上已经删除的（N148 误恢复）",
+  "based_on": "8b980708773e:30-35（顶层、已删、status=INVITED、user_id 非空、有子行，不限删除时间）；d6b0f4a8c2e5:68-74 置 INVITED 时不看 deleted_at：owner 非空、且 owner 在该公司从没有账号（含已删账号，账号来自 company_member，8c6f5e1a90b1）；d8aaccb9a900:56 使现有公司全部成为顶层；36cd67a87d67:26-29 先恢复了 MANUFACTURER，所以 8b980708773e 只会碰到非厂商；8011513c0d5c:31-34",
+  "interpret": "source=already_deleted_now 的行就是 N148：现在 uat/prod 上已经删除、升级时会被 8b980708773e 一起恢复的公司，大于 0 说明误恢复会在该库真实发生。n_with_audit_deleted 是其中有公司级删除审计（Admin 在 Master Database 删的）的数量，n_with_audit_merged 是被合并掉的数量，可以确认这些是人为删除的。min/max_deleted_date 是原删除时间范围。source=live_now_deleted_by_8011 是 8b980708773e 设计上要救回的那批，属于预期内。两类里的 n_with_live_child_copy 是恢复后母公司和在用门店/餐厅副本同时出现的家数（F4 门店/餐厅一侧回退）。"
+ },
+ {
+  "key": "N148_post_restored",
+  "findings": "N148,F4",
+  "env": "post",
+  "title": "test 上顶层、在用、有 owner、有子行的 CLIENT/VENDOR 公司：哪些属于 8b980708773e 恢复的那批，以及其中 sprint6 前就已删除的",
+  "based_on": "8b980708773e:30-35 恢复时 SET updated_at = now()（同一事务时间戳，取 INVITED 候选里出现最多的 updated_at 当作该批）；5365a6cf834e:19-20 deprecated_company_back 为 sprint6 前快照，只读参照",
+  "interpret": "in_8b98_batch=true 的合计就是 test 上 8b980708773e 恢复的公司数。其中 before_sprint6=deleted_before_sprint6 的是 N148 误恢复：sprint6 前就已删除、被一起恢复了，大于 0 即坐实 N148；n_with_audit_deleted（公司级删除审计）和 n_with_audit_merged（被合并）可以证明是人为删除的。live_before_sprint6 是设计内要救回的。owner 后来如果完成了 onboarding，status 和 updated_at 都会变，这些行会落在 in_8b98_batch=false，所以 in_8b98_batch=false 且 deleted_before_sprint6 的行也要看。n_with_live_child_copy 是母公司和在用门店/餐厅副本同时在用的家数（F4 回退）。"
+ },
+ {
+  "key": "N133_pre_revived",
+  "findings": "N133",
+  "env": "pre",
+  "title": "预测 36cd67a87d67 会复活多少现在已删除的厂商（d8aaccb9a900 清空 parent 后全部变顶层），以及其中有删除/合并审计记录的",
+  "based_on": "36cd67a87d67:26-29（parent_company_id IS NULL AND type='MANUFACTURER' AND deleted_at IS NOT NULL，不限删除时间）；d8aaccb9a900:56 先清空全部 parent_company_id，所以现在挂在 Master Database 母公司下的已删厂商也会变顶层被复活；b7d82c2e651b 的子部门副本 parent 非空，不受影响",
+  "interpret": "n_revived_by_36cd 合计就是升级时会被复活的、sprint6 前就已删除的厂商数，大于 0 即坐实 N133。audit_deleted=true（有公司级删除审计）或 audit_merged=true（被合并掉）的行能确认是 Admin 在 Master Database 删除或合并的厂商，复活它们是错误恢复。n_same_name_as_live_manufacturer 是复活后和现有在用厂商同名的数量，大概率是被合并掉的重复项。n_with_live_member 是复活后成员账号重新可用的厂商数。n_with_live_subdivision 是复活后还会带出在用子部门副本的厂商数（叠加 F4）。has_parent_now=true 的是现在挂在 Master Database 母公司下的已删厂商，同样会被复活。n_live_manufacturers_now 是现有在用厂商总数，用来对比规模。"
+ },
+ {
+  "key": "N133_post_revived",
+  "findings": "N133",
+  "env": "post",
+  "title": "test 上顶层厂商按「sprint6 前是否已删」×「现在是否在用」分组，看 36cd67a87d67 复活了多少 sprint6 前就已删除的厂商",
+  "based_on": "36cd67a87d67:26-29；5365a6cf834e:19-20 deprecated_company_back 保存 sprint6 前的 deleted_at（只读参照；test 上原 deleted_at 已被 36cd67a87d67 清空，只能从这里看）",
+  "interpret": "before_sprint6=deleted_before_sprint6 且 live_now=true 的那一行，就是 test 上被 36cd67a87d67 错误复活的厂商数，大于 0 即坐实 N133。其中 n_with_audit_deleted（公司级删除审计）和 n_with_audit_merged（被合并）能确认是人为删除的；n_same_name_as_other_live_top_mfr 是复活后和其他在用厂商同名的重复项；n_with_live_account 是成员账号重新可用的。live_before_sprint6 且 live_now=true 是 8011 删后被正常救回的那批，属于预期内。deleted_before_sprint6 且 live_now=false 是复活后又被删掉的。"
+ },
+ {
+  "key": "F4_pre_mfr_default",
+  "findings": "F4",
+  "env": "pre",
+  "title": "预测升级后有多少家厂商母公司在用，同时它的 Default（或其他）子部门副本也在用",
+  "based_on": "b7d82c2e651b:63-73、108-134 子部门复制为 MANUFACTURER 公司行（is_default 照抄、deleted_at 照抄、parent=manufacturer_company_id）；8011513c0d5c:31-34 删厂商母公司后 36cd67a87d67:26-29 又把全部顶层 MANUFACTURER 恢复（含现在已删除的）；中间迁移没有删除子部门副本",
+  "interpret": "两行合计是升级后在用的厂商母公司数。n_with_live_default_copy 是升级后在供应商的厂商列表、Master Database、Add User 里会同时出现「厂商 + Default 副本」的家数，大于 0 即 F4 厂商一侧在该库成立；和合计数接近，说明几乎每家都会多出一条。deleted_now_revived_by_36cd=true 那一行是 N133 复活的厂商，同样会带出副本。n_with_live_store_copy 是挂在厂商名下的门店副本（类型错位），也会和母公司并存。"
+ },
+ {
+  "key": "F4_post_mfr_default",
+  "findings": "F4",
+  "env": "post",
+  "title": "test 上厂商母公司和它的 Default 子部门副本同时在用的家数",
+  "based_on": "b7d82c2e651b:108-134；36cd67a87d67:26-29；8011513c0d5c:31-34",
+  "interpret": "n_with_live_default_child 是厂商母公司和 Default 副本同时在用的家数，大于 0 即 F4 厂商一侧在 test 上已经出现；它和 n_live_top_manufacturers 的比值就是受影响比例。n_live_mfr_children_active 是状态为 ACTIVE 的子部门副本数，按 status=ACTIVE 查询的列表（如 get_addable_companies）会选中它们。n_live_other_type_children 是挂在厂商下的门店或餐厅副本，类型错位，同样和母公司并存。"
+ },
+ {
+  "key": "F4_post_client_vendor",
+  "findings": "F4,N148",
+  "env": "post",
+  "title": "test 上 CLIENT/VENDOR 母公司在用、同时门店或餐厅副本也在用的家数（8b980708773e 带来的回退）",
+  "based_on": "8b980708773e:30-35 只恢复母公司，子行不动；b7d82c2e651b:108-134 门店/餐厅副本；8011513c0d5c:31-34",
+  "interpret": "n_live_parents_with_live_copy 合计是 Master Database 里同时出现「母公司 + 副本」的 CLIENT/VENDOR 家数，大于 0 即 F4 门店/餐厅一侧的回退在 test 上已经出现。status=INVITED 的是 8b980708773e 恢复、owner 还没完成 onboarding 的；status=ACTIVE 的是 owner 已完成 onboarding 的，Add User 里会同时看到母公司和副本。n_copies_without_live_account 是没有任何在用账号的副本数（和 N41 相关）。"
+ },
+ {
+  "key": "F3_pre_hierarchy",
+  "findings": "F3",
+  "env": "pre",
+  "title": "现在 uat/prod 有多少公司设了 parent_company_id（Master Database 层级），升级时 d8aaccb9a900 会把它们全部清空",
+  "based_on": "d8aaccb9a900:56 `UPDATE company SET parent_company_id = NULL WHERE parent_company_id IS NOT NULL`（无条件）；之后 parent_company_id 只由 b7d82c2e651b 给副本赋值，原有层级没有任何迁移写回；8011513c0d5c:31-34",
+  "interpret": "n_links_cleared_by_d8aa 合计是升级时会被抹掉的 Master Database 母子关系条数，n_distinct_parents 是涉及的母公司数；大于 0 即 F3 在该库会造成实际的不可恢复丢失。child_deleted=false 且 parent_deleted=false 的行是在用的层级，最要紧。n_children_subscriber_active 是订阅在用的子公司数。n_parents_also_soft_deleted_by_8011 是还同时有门店、餐厅或子部门、会被 8011513c0d5c 软删的母公司数（其中厂商和 INVITED 且有 owner 的随后会被 36cd/8b98 恢复），和 N129 叠加。合计为 0 说明该库没有 Master Database 层级，F3 在这里只是代码语义问题。"
+ },
+ {
+  "key": "F3_post_hierarchy",
+  "findings": "F3",
+  "env": "post",
+  "title": "test 上 sprint6 前的母子关系现在怎样了（被清空 / 仍相同 / 改挂），以及升级后又被应用写上 parent 的原公司",
+  "based_on": "d8aaccb9a900:56；5365a6cf834e:19-20 deprecated_company_back 是清空前的快照（只读参照，用来对比；按 D22 不能作为恢复来源）",
+  "interpret": "now_state=parent_cleared 的合计是 test 上已被抹掉的原 Master Database 层级条数（F3 已实际发生）。same_parent 和 other_parent 正常应为 0，不为 0 说明升级后有代码又写回或改挂了 parent。parent_set_after_upgrade 是 sprint6 前没有母公司、升级后被应用写上 parent 的原公司，不为 0 说明新代码还在读写这个字段。row_gone 是被物理删除的行（例如 c4d8e2a6f1b3 的 _DOOMED）。"
+ },
+ {
+  "key": "N97_doomed_summary",
+  "findings": "N97",
+  "env": "pre",
+  "title": "按 c4d8e2a6f1b3 的 _DOOMED 条件，并折算前面迁移的改动，预测升级时会被硬删的邀请占位公司数：按模拟出的 status 分，并统计其中 ACTIVE 的、有订阅的、邀请码不会转存的",
+  "based_on": "c4d8e2a6f1b3:21-64（_DOOMED）, :66-126（两段转存）, :128-143（硬删）; d8aaccb9a900:56; b7d82c2e651b:55,110-136（restaurant.company_id 为空则 parent 为空、:116 撞 id 用随机 id）; d5a1c9e3f7b4:27-40; f2a7c4e9b3d1:112-130 与 b3e8d1c47a52:44-67 只拆地址，不改第一个逗号前的街道段; d6b0f4a8c2e5:37-74（status 规则）; 7e3c9a1f5b20:22（invalidated_at 新列全空）",
+  "interpret": "doomed_total 是升级到 c4d8e2a6f1b3 时会被物理 DELETE 的公司数，不留备份，downgrade 也恢复不了。status_active>0 表示有被删公司在 d6b0f4a8c2e5 下会算 ACTIVE（没有未用邀请码，或者有在用的成员账号），很可能是真实公司被误删，要用 N97_doomed_list 逐个核对。with_live_account>0 还会让升级在 049461d68471 停下（见 F50）。code_not_moved_to_company_invitation 是有邀请码、但没有 client 关联的被删公司，这些码不会写进 company_invitation，升级后就作废了；code_not_moved_already_sent 是其中已经发出去的。doomed_id_collided_copy 是撞 id 后拿到随机 id 的 restaurant 副本：它没有订阅和成员。这个结果只是查询那一刻的快照，正式升级前要紧挨着再跑一次。"
+ },
+ {
+  "key": "N97_doomed_list",
+  "findings": "N97",
+  "env": "pre",
+  "title": "列出预测会被硬删的公司 uuid（最多 20 个，ACTIVE 和有在用账号的排在前面），方便升级前留存、核对",
+  "based_on": "c4d8e2a6f1b3:21-64, :128-143; d6b0f4a8c2e5:37-74; 其余折算同 N97_doomed_summary",
+  "interpret": "每一行是一家预测会被硬删的公司。id_collided=true 时，输出的 id 是原 restaurant 的 id，实际被删的是迁移给它分配的随机 id。status_sim=ACTIVE 或 has_live_account=true 的最可疑，不像只发了邀请、没人用的占位公司。r_* 列说明命中了 _DOOMED 的哪条规则（:58/:59-60/:61/:62-63）。code_lost=true 表示它的邀请码不会转存，已发出的邀请会失效。超过 20 家时以 summary 的数字为准；升级前应把完整清单导出留存。"
+ },
+ {
+  "key": "N97_blast",
+  "findings": "N97,F50",
+  "env": "pre",
+  "title": "硬删预测出的公司时还会连带丢掉或卡住哪些数据：级联删除的订阅/审计/聊天方、变成孤儿的成员账号、被置空的关联，以及会挡住 DELETE 的 RESTRICT 外键",
+  "based_on": "c4d8e2a6f1b3:66-126（转存，company_invitation 列宽见 :149-171）, :128-143（DELETE）; companies/models.py:149（parent_company_id SET NULL）, :354（company_subscription CASCADE）, :446（company_audit_log CASCADE）; chats/models.py:30（chat_party CASCADE）; b76f719b477b:29; clients/models.py:129-131 与 c5e2b81f4a07:22-23（SET NULL）; orders/models.py:152-154 与 b7e2a95c4d18（SET NULL）; quotation/models.py:122（vendor_company_id RESTRICT）, :129; 3b7e9d1c5a64:55; invoices/models.py:39,93（RESTRICT）与 9a3e5c7d2f41:58; 049461d68471:96-102",
+  "interpret": "*_cascade_deleted 是删公司时被级联删掉、无法恢复的数据（paid_* 是带付款金额的订阅）。invitation_codes_lost 是作废的邀请码数。accounts_left_orphaned>0 时，升级会在 049461d68471 停下（F50）。branches_losing_parent / subdivisions_losing_parent 是 parent_company_id 会被置空的子公司。*_set_null 是会被置空的关联。master_invoice_restrict_blocks_delete、quotation_vendor_restrict_blocks_delete 或 quotation_vendor_client_*_on_doomed 大于 0 时，要结合 N97_fk_restrict_uat/test 看对应外键是不是 a/r（NO ACTION/RESTRICT）；是的话 DELETE 会被挡住，升级停在 c4d8e2a6f1b3。invitation_codes_duplicated>0 时，转存邀请码会违反 company_invitation 的唯一约束，升级同样停在 c4d8e2a6f1b3。invitation_rows_overlong>0 表示可能超出列宽，会偏多，非 0 时再细查。前面的迁移是逐个提交的，停下时已经生效。"
+ },
+ {
+  "key": "N97_fk_restrict_uat",
+  "findings": "N97",
+  "env": "pre",
+  "title": "列出 uat/prod 当前指向 company 的 NO ACTION/RESTRICT 外键，这些外键会挡住 c4d8e2a6f1b3 的硬删",
+  "based_on": "c4d8e2a6f1b3:128-143（DELETE FROM company，任何外键报错都会中止升级）; 920893696493:24-41（改名后外键保留，例如 deprecated_company_member）",
+  "interpret": "a=NO ACTION、r=RESTRICT。列出的表只要有行指向 N97 预测会删的公司，c4d8e2a6f1b3 的 DELETE 就会报错，升级停在这一步。company.parent_company_id 自引用外键如果是 a/r，而被删公司下面挂着子公司（N97_blast 的 branches_losing_parent>0），也会失败。这里看到的是旧结构的外键，要和 N97_fk_restrict_test 对照。"
+ },
+ {
+  "key": "N97_deleted_on_test",
+  "findings": "N97",
+  "env": "post",
+  "title": "test 上实际被 c4d8e2a6f1b3 硬删的公司：deprecated_company_back 里有、company 里已经没有的行，以及转存后公司为空的邀请码",
+  "based_on": "5365a6cf834e:23-24（deprecated_company_back 是 b7d82c2e651b 复制前 company 的整表备份）; c4d8e2a6f1b3:73（被删公司的 client 关联码 company_id 写成 NULL）, :136",
+  "interpret": "back_rows_gone_from_company + restaurant_copies_gone 是 test 上被 c4d8e2a6f1b3 硬删的公司数（下限：撞 id 拿到随机 id 的副本统计不到；某个用户被物理删除时，company_back 的行也会被级联删掉）。gone_other_type>0、store_copies_gone>0，或者 *_doomed_shape 小于对应总数，说明有不符合 _DOOMED 形状的公司也没了，需要追查。invitations_client_linked_no_company 是转存时公司已被删的 client 关联码，of_which_still_open 是其中至今仍可用、却没有公司的码。"
+ },
+ {
+  "key": "N97_fk_restrict_test",
+  "findings": "N97",
+  "env": "post",
+  "title": "列出 test（新结构）上指向 company 的 NO ACTION/RESTRICT 外键，近似 uat/prod 执行到 c4d8e2a6f1b3 时的外键状态",
+  "based_on": "c4d8e2a6f1b3:128-143; invoices/models.py:39,93; quotation/models.py:122; restaurants/models.py:196（RESTRICT）",
+  "interpret": "列出新结构下指向 company 的 NO ACTION/RESTRICT 外键。重点看 master_invoice、invoice、master_invoice_recognition、quotation、quotation_vendor_client，以及 company.parent_company_id 自引用：只要 uat/prod 上有行指向 N97 预测会删的公司（数量见 N97_blast），c4d8e2a6f1b3 就会失败。"
+ },
+ {
+  "key": "F7_direct",
+  "findings": "F7",
+  "env": "pre",
+  "title": "统计 80a123f47df0 会删除的三列成员 id 全空的 chat_member，以及它们直接带走的消息、附件、通过外键级联的第二层，并检查新唯一约束会不会冲突",
+  "based_on": "80a123f47df0:31-36（DELETE）, :38（COALESCE 回填）, :40（NOT NULL）, :44（uq_chat_member_chat_id_account_id）; chats/models.py:72（chat_message.chat_member_id CASCADE）, :82（forwarded_message_id CASCADE）, :180 与 3f495b4e9a92:45-51（chat_member.last_read_message_id CASCADE）, :245（附件 CASCADE）",
+  "interpret": "orphan_chat_members 是会被硬删的成员行（团队说 uat/prod 应为 0）。direct_messages_deleted 和 direct_attachments_deleted 是一起删掉、无法恢复的消息和附件。normal_members_cascaded_via_last_read>0 说明别人的 chat_member 只要 last_read 指向被删消息，也会被级联删掉，进而带走他们自己的消息；forwarded_messages_cascaded 是其他聊天里转发了这些消息的副本。这两项非 0 时，完整范围看 F7_cascade。uq_chat_account_conflicts>0 时，:44 建唯一约束会失败，升级停在 80a123f47df0（数值可能略多，非 0 时再逐组核对）。"
+ },
+ {
+  "key": "F7_cascade",
+  "findings": "F7",
+  "env": "pre",
+  "title": "用递归 CTE 算出 80a123f47df0 删除孤儿 chat_member 后，经三条 CASCADE 外键连锁删除的全部成员、消息和附件",
+  "based_on": "80a123f47df0:31-36; chats/models.py:72, :82, :180, :245; 923b46b4fa34:43; 3f495b4e9a92:45-51",
+  "interpret": "按数据库真实的级联规则求闭包：成员→成员发的消息→转发它的消息→last_read 指向它的成员→……。normal_members_cascaded>0 说明不只孤儿行，正常用户的聊天成员资格和消息也会一起被删。孤儿为 0 时所有结果都应为 0。超时就以 F7_direct 为准。"
+ },
+ {
+  "key": "F15_order_comment_no_author",
+  "findings": "F15",
+  "env": "pre",
+  "title": "统计三个成员列全空的 order_comment；只要有一行，0f14a819f8de 设 NOT NULL 就会失败",
+  "based_on": "0f14a819f8de:40-46（COALESCE 回填）, :47（account_id NOT NULL）; 前面的迁移都不改 order_comment，也没有迁移删除这类行; env.py:64（transaction_per_migration=True）",
+  "interpret": "rows_without_author>0（upgrade_fails_at_0f14a819f8de=true）时，升级在 0f14a819f8de:47 失败，而前 12 个迁移已经提交，其中包括 80a123f47df0 的硬删（F7）。团队说这类行会被删除，但代码里没有对应语句，这个数字就是上线前需要手工处理的行数。rows_with_several_authors 只作参考。"
+ },
+ {
+  "key": "F20_chat_party_all_null",
+  "findings": "F20",
+  "env": "pre",
+  "title": "统计 store_id、restaurant_id、company_id 全空的 chat_party；只要有一行，b76f719b477b 设 NOT NULL 就会失败",
+  "based_on": "b76f719b477b:29（company_id = COALESCE(store_id, restaurant_id, company_id)）, :30（NOT NULL）; 第 1-18 个迁移都不改 chat_party; env.py:64",
+  "interpret": "rows_all_three_null>0 时，升级在 b76f719b477b:30 失败，前 18 个迁移已经提交。团队说三个环境都没有这种行，结果为 0 即可核实。company_id_overwritten 只作参考。另外，store/restaurant 与现有公司撞 id 时，chat_party 会指向原 id 那家公司（见 F50 的 business_id_collisions）。"
+ },
+ {
+  "key": "F39_conflict_summary",
+  "findings": "F39",
+  "env": "pre",
+  "title": "按 6a2f8c4e1d93 的 DO 块条件，预测同一母厂下多个子部门持有同一产品时会不会 RAISE 中止升级，包括软删行",
+  "based_on": "6a2f8c4e1d93:100-119（DO 块，:115 RAISE EXCEPTION，不排除 deleted_at）, :123-134（搬移并写备份）; 第 1-39 个迁移都不改 manufacturer_subdivision_product 和 manufacturer_product.manufacturer_company_id",
+  "interpret": "upgrade_would_raise=true 时，升级在 6a2f8c4e1d93 抛出 several subdivisions... 后停下，前 39 个迁移已经提交。groups_only_due_to_soft_deleted 是只因软删行才冲突的组，检查排除软删行后这些组就不再冲突。mfr_with_multi_* 用来核对团队“一个厂商只有一个子部门”的前提。inventory_rows_to_move 是会写进备份表的行数。"
+ },
+ {
+  "key": "F39_conflict_groups",
+  "findings": "F39",
+  "env": "pre",
+  "title": "列出会触发 6a2f8c4e1d93 RAISE 的冲突组（母厂、产品、变体的 uuid，最多 20 组）",
+  "based_on": "6a2f8c4e1d93:104-113",
+  "interpret": "没有返回行就说明不会触发 RAISE。有返回行时，每行是一组冲突；n_live<=1 且 has_own_row=false 的组，排除软删行后就不再冲突。上线前需要业务决定每组保留哪一行，或者先清理软删行。"
+ },
+ {
+  "key": "F39_moved_on_test",
+  "findings": "F39",
+  "env": "post",
+  "title": "看 test 上 6a2f8c4e1d93 实际搬移了多少库存行、其中软删的有多少，以及升级后有没有重复的（公司、产品、变体）",
+  "based_on": "6a2f8c4e1d93:93-98（备份表）, :123-134（搬移）",
+  "interpret": "moved_rows 是被搬到母厂名下的库存行数。mfr_with_multi_subdivisions_incl_deleted>0 说明 test 上确实有一个厂商对应多个子部门的情况，可以作为 uat/prod 前提不可靠的旁证。duplicate_groups_now 应为 0。"
+ },
+ {
+  "key": "F50_orphan_accounts",
+  "findings": "F50,N97",
+  "env": "pre",
+  "title": "预测升级到 049461d68471 时会不会有孤儿账号（system_account.company_id 指向不存在的公司），重点是 c4d8e2a6f1b3 硬删公司后留下的",
+  "based_on": "049461d68471:96-102（孤儿账号计数，非 0 即 RuntimeError）, :103-105（建 CASCADE 外键）; 8c6f5e1a90b1:28-33,69-81（四张成员表回填 account，没有外键）; b7d82c2e651b:110-136（store/restaurant/subdivision 同 id 复制进 company，:116 撞 id 用随机 id）; c4d8e2a6f1b3:136（硬删公司，当时 account 没有外键）; 9d18fcda7ab1:36-41（只把账号复制到子公司，子公司不会被删）",
+  "interpret": "upgrade_stops_at_049461d68471=true 时，升级会在 049461d68471 抛出 RuntimeError 停下，这时 c4d8e2a6f1b3 的硬删已经提交，恢复不了。orphans_from_c4d8 是挂在预测被删公司下的账号（live_* 是其中未软删的）。orphans_without_c4d8 应为 0。business_id_collisions / branch_id_collisions 大于 0 不会让升级失败，但撞 id 的门店、餐厅或子部门会拿到随机 id，而它的账号、client、order、chat_party 仍指向原 id，也就是挂到了另一家公司下面，属于静默的数据错位。"
+ },
+ {
+  "key": "F50_fk_on_test",
+  "findings": "F50",
+  "env": "post",
+  "title": "看 test 上 system_account.company_id 外键的删除规则、孤儿账号数，以及挂在软删公司下的账号（将来物理删公司时会被级联删掉）",
+  "based_on": "049461d68471:96-105; accounts/models.py:55-57",
+  "interpret": "account_company_fk 应为 system_account_company_id_fkey on_delete=c（CASCADE），orphan_accounts 应为 0。accounts_on_soft_deleted_companies 是将来如果物理删除这些软删公司（包括 8011513c0d5c 软删的母公司），会被级联删掉的账号数；live_* 是其中账号本身没被软删的。"
+ },
+ {
+  "key": "N95_credit_balance",
+  "findings": "N95",
+  "env": "pre",
+  "title": "统计 restaurant_account.credit_balance 非零的餐厅数和金额合计（升级后这张表改名为 deprecated_restaurant_account，没有代码再读写它）",
+  "based_on": "920893696493:24-41（restaurant_account 改名 deprecated_restaurant_account，数据不动）; 92 个迁移都不读、不迁移 credit_balance",
+  "interpret": "nonzero_restaurants 和 positive_total/negative_total 是只存在这张表里的余额（prod 是真实金额）。升级不会删这些数据，但之后余额只留在 deprecated_restaurant_account 里，没有代码再读它，将来删表就会丢失。非 0 时，建议删表前请业务确认要不要导出。"
+ },
+ {
+  "key": "N95_credit_balance_test",
+  "findings": "N95",
+  "env": "post",
+  "title": "看 test 上 deprecated_restaurant_account 里还留着多少非零余额",
+  "based_on": "920893696493:34",
+  "interpret": "确认改名后数据原样留在 deprecated 表里（test 的金额没有业务意义）。如果 last_nonzero_update 晚于 test 部署 sprint6 的时间，说明还有代码在写它，需要追查。"
+ },
+ {
+  "key": "F25_vendor_cleared",
+  "findings": "F25",
+  "env": "pre",
+  "title": "统计 e8b31d5c7f42 会把 vendor_id 清成 NULL 的审计行：client.store_id 为空、但 audit_client_log.vendor_id 有值的行",
+  "based_on": "e8b31d5c7f42:35-40（SET vendor_id = c.store_id WHERE a.vendor_id IS DISTINCT FROM c.store_id，没有 c.store_id IS NOT NULL 条件）; downgrade :64-70 只按 vendor_id 回填; 第 1-23 个迁移都不改 client.store_id 和 audit_client_log; 第二条 UPDATE（:43-51）用的 store_product.store_id 是 NOT NULL，清不出 NULL",
+  "interpret": "rows_vendor_cleared 是升级后 vendor_id 被清空、回滚也恢复不了的审计行数（prod 是真实审计记录）；distinct_vendor_ids_lost 是丢掉的厂商归属数。rows_repointed_to_store 是按设计改指向门店的行，属于预期变化。在 :38 补上 c.store_id IS NOT NULL，就能保住 rows_vendor_cleared 这部分。"
+ },
+ {
+  "key": "F25_vendor_cleared_test",
+  "findings": "F25",
+  "env": "post",
+  "title": "看 test 上 log_audit_client 里客户 store_id 为空、vendor_id 也为空的审计行（e8b31d5c7f42 清空行数的上限）",
+  "based_on": "e8b31d5c7f42:35-40; 31731a571e02（audit_client_log 改名为 log_audit_client）",
+  "interpret": "rows_store_null_vendor_null 是 e8b31d5c7f42 清空行数的上限，其中也可能有本来就没有 vendor_id 的行，无法区分。last_row 早于 test 跑 sprint6 的时间时，基本都是那次迁移清掉的。rows_store_null_vendor_kept 是迁移之后新写入的行，或者 store_id 后来才被置空的行（例如 c4d8e2a6f1b3 删掉的公司）。"
+ },
+ {
+  "key": "PRE_schema_names",
+  "findings": "无编号（新增：按名字操作的约束/索引/序列/类型）；F37 同类",
+  "env": "pre",
+  "title": "迁移里按名字删除或改名、且没写 IF EXISTS 的约束/索引/序列/枚举/表在 uat/prod 是否都在；迁移要新建或改成的表名、类型名、索引名是否已被占用",
+  "based_on": "0e2f71bd249e:32-33；80a123f47df0:49-50；0f14a819f8de:62；a56e6f86e0d7:79；b76f719b477b:34；d3f8a61c2b94:40；a7c4e9d21f63:29；c5e2b81f4a07:35；6ab37f9b8662:36；3d9e6b1c7a52:28；8c41f7d2e93a:32、:36；b7e2a95c4d18:31；2c7d9e4b1a63:25、:27；9a3e5c7d2f41:53；6e2a9c4b7d13:34；1f7c3a9e5b28:66、:80、:83；5d1b8f3e2a74:26、:34；3b7e9d1c5a64:101、:105、:111；6a2f8c4e1d93:121、:142、:146、:149-150、:161、:164；c7f2a9d4e8b3:38、:39、:42；b4d8f2a6c0e1:90；7c1e4a9d2b58:71、:148；2e6a9c1f7b48、e8b2f4a6c1d3 按名字改表；以及各迁移 CREATE TABLE / CREATE TYPE / CREATE INDEX / RENAME TO 的目标名",
+  "interpret": "0 行才算通过。missing：迁移会按名字删除或改名这个对象，库里却没有，升级会停在 mig 这一步。already_exists：迁移要新建或改成的名字已经被占用。uat 和 prod 都要跑。如果结果正好 20 行，说明可能被截断了，需要去掉 LIMIT 再看一次。"
+ },
+ {
+  "key": "PRE_8c6f_account_backfill",
+  "findings": "F52 / F11（同迁移；本条看 8c6f5e1a90b1 会不会因现有成员数据失败）",
+  "env": "pre",
+  "title": "8c6f5e1a90b1 把四张成员表原样复制进 account：主键、(user_id, company_id) 唯一（含软删行）、user 外键和 varchar 长度会不会被现有成员数据撞",
+  "based_on": "8c6f5e1a90b1:37-53（建 account：PK id，:45 security_code varchar(4)，:50 user_id 外键，:52 uq_account_user_id_company_id，first_name/last_name/position varchar(255)）、:69-81（四张成员表 INSERT ... SELECT，含已删行，保留原 id）",
+  "interpret": "member_rows 只作参照，其余各项都必须为 0，任何一项非 0 都会让第 1 个迁移 8c6f5e1a90b1 失败，之后的迁移都不会执行。dup_user_business_unique_fails 的常见原因是同一用户在同一业务里有一行软删、一行在用。"
+ },
+ {
+  "key": "PRE_2e1b_company_type_code",
+  "findings": "无编号（2e1bd951650a 建 uq_company_type_code、c7e2a9d4f813 插管理员类型）",
+  "env": "pre",
+  "title": "company_type 里会被映射成同一个 code 的重名行（建 code 唯一约束失败），以及 devAdmin/admin 名字是否已被占用",
+  "based_on": "2e1bd951650a:22-30（name→code 映射）、:36-43（按 name 回填 code）、:44（create_unique_constraint uq_company_type_code）；c7e2a9d4f813:33-39（INSERT name 'devAdmin'/'admin'，只按 code 判重）",
+  "interpret": "names_sharing_one_code_unique_fails 必须为 0。mapped_rows 正常是 7。admin_type_names_taken>0 时，要看 unique_indexes 里有没有按 name 的唯一索引：有才会失败，没有就不影响。"
+ },
+ {
+  "key": "PRE_role_codes",
+  "findings": "F18（同一 type 下重复的在用 code 会让升级中止）",
+  "env": "pre",
+  "title": "旧 role 表在升级后会变成每个公司类型的角色：同一业务类型下在用的门店级角色有没有重复的 code 或名字、code/名字有没有超长",
+  "based_on": "a3d9632e77e0:43（CODE_FROM_NAME）、:91（UPDATE code，列是 0e2f71bd249e:34 加的 varchar(64)）；0e2f71bd249e:39（新 role.name varchar(255)）；9d18fcda7ab1:46-58（每类型没有门店级 ceo 时补一个在用的 CEO）；b5e1d7c3a920:145（删掉全部公司级角色）；23e8d26d41eb:63（name varchar(255)）、:74-90（uq_system_company_role_company_id_code WHERE deleted_at IS NULL，按 company_type 把类型角色整套复制给每家公司）；b9d4f2a7c6e1:46-52（(company_type, role_name) 部分唯一）、:55-62（id = md5('role_tem:'||type||':'||name)）",
+  "interpret": "dup_live_facility_code_23e8_fails、dup_live_facility_name_b9d4_fails、code_over_64_a3d9_fails、name_over_255_fails 都必须为 0（第一项就是 F18 的数据前提）。有个前提：某类型下至少有一家公司时，23e8 才会撞唯一。dup_name_same_level_incl_deleted 只是参考。empty_code>0 时，这些行共用空串 code，会算进第二项。"
+ },
+ {
+  "key": "PRE_b5e1_unmapped_company_roles",
+  "findings": "N3（同迁移）；无编号（b5e1d7c3a920 的 RuntimeError）",
+  "env": "pre",
+  "title": "b5e1d7c3a920 删公司级角色前要求每个“被引用的”公司级角色都能映射到同业务类型、同 code、未删除的门店级角色，否则抛 RuntimeError；按 d51500b2df5e 的重映射规则预测会不会有映射不到的",
+  "based_on": "083296a8b071:31-40（无类型的公司补 company_company_type）；d51500b2df5e:52-75（REFERENCES：成员表、onboarding 表参与重映射，订单历史不在内）、:83-108（_remap）、:111-139（公司类型取 min(ct.name)，没有则按 c.type 取主类型）；9d18fcda7ab1:46-58；b5e1d7c3a920:39-52（REFERENCES）、:59-76（ROLE_MAP：同 type、同 code、belongs_to_company=false、deleted_at IS NULL）、:79-94（被引用却映射不到就 raise RuntimeError）",
+  "interpret": "0 行才算通过。每一行是一个仍被引用、但映射不到门店级角色的旧公司级角色（旧 role 表的 uuid + 业务大类 + 引用行数）。有任何一行，b5e1d7c3a920 都会抛 RuntimeError，升级中止。"
+ },
+ {
+  "key": "PRE_F15_order_comment",
+  "findings": "F15",
+  "env": "pre",
+  "title": "0f14a819f8de 把 order_comment.account_id 设 NOT NULL 并建外键：三个作者列全空的评论、作者/编辑者指向不存在成员的评论各有多少",
+  "based_on": "0f14a819f8de:40-46（account_id = COALESCE(company_member_id, restaurant_member_id, store_member_id)）、:47（alter_column account_id nullable=False）、:48-58（两个外键指向 account）；account.id 就是成员 id（8c6f5e1a90b1:69-81）",
+  "interpret": "no_author_not_null_fails、author_fk_orphans、editor_fk_orphans 都必须为 0；several_author_columns_info 只是参考。"
+ },
+ {
+  "key": "PRE_F7_chat_member",
+  "findings": "F7",
+  "env": "pre",
+  "title": "80a123f47df0 硬删三个成员列全空的 chat_member（连带消息），再建 (chat_id, account_id) 唯一和外键：会删多少、删除会不会被其它外键挡住、唯一/外键会不会失败",
+  "based_on": "80a123f47df0:31-36（DELETE 三列全空的 chat_member）、:38（account_id = COALESCE(store_member_id, restaurant_member_id, company_member_id)）、:40（NOT NULL）、:41-44（外键指向 account、uq_chat_member_chat_id_account_id）",
+  "interpret": "rows_hard_deleted / messages_deleted_with_them 是会被物理删除的规模，非 0 的话先导出再升级。删除能不能执行，要对照 fk_on_delete_actions：引用方的外键是 a/r 且 survivors_* 大于 0，删除就会失败；chat_message.chat_member_id 不是 c 而又有消息，也会失败。dup_chat_account_unique_fails、account_fk_orphans 必须为 0。"
+ },
+ {
+  "key": "PRE_F20_chat_party",
+  "findings": "F20",
+  "env": "pre",
+  "title": "b76f719b477b 把 chat_party.company_id 设 NOT NULL：三列全空的行、以及指向不存在门店/餐厅/公司的行",
+  "based_on": "b76f719b477b:29（company_id = COALESCE(store_id, restaurant_id, company_id)）、:30（alter_column company_id nullable=False）；门店/餐厅此前已由 b7d82c2e651b 以同 id 复制进 company",
+  "interpret": "all_null_not_null_fails 必须为 0。三个 *_orphans 正常是 0；非 0 说明回填后 company_id 找不到对应的公司，chat_party 上如果有指向 company 的外键，UPDATE 会直接失败。"
+ },
+ {
+  "key": "PRE_a56e_packing_slip_accounts",
+  "findings": "无编号（a56e6f86e0d7 新外键）",
+  "env": "pre",
+  "title": "a56e6f86e0d7 给拣货单建四个指向 account 的外键：现有 packer/driver/审批人成员 id 在成员表里找不到的有多少",
+  "based_on": "a56e6f86e0d7:62-65（四个 account 列从成员列回填）、:66-74（create_foreign_key 指向 account，ON DELETE SET NULL）",
+  "interpret": "account_fk_orphans 必须为 0。"
+ },
+ {
+  "key": "PRE_F5_id_collisions",
+  "findings": "F5",
+  "env": "pre",
+  "title": "b7d82c2e651b 复制门店/餐厅/子部门进 company 时，与现有 company 或彼此 id 相同、会改用随机 id 的行有多少",
+  "based_on": "b7d82c2e651b:107-137（三张表依次 INSERT INTO company），:116（CASE WHEN EXISTS (SELECT 1 FROM company c WHERE c.id = t.id) THEN gen_random_uuid() ELSE t.id END）；c5e2b81f4a07:10（'Columns and values unchanged'，后续迁移都按同 id 改指 company）",
+  "interpret": "三项都应为 0。非 0 不会让升级失败，但这些行会拿到随机 id，后续所有按同 id 改指 company 的迁移都会静默指错。"
+ },
+ {
+  "key": "PRE_insert_defaults",
+  "findings": "无编号（各迁移 INSERT 没给的 NOT NULL 列必须有默认值）",
+  "env": "pre",
+  "title": "迁移里往现有表 INSERT 时没提供、又是 NOT NULL 且没有默认值的列（会报 not-null 失败）",
+  "based_on": "b7d82c2e651b:110-135（INSERT INTO company 没给 subscriber_status、number_of_licences 等）；4b52dd3297e5:57、:66（company、user）；a9d3f7b2e6c1:49；1e76218f5233:26-32（store_delivery 只给 id/company_id/时间）；083296a8b071:31；d3f8a61c2b94:47、:54；f4a9c27e1b85:28；7c2d4e8a1b96:56；6a2f8c4e1d93:183；3b7e9d1c5a64:70、:87；4c8e2a6f9b17:32；9d3b7f1a5c62:43；e7b3d9a1c5f2:41；f2c8a4e6d1b7:37；5286c79e362d:28；b4d8f2a6c0e1:65；c7e2a9d4f813:34（列名用升级前的名字：price_tier.store_id、store_delivery.store_id、company_phone_number、company_role_permission）",
+  "interpret": "0 行才算通过。每一行是某个迁移 INSERT 时会报 not-null 失败的列。重点看 company.number_of_licences / subscriber_status、store_delivery 那三个数值列有没有出现。"
+ },
+ {
+  "key": "PRE_b7d8_copy_fk_and_lengths",
+  "findings": "无编号（5365a6cf834e 备份表外键、b7d82c2e651b 复制行外键、a97c30031cc6 长度）",
+  "env": "pre",
+  "title": "5365a6cf834e 给 company 备份表补外键、b7d82c2e651b 把门店/餐厅/子部门插进 company、a97c30031cc6 写 company_info：会不会撞外键、CHECK 和 varchar(255)",
+  "based_on": "5365a6cf834e:24-25（LIKE company INCLUDING ALL + 全量复制）、:27-41（补 logo_id / user_id / parent_company_id 外键）；b7d82c2e651b:110-135（parent_company_id = store.company_id / restaurant.company_id / manufacturer_company_id，logo_id = store.logo_id）；a97c30031cc6:47-48（remit_to / remit_to_name varchar(255)）、:58-80（从 store 复制）",
+  "interpret": "前 7 项必须为 0（旧表本来就有外键，正常都是 0）；store_remit_to_over_255 必须为 0。company_check_constraints 为空，表示 company 上没有 CHECK 约束。"
+ },
+ {
+  "key": "PRE_F1_fixed_seed_rows",
+  "findings": "F1（同迁移）；无编号（固定 id/邮箱撞车）",
+  "env": "pre",
+  "title": "4b52dd3297e5 / a9d3f7b2e6c1 用写死的 id 和 dev.admin 邮箱插入公司、角色、用户、账号：这些 id 或邮箱在库里是否已被占用",
+  "based_on": "4b52dd3297e5:31-37（固定角色/公司/用户/账号 id 和邮箱）、:46、:57、:66、:75、:83（逐条 INSERT）；a9d3f7b2e6c1:30-31（固定 Admin 角色 id、公司 id）、:40、:49、:58",
+  "interpret": "前 5 项必须为 0；platform_admins_info 是 a9d3 会创建的 Admin 公司账号数量，只作参考。"
+ },
+ {
+  "key": "PRE_d3f8_store_schedule_copy",
+  "findings": "无编号（d3f8a61c2b94 门店营业时间搬到 company_work_schedule_*）",
+  "env": "pre",
+  "title": "d3f8a61c2b94 按原 id 把门店营业时间插进 company_work_schedule_set/day：主键是否冲突、外键是否悬空、目标表唯一约束是否会被门店侧重复数据撞",
+  "based_on": "d3f8a61c2b94:45-51（INSERT INTO company_work_schedule_set SELECT id, store_id ... FROM store_work_schedule_set）、:52-59（company_work_schedule_day 同理，含已删行）；f2a7c4e9b3d1:45 提到目标表上的 uq_company_work_schedule_set_day",
+  "interpret": "set_id_collisions、day_id_collisions、day_without_set、set_store_orphans 都必须为 0；dup_set_day_all_rows 也必须为 0（目标表是全表唯一）。另外两项 dup_* 只是参考。"
+ },
+ {
+  "key": "PRE_F32_product_number",
+  "findings": "F32",
+  "env": "pre",
+  "title": "1f7c3a9e5b28 从 vendor_product 回填 product_number 后建 (company_id, product_number) 部分唯一索引：同一门店未删除商品里的重复编号，以及超过 varchar(32) 的编号",
+  "based_on": "1f7c3a9e5b28:68（add_column product_number varchar(32)）、:69-72（UPDATE store_product SET product_number = vp.product_number，不分是否删除）、:102-108（uq_product_company_id_product_number ON (company_id, product_number) WHERE deleted_at IS NULL AND product_number IS NOT NULL）；company_id 就是原 store_product.store_id（:84 改名），期间没有迁移改它",
+  "interpret": "dup_groups_index_fails 必须为 0（这就是 F32），number_over_32_update_fails 也必须为 0。dup_rows / stores_affected 表示要先处理的规模。"
+ },
+ {
+  "key": "PRE_7c2d_category_copy_parent",
+  "findings": "无编号（7c2d4e8a1b96 / 6a2f8c4e1d93 按 md5 复制分类树）",
+  "env": "pre",
+  "title": "7c2d4e8a1b96（给门店）和 6a2f8c4e1d93（给子部门）复制母公司分类时，子分类的 parent 不属于同一母公司、导致副本的 parent_id 指向不存在副本的行数",
+  "based_on": "7c2d4e8a1b96:54-63（副本 id = md5(pc.id||':'||s.id)，parent_id = md5(pc.parent_id||':'||s.id)，只复制门店母公司的分类，外键在语句结束时检查）；6a2f8c4e1d93:61、:69-75、:170-190（子部门同理，已有的副本跳过）",
+  "interpret": "store_copy_parent_missing、subdivision_copy_parent_missing 必须为 0，否则副本的 parent_id 会指向一个不存在的 md5 id，语句结束时外键失败。parent_orphans 正常是 0。"
+ },
+ {
+  "key": "PRE_F39_inventory_raise",
+  "findings": "F39",
+  "env": "pre",
+  "title": "6a2f8c4e1d93 搬厂商库存前的冲突检查（同一母厂多个子部门持有同一产品/规格）会不会 RAISE，按迁移里的原 SQL 计数",
+  "based_on": "6a2f8c4e1d93:100-118（DO 块：同一母厂的同一产品/规格被多个子部门持有，或母厂已有自己的行 → :115 RAISE EXCEPTION）、:123-133（UPDATE 把库存挪到 manufacturer_company_id）；此前没有迁移改 manufacturer_subdivision_product",
+  "interpret": "conflicting_groups_raise 必须为 0，否则迁移 RAISE、升级中止。第 2、3 项用来核实“一个厂商只有一个子部门”这个前提。"
+ },
+ {
+  "key": "PRE_3b7e_quotation_move",
+  "findings": "F35 / F36（同迁移）；无编号（升级时撞唯一）",
+  "env": "pre",
+  "title": "3b7e9d1c5a64 把报价单和报价客户从母公司挪到出单门店：挪完后 (vendor, number)、(vendor, css_client_id)、(vendor, client_id) 是否出现重复，对照这些表实际的唯一索引",
+  "based_on": "3b7e9d1c5a64:53-63（quotation.vendor_company_id = from_store_id；quotation_vendor_client.vendor_company_id = store_id，只改非空且不同的行）、:66-95（编号设置和条款模板逐店复制）",
+  "interpret": "三个 *_fails 都必须为 0，否则 3b7e9d1c5a64 的 UPDATE 会撞部分唯一索引失败。正常情况下，出单门店都属于当前母公司（后两个 *_of_other_parent 为 0），母公司本身又满足唯一，挪到各门店后不会产生新的重复；所以非 0 的情况基本都伴随这两项非 0。unique_indexes 用来核对实际索引和上面说的是否一致。"
+ },
+ {
+  "key": "PRE_F34_price_tier_config",
+  "findings": "F34",
+  "env": "pre",
+  "title": "5d1b8f3e2a74 把 price_tier_config.company_type_id 全部改成常量 'Liquor_Vendor'：同一模块是否有多行（会撞唯一），以及 e7b3d9a1c5f2 要用的 'price tier' 行是否存在",
+  "based_on": "5d1b8f3e2a74:26-34（删外键；alter_column company_type_id → varchar(50)，postgresql_using 常量 'Liquor_Vendor'）；e7b3d9a1c5f2:46-50（只有 config_module='price tier' 且未删除的配置才会触发补种）",
+  "interpret": "live_modules_with_several_rows_fails 必须为 0：5d1b8f3e2a74 会把所有行的 company_type 都改成 'Liquor_Vendor'，在用行里只要同一模块有两行就会撞唯一。live_price_tier_module_rows=0 表示 e7b3 不会补种价格档。config_rows 应为 1（F34 的结论）。"
+ },
+ {
+  "key": "PRE_e7b3_price_tier_seed",
+  "findings": "无编号（e7b3d9a1c5f2 补种 TierA-D）",
+  "env": "pre",
+  "title": "e7b3d9a1c5f2 给 Liquor_Vendor 且没有在用价格档的公司补种 TierA-D：会补多少，补种门店里是否有已删除的旧档（唯一索引不排除删除行时会撞）",
+  "based_on": "d8aaccb9a900:61-76（原公司 company_type 取同类别 company_company_type 里按名字第一个的 code）；b7d82c2e651b:120-131（门店取母公司 VENDOR 类别里按名字第一个的 code）；5d1b8f3e2a74:27-32（配置全部改成 Liquor_Vendor）；e7b3d9a1c5f2:39-53（company 未删除、company_type 有 'price tier' 配置、没有未删除的价格档 → 插 TierA..TierD）",
+  "interpret": "前两项是会补种的公司数（每家 4 档），前提是 PRE_F34 的 live_price_tier_module_rows>0。price_tier_unique_indexes 里三个索引都带 deleted_at IS NULL 时，seeded_stores_with_deleted_tiers 可以忽略；如果有不带这个条件的，这一项必须为 0。"
+ },
+ {
+  "key": "PRE_e8b2_profile_merge",
+  "findings": "无编号（e8b2f4a6c1d3 合并进 company_info；N61 同链）",
+  "env": "pre",
+  "title": "e8b2f4a6c1d3 用 INSERT ... ON CONFLICT DO UPDATE 把厂商 profile / representation 合进 company_info：同一公司是否有多行在用记录（会报“同一行被更新两次”），字段是否超过目标长度",
+  "based_on": "e8b2f4a6c1d3:14-41（目标列 varchar 长度）、:56（mafsi varchar(8)[]）、:60-69（profile INSERT ... ON CONFLICT ON CONSTRAINT uq_company_info_company_id DO UPDATE）、:74-83（representation 同上）",
+  "interpret": "六个计数都必须为 0：两个 *_multi_live 非 0 会报 'ON CONFLICT DO UPDATE command cannot affect row a second time'；*_too_long 非 0 会报 value too long；*_orphans 非 0 是外键失败。mafsi_source_type 用来确认源列能不能转成 varchar(8)[]。"
+ },
+ {
+  "key": "PRE_address_split_lengths",
+  "findings": "N59 / N61 / N46（同迁移；本条只看拆分会不会因超长失败）",
+  "env": "pre",
+  "title": "d5a1c9e3f7b4、f2a7c4e9b3d1、29fc58b26229、b3e8d1c47a52 按正则拆地址写进 city varchar(100) / state varchar(100) / zip varchar(10)：用最宽的 b3e8 正则在现有地址上算拆出各段的最大长度，以及被长度守卫跳过的行",
+  "based_on": "d5a1c9e3f7b4:17-23（加 city varchar(100)、state varchar(100)、zip_code varchar(10)）、:25-40（只在 address≤255、city≤100、state≤100、zip≤10 时回填）；f2a7c4e9b3d1:19、:110-129（state 正则固定两个字母，zip 最长 10，另有 length(city)≤100 守卫）；29fc58b26229:23、:28-47、:98（报价地址同一规则）；b3e8d1c47a52:28-29、:31-41、:44-66、:135-136（更宽的正则：ZIP 可省、先去掉结尾 US/USA，同样守卫 city≤100，覆盖 company、quotation 两列、client、client_temporary_store、quotation_vendor_client）",
+  "interpret": "满足 max_city_len ≤100、max_state_len =2、max_zip_len ≤10，就说明这组迁移不会因为长度失败。skipped_by_length_guard 是会被跳过、保留整串地址的行数，不报错，只作参考。"
+ },
+ {
+  "key": "PRE_5286_phone_backfill",
+  "findings": "N53（同迁移）；无编号（长度）",
+  "env": "pre",
+  "title": "5286c79e362d 给没有在用电话行的公司（含复制进来的门店/餐厅/子部门）补一条电话：要插多少，号码是否超过电话表列长度，补插公司是否只剩已删电话行",
+  "based_on": "5286c79e362d:26-38（company 未删除、btrim(phone_number) 非空、没有未删除的电话行 → 插一条 is_primary=true、phone_type='phone'）；b7d82c2e651b:110-135（门店/餐厅/子部门的 phone_number 已复制进 company，它们都没有电话行）；f2a7c4e9b3d1:36 只把 company_phone_number 改名为 company_info_phone_number，列不变",
+  "interpret": "too_long_insert_fails 必须为 0。unique_indexes 为空时，第 4 项只是参考。rows_to_insert 是 N53 说的补插规模。"
+ },
+ {
+  "key": "PRE_f2a7_company_billing_merge",
+  "findings": "N61（同迁移）；无编号（ON CONFLICT 重复命中、长度）",
+  "env": "pre",
+  "title": "f2a7c4e9b3d1 把 company_billing 的 AP 联系人用 ON CONFLICT (company_id) DO UPDATE 合进 company_info：同一公司多行在用账单、长度超限、公司不存在",
+  "based_on": "f2a7c4e9b3d1:146-155（accounts_payable_name varchar(255)、email varchar(254)、phone varchar(64)）、:157-183（INSERT ... FROM company_billing WHERE deleted_at IS NULL ... ON CONFLICT (company_id) DO UPDATE）",
+  "interpret": "companies_with_several_rows_fails、too_long_fails、company_orphans 都必须为 0。"
+ },
+ {
+  "key": "PRE_c4d8_invitation_codes",
+  "findings": "N97（同迁移）；无编号（invitation_code UNIQUE、长度、外键）",
+  "env": "pre",
+  "title": "c4d8e2a6f1b3 把邀请码搬进 company_invitation（invitation_code varchar(50) NOT NULL UNIQUE，name/address 255、email 254、phone 64）：重复码、被多个客户共用的订阅、超长和外键悬空",
+  "based_on": "c4d8e2a6f1b3:66-88（_MOVE_CLIENT_LINKS：每个关联了订阅的 client 一行，不排除已删订阅）、:90-126（_MOVE_COMPANY_CODES：没有 client 关联的订阅，排除 _DOOMED）、:149-171（company_invitation：invitation_code varchar(50) NOT NULL UNIQUE，name/address varchar(255)，email varchar(254)，phone_number varchar(64)，used_by_user_id 外键指向 system_user）",
+  "interpret": "dup_codes_unique_fails 必须为 0（subscriptions_shared_by_clients>0 一定会导致它非 0）；code_over_50、name_over_255、email_over_254、phone_over_64、used_by_user_fk_orphans 也必须为 0。address 和 phone 两项是上界，非 0 时还要按拆分后的街道或实际选中的号码再复核一次。"
+ },
+ {
+  "key": "PRE_049461_orphan_accounts",
+  "findings": "F50 / N97（049461d68471 孤儿账号检查；c4d8e2a6f1b3 硬删公司）",
+  "env": "pre",
+  "title": "049461d68471 建 account→company 外键前，若有账号的 company_id 不是任何公司就 RuntimeError；按 c4d8e2a6f1b3 的 _DOOMED 规则预测会被硬删的公司，以及这些公司里的账号",
+  "based_on": "c4d8e2a6f1b3:21-64（_DOOMED：顶层、未删除、2026-09-17 之后建、CLIENT/VENDOR、不是 admin 建的、不是未注册餐厅、没有 owner、没有已用邀请码，再按客户关联、临时名+街道匹配、空名 VENDOR 判定）、:128-143（_DELETE_DOOMED 物理删除 company，删除数与预期不符 RAISE）；8c6f5e1a90b1:9（account.company_id 没有外键，删公司不会带走账号）；049461d68471:96-102（数 company_id 不在 company 的账号，>0 raise RuntimeError）、:103-105（再建 ON DELETE CASCADE 外键）",
+  "interpret": "accounts_in_deleted_companies_fails 和 accounts_without_business_fails 都必须为 0，否则 049461d68471 会抛 RuntimeError。doomed_* 是 c4d8 会物理删除的数量（N97）。doomed_with_children>0 且 company_parent_fk_on_delete 是 a/r 时，c4d8 的 DELETE 会先失败；restrict_fks_to_company_now 里列出的表，还要确认没有行引用被删的公司。"
+ },
+ {
+  "key": "PRE_catalog_misc",
+  "findings": "无编号（049461d68471 assert、7c1e4a9d2b58 DROP TYPE、1f7c3a9e5b28 改名撞名、未验证外键、视图依赖）",
+  "env": "pre",
+  "title": "其它会让迁移失败的库结构前提：改名后超过 63 字符的约束/索引、还有别的列在用 actiontype、store_product 改名后撞名、未验证的旧外键、依赖被改表的视图",
+  "based_on": "049461d68471:56-66（_renamed：新名比旧名多 'system_' 7 个字符，:63 assert 长度 ≤63）；7c1e4a9d2b58:148（DROP TYPE actiontype）；1f7c3a9e5b28:31-56（_rename_names）、:86-96（store_product 改名为 product 后按正则改约束和索引名）；a3d9632e77e0:52-58、5d1b8f3e2a74:27-32 改列类型，c4d8e2a6f1b3:182 删 client.company_subscription_id，都会被依赖它们的视图挡住；c5e2b81f4a07 等“值不变、改指 company”的外键依赖旧外键已验证",
+  "interpret": "0 行才算通过。各类 problem 的含义：name_too_long 会让 049461 的 assert 失败；actiontype_used_elsewhere 会让 7c1e 的 DROP TYPE 失败；store_product_rename_collides 会让 1f7c 改名时撞名；fk_not_validated 和视图需要逐个看。"
+ },
+ {
+  "key": "PRE_fe79_client_bill_to_lengths",
+  "findings": "N140（同迁移）；无编号（varchar 超长）",
+  "env": "pre",
+  "title": "fe799a734a27 回填 client.bill_to_*（公司名/地址 255、联系人 255、电话 64、邮箱 254）：按迁移的取值规则预测会写入的值有没有超长",
+  "based_on": "fe799a734a27:26-33（bill_to_* 列：公司名/地址 varchar(255)，city/state 100，zip 10，联系人 255，电话 64，邮箱 254）、:36-111（未注册客户取临时名/临时地址/最早联系人，注册客户取餐厅公司名/地址和 CEO 账号对应用户的手机号、邮箱）；餐厅公司就是 b7d82c2e651b 按同 id 复制的 restaurant 行",
+  "interpret": "前 5 个超长项必须为 0，address 那项是上界；any_user_phone_or_email_too_long 为 0，说明注册客户那一支也安全。"
+ },
+ {
+  "key": "PRE_b4d8_logo_to_file",
+  "findings": "无编号（b4d8f2a6c0e1 logo 复制进 file）",
+  "env": "pre",
+  "title": "b4d8f2a6c0e1 把公司 logo 复制进 file（module_type='company_logo'、status='linked'、file_type=扩展名）：file 表这几列的长度够不够、logo id 是否已被 file 占用",
+  "based_on": "b4d8f2a6c0e1:53-82（_MOVE_LOGOS：module_type 'company_logo'，file_type 取文件名或 URL 的扩展名（最长 16 位），status 'linked'；id 已被别的 file 行占用时换新 id）、:90-94；9d3b7f1a5c62:43（分支复制的 logo 沿用母公司的文件名/URL）",
+  "interpret": "module_type_max_len 为空或 ≥12、status_max_len 为空或 ≥6、extension_too_long_fails=0，这三个条件都满足才不会失败。logo_id_taken_in_file_info 只是参考。"
+ },
+ {
+  "key": "PRE_unique_index_catalog",
+  "findings": "无编号（d51500b2df5e 去重键、4c8e2a6f9b17 ON CONFLICT 目标、36cd67a87d67 / 8b980708773e 恢复软删公司、f2c8a4e6d1b7、1e76218f5233 等）",
+  "env": "pre",
+  "title": "迁移会写入或恢复的现有表上实际有哪些唯一索引，用来判断 ON CONFLICT 目标是否存在、恢复软删行或复制行会不会撞部分唯一索引",
+  "based_on": "d51500b2df5e:73-74（company_role_permission 按 company_id/permission_id/entity_id、notification 按 company_id/type，再加 role_id 去重）；4c8e2a6f9b17:37（ON CONFLICT (company_id, role_id, type)）；b7d82c2e651b:110-135、36cd67a87d67:26、8b980708773e:30（复制行进 company、把软删公司恢复为在用）；f2c8a4e6d1b7:37；1e76218f5233:32（ON CONFLICT (company_id)）；9a3e5c7d2f41:58、4b8d1f6e3c95:23（改 invoice / client_invoice 的 company_id）",
+  "interpret": "重点看两处。一是 notification 上要有一个列集合正好是 {company_id, role_id, type} 的唯一索引，否则 4c8e2a6f9b17 的 ON CONFLICT 会报错。二是 store_delivery 上要有 store_id 上的唯一约束（store_delivery_store_id_key），改名后就是 1e76218f5233 ON CONFLICT (company_id) 依赖的那个约束。其余的用来解释其它查询的结果。"
+ },
+ {
+  "key": "PRE_N14_buying_group_table",
+  "findings": "N14（d3b8f1a6c592 忽略大小写唯一）",
+  "env": "pre",
+  "title": "d3b8f1a6c592 先数同一公司忽略大小写重名的采购组、有就 RuntimeError：确认 uat/prod 升级前还没有采购组表（由本次升级的 c4a8e1f6b2d9 新建为空表）",
+  "based_on": "c4a8e1f6b2d9:22-35（create_table company_buying_group，起始为空，(company_id, name) 唯一）；f2a7c4e9b3d1:40、:47-49（改名为 company_info_buying_group 及其唯一约束）；d3b8f1a6c592:33-43（重名预检 + RuntimeError）、:44-45（改建 (company_id, lower(name)) 唯一索引，不排除已删行）",
+  "interpret": "两列都是 true，d3b8f1a6c592 的预检就不会触发。"
+ },
+ {
+  "key": "POST_F32_product_number",
+  "findings": "F32",
+  "env": "post",
+  "title": "test 上 1f7c3a9e5b28 建成的 (company_id, product_number) 部分唯一索引现状：未删除商品无重号，已删除行里有多少重号",
+  "based_on": "1f7c3a9e5b28:102-108（部分唯一索引 WHERE deleted_at IS NULL AND product_number IS NOT NULL）",
+  "interpret": "unique_index_present=1、dup_live_groups=0 表示迁移在 test 上生效了。uat/prod 以 PRE_F32 的结果为准。"
+ },
+ {
+  "key": "POST_N14_buying_group",
+  "findings": "N14",
+  "env": "post",
+  "title": "test 上 d3b8f1a6c592 换成 (company_id, lower(name)) 唯一索引后的采购组：忽略大小写的重名、新旧约束是否到位",
+  "based_on": "d3b8f1a6c592:33-43（重名预检）、:44（删旧约束）、:45（建 lower(name) 唯一索引，不带 WHERE，已删行也算）",
+  "interpret": "lower_index_present=1、old_constraint_left=0、dup_ignoring_case=0 表示已生效；deleted_buying_groups>0 时要注意：已删除的组名不能再以同名（忽略大小写）新建。"
+ },
+ {
+  "key": "POST_049461_account_company_fk",
+  "findings": "F50",
+  "env": "post",
+  "title": "test 上 049461d68471 之后账号与公司的关系：孤儿账号、外键及删除动作、挂在已删公司上的在用账号",
+  "based_on": "049461d68471:96-105（孤儿检查 + system_account_company_id_fkey ON DELETE CASCADE）；8011513c0d5c:31（软删母公司，账号不动）",
+  "interpret": "company_fk 应该显示 system_account_company_id_fkey:c，orphan_accounts 必须为 0；live_accounts_in_deleted_companies 是挂在已删公司上的在用账号数。"
+ },
+ {
+  "key": "POST_role_codes",
+  "findings": "F18",
+  "env": "post",
+  "title": "test 上公司角色、角色模板的唯一性结果，以及因为 code 冲突被清空 code 的公司角色数",
+  "based_on": "23e8d26d41eb:74-90（(company_id, code) 部分唯一 + 按类型复制）、:94-122（补缺失角色，code 冲突时置空）；d3f8b2a6e5c1（订单历史补角色，同样冲突置空）；b9d4f2a7c6e1:46-62",
+  "interpret": "dup_live_company_role_code、dup_live_templates 一定是 0（有唯一索引保证）。dup_live_company_role_name 和 dup_live_type_role_code 没有约束保证，大于 0 只说明数据里有同名或同 code 的角色（可能是没有公司的类型），不代表迁移失败了。live_company_roles_without_code 是因为 code 冲突被清空 code 的角色数，按 code 查找的逻辑（比如 'ceo'）认不出这些角色。"
+ },
+ {
+  "key": "POST_b5e1_company_level_roles",
+  "findings": "N3 / N93（同迁移）",
+  "env": "post",
+  "title": "test 上 b5e1d7c3a920 删除公司级角色的结果：映射表、删掉的角色、引用行被改指或删除的数量（按表）",
+  "based_on": "b5e1d7c3a920:59-77（ROLE_MAP）、:96-145（引用行备份到 deprecated_company_level_role_reference_backup，action 为 updated / deleted，然后删除公司级角色）",
+  "interpret": "只看规模：'(removed roles with no mapping)' 是没被引用、直接删掉的公司级角色数；按表列出的 updated/deleted 是被改指或删除的行数。"
+ },
+ {
+  "key": "POST_c4d8_invitations",
+  "findings": "N97",
+  "env": "post",
+  "title": "test 上 c4d8e2a6f1b3 生成的 company_invitation：行数、重复码、各字段实际最大长度、公司已被删掉（company_id 为空）的邀请数",
+  "based_on": "c4d8e2a6f1b3:66-88（客户关联的邀请，被删公司的 company_id 置空）、:90-126、:149-171（表结构）",
+  "interpret": "dup_codes 必须为 0（有 UNIQUE 约束）。max_*_len 用来看离上限 50/255/255/254/64 还有多远。invitations_without_company 是被删公司留下的邀请数。"
+ },
+ {
+  "key": "POST_merge_into_company_info",
+  "findings": "N61（同迁移）",
+  "env": "post",
+  "title": "test 上 e8b2f4a6c1d3 / f2a7c4e9b3d1 合并来源表的现状：同一公司是否有多行在用的 profile、representation、billing（有的话升级当时就会失败），以及合入 company_info 的 AP 行数",
+  "based_on": "e8b2f4a6c1d3:60-83；f2a7c4e9b3d1:157-183",
+  "interpret": "前 3 项在 test 上应为 0。billing 那项有个前提：f2a7 只合并了有非空字段的行，所以全空的重复行理论上不会导致失败，大于 0 时要再看是不是这种情况。company_info_with_ap 是合并进来的规模。"
+ },
+ {
+  "key": "POST_F39_inventory_move",
+  "findings": "F39",
+  "env": "post",
+  "title": "test 上 6a2f8c4e1d93 搬库存的结果：搬动行数、同一厂商/产品/规格的重复行、前子部门数量",
+  "based_on": "6a2f8c4e1d93:100-118（RAISE 预检）、:123-133（搬到 manufacturer_company_id，并记入 deprecated_manufacturer_inventory_move_backup）",
+  "interpret": "dup_company_product_variation 应为 0；manufacturers_with_several_subdivisions>0 说明 test 上“一个厂商只有一个子部门”这个前提不成立。"
+ },
+ {
+  "key": "POST_address_split",
+  "findings": "N59 / N61 / N46",
+  "env": "post",
+  "title": "test 上地址拆分后各表 city/state/zip 的实际最大长度和已拆行数（确认拆分没有超长写入）",
+  "based_on": "d5a1c9e3f7b4:17-40；f2a7c4e9b3d1:110-129；29fc58b26229:28-47；b3e8d1c47a52:44-66、:135-138",
+  "interpret": "split_rows 是已拆分的规模；max_state>2 的说明是用户手填的值。这里的数字是迁移结果和之后录入的数据合计。"
+ },
+ {
+  "key": "POST_seeded_rows",
+  "findings": "N53（同迁移）；无编号（e7b3d9a1c5f2 补种价格档）",
+  "env": "post",
+  "title": "test 上按 md5 固定 id 能认出来的迁移补种行：e7b3d9a1c5f2 的价格档（其中落在顶层公司上的）、5286c79e362d 补的电话，以及电话列实际最大长度",
+  "based_on": "e7b3d9a1c5f2:39-53（id = md5('price_tier_seed:'||company_id||':'||sort_order)）；5286c79e362d:26-38（id = md5('company.phone_number:'||company_id)）",
+  "interpret": "seeded_on_deleted_companies 是补种后、所属公司被软删（8011513c0d5c）的价格档数量。seeded_on_top_level_companies 是补到所有顶层公司上的数量（包括没有门店的公司）。backfilled_phones 对应 N53。只输出计数。"
+ },
+ {
+  "key": "N99_custom_matrix_pre",
+  "findings": "N99",
+  "env": "pre",
+  "title": "旧权限矩阵里有多少公司、多少角色自己调过权限（升级时会被模板默认值覆盖）",
+  "based_on": "f5a1d9c3b7e2:66-76（只按 system_company_type_role_template 播种，不读旧矩阵）；da8ba148ea59:32（company_role_permission 改名 system_role_permission）；6a31a24024e6:40（再改名 deprecated_）；旧代码 origin/uat settings/services.py update_company_permissions 整表删除重建、d2cfa5cf0e97 当年全量授权",
+  "interpret": "用同一公司类型里最常见的矩阵（众数）近似旧默认值。companies_customized / company_roles_customized > 0，就是升级后定制会丢失的公司数和（公司,角色）数。tighter 是收紧过的，升级后大概率被放开；looser 是放开过的，升级后会被收回。注意：众数只是近似；就算某公司等于众数，升级后也会被换成 c3e8a6d2f914 的产品默认表，和旧众数不一定相同。companies_with_matrix 很少的类型，众数不可靠。"
+ },
+ {
+  "key": "N99_zero_perm_pre",
+  "findings": "N99",
+  "env": "pre",
+  "title": "预测升级后哪些在用账号的角色在本公司类型下找不到同名模板而一个权限都没有",
+  "based_on": "f5a1d9c3b7e2:66-76（JOIN system_company_type_role_template ON company_type AND role_name，对不上就不给）；b9d4f2a7c6e1:58（模板只取未删除的类型角色）；23e8d26d41eb:95-123（账号持有别类型角色时给公司补一个同名角色，无模板）；b5e1d7c3a920:61-73（公司级角色映射到同 code 门店级角色）；9d18fcda7ab1:50-60（每个类型补门店级 CEO）",
+  "interpret": "zero_permission_in_live_business > 0：这些账号在用、所在业务也还在，但升级后持有的角色在本公司类型下没有同名模板（例如餐厅角色挂在供应商门店，或角色已软删），f5a1d9c3b7e2 不给任何节点，登录后受保护页面全部 403。businesses_affected / company_roles_without_template 是涉及的业务数和（业务,角色）数。accounts_zero_permission_after_upgrade 不分业务是否在用，供对照。company 行是母公司账号：非厂商母公司会被 8011513c0d5c 软删（仍 INVITED 的除外），重点看 store / restaurant / subdivision 行。company_role_without_facility_match > 0 表示有在用账号持有找不到同 code 门店级角色的公司级角色，b5e1d7c3a920 会因此 RAISE（看 ROLE_mig_fail_pre）。"
+ },
+ {
+  "key": "N99_zero_perm_post",
+  "findings": "N99",
+  "env": "post",
+  "title": "test 上没有模板、零权限的公司角色，以及仍持有这些角色的在用账号数",
+  "based_on": "f5a1d9c3b7e2:66-76；23e8d26d41eb:95-123；6a31a24024e6:40（system_company_role_permission 改名为 system_company_role_permission_m2m）",
+  "interpret": "zero_perm_roles_held / live_accounts_on_zero_perm_roles > 0，说明 test 上有在用账号拿到的是空权限，N99 后半句已复现。roles_without_template 和 roles_zero_permission 数不一致时，说明还有角色有模板却没有节点（例如在角色编辑器里被清空），或者没模板却在升级后被手动加了节点。dev_admin / admin 两行单独看。旧定制矩阵在 test 上已改名为 deprecated_system_role_permission，不再被读取，“定制丢失”这部分只能看 pre 查询。"
+ },
+ {
+  "key": "N119_ceo_gap_pre",
+  "findings": "N119",
+  "env": "pre",
+  "title": "预测升级后仍存在的公司按 company_type 有多少家，供应商类公司的存量 CEO 会缺拣货单审批等 5 个节点",
+  "based_on": "c3e8a6d2f914:69,125-127,136,138（turn_approval / packing_driving_approve / assign_packer_driver / order_problem_popups 只给 Manager、Shipping Manager，add_products 只给 Shipping Manager）；f5a1d9c3b7e2:66-99（存量公司角色按当时模板播种，new_order_email 只看通知行）；2ea4247db9a8:36,53（只改模板，不碰 system_company_role_permission）；083296a8b071:31-40、d8aaccb9a900:60-73、b7d82c2e651b:111-131（company_type）；8011513c0d5c:30-35、36cd67a87d67:25-30、8b980708773e:29-36（升级后哪些公司仍在）；b5e1d7c3a920:57（公司级角色的通知行被删）",
+  "interpret": "四个供应商类型行（Food_Vendor / Liquor_Vendor / E&S_Dealer / Broadliner_Dealer）的 alive_after_upgrade，就是升级后 CEO 角色缺 turn_approval、Packing Approve、assign_packer_driver、order_problem_popups、add_products 这 5 个节点的公司数（f5a1d9c3b7e2 按旧模板播种，2ea4247db9a8 只补模板、不回填存量）。notif_ceo_email_on:facility_level 行如果没有或为 0，说明供应商和厂商的全部存量 CEO 还缺 new_order_email：公司级 CEO 的通知行（company_level）先被 4c8e2a6f9b17 复制到分支，又被 b5e1d7c3a920 删掉，不会转成权限。Restaurant 行的 CEO 不缺这 5 个节点。厂商行的 alive 包含 36cd67a87d67 恢复的全部顶层厂商，其中也有升级前就已删除的。"
+ },
+ {
+  "key": "N119_ceo_gap_post",
+  "findings": "N119",
+  "env": "post",
+  "title": "test 上各类型公司的 CEO 角色比当前 CEO 模板少了哪些节点，存量公司和新建公司分开看",
+  "based_on": "2ea4247db9a8:36-70（只改 system_company_type_role_permission_template，downgrade 为空）；c3e8a6d2f914:69,125-138；f5a1d9c3b7e2:66-99；account_permission.py:26-34（只读角色自己的 m2m 行，CEO 没有特殊放行）",
+  "interpret": "ceo_missing_any_template_node 是 CEO 角色比当前 CEO 模板少节点的公司数，后面五列按节点分开计数。ceo_roles_created_after_2ea4 那批（之后新建的公司）的 created_after_2ea4_but_missing 应为 0；存量公司大面积缺 packing_approve / assign_packer_driver 等，就是 N119 在 test 上的复现。missing_and_ceo_role_held 是有在用账号持有该 CEO 角色的公司，这些才真正受影响。CEO 被人在角色编辑器里手动改过的公司也会计入。t0 为空（模板里没有该行）时，新建公司那两列恒为 0。"
+ },
+ {
+  "key": "N7_names_pre",
+  "findings": "N7",
+  "env": "pre",
+  "title": "旧成员表里有没有空姓名，升级后有多少用户的 system_user 姓名为空、多少多账号用户各账号姓名不一致",
+  "based_on": "8c6f5e1a90b1:84-96（四张成员表的 first_name/last_name 原样复制进 account）；7f1c4b8e2d35:27-36（system_user 姓名只从用户最早的账号回填）；0f14a819f8de:43-44（评论作者 = 成员 id）；main_app/orders/transport/responses.py:25,58（MemberOut.first_name: str）；core/settings/services.py:129-151",
+  "interpret": "members_with_null_name 必为 0（旧成员表姓名 NOT NULL），说明升级本身不会产生 None 姓名，也不会让订单详情立即 500；500 风险来自升级后新建或 Join Company 产生的无姓名账号。members_first_name_blank / blank_first_name_comment_authors 是空字符串姓名（不 500，但界面显示为空）。live_users_without_any_member 是升级后 system_user 姓名为空的用户：General Settings 改读 system_user 之后，这些人要先补姓名才能保存；其中 role='admin' 的平台管理员会被 a9d3f7b2e6c1 建一个名为 Admin 的账号，但 system_user 姓名仍为空。users_with_different_names_across_live_accounts 是多账号且各账号姓名不同的用户。"
+ },
+ {
+  "key": "N7_names_post",
+  "findings": "N7",
+  "env": "post",
+  "title": "test 上姓名为空的在用账号数，以及其中被指派为拣货员/司机或写过/改过订单评论的",
+  "based_on": "main_app/orders/transport/responses.py:25（MemberOut.first_name: str）、:58（first_name=account.first_name，评论作者和编辑者都走这里）；main_app/vendor/transport/responses.py:858-878（拣货单已改读 user 姓名）；7f1c4b8e2d35:27-36",
+  "interpret": "orders_with_comment_by_null_first_name 是 test 上现在打开订单详情会 500 的订单数：未删除评论的作者或编辑者账号 first_name 为 NULL，不论账号状态。in_use_first_name_null > 0 且 noname_wrote_or_edited_comment > 0，说明在用的无名账号已经写过评论。noname_assigned_packer_or_driver 是被指派为拣货员或司机的无名账号：拣货单已改读 user 姓名，不会 500，但会显示空名。live_users_without_first_name 是 system_user 姓名为空、General Settings 需要先补姓名的用户数。"
+ },
+ {
+  "key": "F13_type_rule_pre",
+  "findings": "F13",
+  "env": "pre",
+  "title": "预测每家公司升级后的 company_type 按哪条规则得来，统计有多个类型的公司和其下的分支",
+  "based_on": "083296a8b071:25-40（只给完全没有 company_company_type 行的公司回填：MANUFACTURER→E&S Manufacturer，VENDOR 只回填 2026-09-01 前创建的）；d8aaccb9a900:60-73（同类别按名称取第一个，没有就兜底 Food_Vendor / Food_Manufacturer，不看 created_at）；b7d82c2e651b:116-131（门店/餐厅/子部门取母公司同类别第一个类型，兜底 Food_*）",
+  "interpret": "rule=own_category_multiple:first_by_name 的行，是有多个本类类型、只按名称字母序保留第一个的公司（例如 Broadliner Dealer 排在 Food Vendor 前面）；live_children_under_them 是其下会继承这个选择的门店、餐厅、子部门数。MANUFACTURER 的 no_rows:backfilled_by_083296a8b071 会得到 E&S_Manufacturer，而 only_deleted_rows / only_other_category->default 会得到 Food_Manufacturer，两者在同一库里同时存在，就是 F13 说的兜底不一致。VENDOR 的 no_rows:not_backfilled->default 是 2026-09-01 之后创建、没有类型却被写成 Food_Vendor 的公司。附带：d51500b2df5e 的角色 remap 用的是不分类别的 min(ct.name)，和这里的分类别口径不同；跨类别挂了类型的公司（只会出现在 with_multiple_live_types 里）需要单独留意。"
+ },
+ {
+  "key": "F13_type_rule_post",
+  "findings": "F13",
+  "env": "post",
+  "title": "test 上旧公司和分支的 company_type 与其旧类型来源（deprecated_company_company_type）对照",
+  "based_on": "083296a8b071:31-40；d8aaccb9a900:60-73；b7d82c2e651b:116-131；920893696493（company_company_type 改名 deprecated_）；5365a6cf834e（deprecated_company_back 为合并前公司的整表备份）",
+  "interpret": "只看合并前就有的公司（id 在 deprecated_company_back 里）和 b7d82c2e651b 复制出来的分支（有 parent_company_id）。source_rule=source_multi_own_category 的行，是来源公司有多个本类类型、迁移只保留了一个的公司数（分支行即继承了母公司的那一个）。company_type_not_among_source_types > 0，表示最终类型不在来源类型集合里：走了 Food_* 兜底，或之后被人改过。source_no_live_type / source_only_other_category 的厂商如果是 Food_Manufacturer，就是与 083296a8b071 的 E&S 默认不一致的实例。"
+ },
+ {
+  "key": "F17_copies_pre",
+  "findings": "F17",
+  "env": "pre",
+  "title": "预测 9d18fcda7ab1 会把多少母公司账号复制到门店/餐厅/子部门，以及跳过了多少",
+  "based_on": "9d18fcda7ab1:35-41（母公司账号 × 每个分支，含已删除）、:65-104（取分支类型下同 code 的门店级角色，没有就不复制；用户在分支已有账号（含已删）就不复制；沿用 is_active、deleted_at）、:42-56（每个类型补门店级 CEO）；8c6f5e1a90b1:84-96（成员 id 即账号 id）；d8aaccb9a900:56；b7d82c2e651b:111-131",
+  "interpret": "predicted_copies 是升级会新增的分支账号数（id 为 md5(母账号 id:分支 id)，回滚只能按 md5 推算）。copies_of_deleted_accounts / copies_of_inactive_accounts 是连同已删除、停用状态一起复制的，不放大访问，但会增加数据。users_gaining_live_access 是因此首次在某分支拿到可用账号的人数，即权限面放大的规模（团队已按需求接受）；注意母公司在升级前就已删除、但成员行未删的，也会被复制成可用账号。live_pairs_skipped_no_same_code_role 是在用的母公司账号，因分支类型下没有同 code 角色而没被复制的（账号, 分支）对，要结合 F17_gap_pre 看。分支 id 与已有公司 id 冲突、b7d82c2e651b 改用随机 id 的情况（F5）未计入。"
+ },
+ {
+  "key": "F17_gap_pre",
+  "findings": "F17",
+  "env": "pre",
+  "title": "预测母公司被 8011513c0d5c 软删后，有多少在用成员在任何在用分支都没有可用账号",
+  "based_on": "9d18fcda7ab1:65-104（不复制无同 code 角色的、或已有分支账号（含已删）的）；8011513c0d5c:30-35（删除有子公司的顶层公司）；36cd67a87d67:25-30（顶层厂商全部恢复）；8b980708773e:29-36 + d6b0f4a8c2e5:70-73（owner 在公司里没有账号的 INVITED 母公司被恢复）",
+  "interpret": "members_left_without_usable_branch_account / users_left_without_usable_branch_account > 0：这些人现在靠母公司账号工作。升级后母公司被 8011513c0d5c 软删，而他们没有被复制到任何在用分支（分支类型下没有同 code 角色，或在分支已有已删/停用的账号），将失去这家公司的入口。这就是 F17 待团队澄清的缺口，prod 上 > 0 的话，应在升级前决定是补复制还是确认放弃。parent_companies_involved 是涉及的母公司数。"
+ },
+ {
+  "key": "F17_copies_post",
+  "findings": "F17",
+  "env": "post",
+  "title": "test 上 9d18fcda7ab1 实际复制出的分支账号，以及母公司被删后没有可用分支账号的成员",
+  "based_on": "9d18fcda7ab1:35-41,88-104（副本 id = md5(母账号 id || ':' || 分支 id)，沿用 is_active / deleted_at）；8011513c0d5c:30-35",
+  "interpret": "copies:<company_type> 是各类型分支里由迁移复制出的账号数；copies_of_deleted_accounts / copies_of_inactive_accounts 是连同删除、停用状态一起复制的；copies_usable_now 是现在可用的副本。of_which_no_usable_branch_account / users_without_usable_branch_account > 0，说明 test 上已经有人在母公司被删后，在该公司的任何在用分支都没有可用账号（F17 缺口已复现）。其中可能混有升级前就删除的母公司的成员，需要时再按母公司 deleted_at 时间核对。"
+ },
+ {
+  "key": "N140_bill_to_pre",
+  "findings": "N140",
+  "env": "pre",
+  "title": "预测 fe799a734a27 回填时会把餐厅 CEO 的登录邮箱/手机号写进多少供应商客户行，其中 CEO 已停用的有多少",
+  "based_on": "fe799a734a27:38-57（餐厅最早一个 CEO 账号，只看 a.deleted_at IS NULL、r.name='CEO'，取 u.email / u.phone_number，不看 is_active）、:66-71（restaurant_id 为空或 UNREGISTERED* 才算未注册）、:104-106（已注册客户写 owner 的电话、邮箱）；9d18fcda7ab1:65-104（母公司 CEO 被复制进餐厅，created_at=now() 所以排在原有成员之后）；core/clients/bill_to.py:56-72,104-106",
+  "interpret": "will_write_ceo_login_email / will_write_ceo_login_phone 是升级回填时会把餐厅 CEO 的登录标识（user.email / phone_number）写进 client.bill_to_* 的客户数；vendor_stores_receiving 是能看到这些值的供应商门店数（有 clients:view 就能读），即跨租户暴露的规模。ceo_account_inactive_or_user_deleted 是其中 CEO 账号已停用或用户已删除仍被写入的。ceo_from_parent_copy 是 CEO 来自 9d18fcda7ab1 从母公司复制的账号。prod 是未脱敏的真实数据，> 0 就要在升级前决定是否修改迁移。"
+ },
+ {
+  "key": "N140_bill_to_post",
+  "findings": "N140",
+  "env": "post",
+  "title": "test 上 Bill To 邮箱/电话等于餐厅 CEO 登录邮箱/手机号的客户数",
+  "based_on": "fe799a734a27:38-57,104-106；core/clients/bill_to.py:56-72（_owner_value 只过滤 company_id、deleted_at、角色名 CEO）、:104-106；main_app/vendor/clients/transport/handlers.py:411-420（GET /{client_id}/info 只要 clients:view）",
+  "interpret": "bill_to_email_eq_ceo_login / bill_to_phone_eq_ceo_login 是 test 上 Bill To 已经等于餐厅 CEO 登录邮箱/手机号的客户数（回填和新建都算）；vendor_stores_seeing_it 是能读到这些值的供应商门店数。email_eq_inactive_ceo 是对应 CEO 账号已停用、或用户已停用/删除的。少量相等可能是餐厅自己把联系人填成了同一个邮箱；大量相等说明回填确实按 N140 描述生效。test 是脱敏库，邮箱、手机号经过统一变换，相等关系不受影响。"
+ },
+ {
+  "key": "N2_dev_admin_pre",
+  "findings": "N2/H1",
+  "env": "pre",
+  "title": "4b52dd3297e5 / a9d3f7b2e6c1 在 uat/prod 上是否会因固定邮箱或固定 id 冲突失败，以及会生成多少平台 admin 账号",
+  "based_on": "4b52dd3297e5:30-38（固定 role/company/user/account id，固定邮箱 dev.admin@yopmail.com、口令 <固定密码>）、:66-81（插入 user 和 account）；a9d3f7b2e6c1:28-30,58-70（固定 Admin 角色/公司 id，给每个 role='admin' 的未删除用户建 Admin 公司账号）；c7f2a9d4e8b3:50-54（旧库 user.email 唯一、lower(email) 唯一索引不区分是否删除）",
+  "interpret": "users_with_dev_admin_fixed_email > 0，或任一 *_id_taken > 0，升级会在 4b52dd3297e5 / a9d3f7b2e6c1 因唯一约束或主键冲突而中止。全部为 0，则升级会在该库（含 prod）新建一个固定邮箱、固定口令 <固定密码> 的 dev admin CEO 账号（H1）。live_users_role_admin 是会被 a9d3f7b2e6c1 放进 Admin 公司的平台 admin 人数，他们之后可以用 /account/create 在任意租户建账号且不记审计日志（N2 剩余部分）。"
+ },
+ {
+  "key": "N2_dev_admin_post",
+  "findings": "N2/H1",
+  "env": "post",
+  "title": "test 上 dev admin 用户在多少家公司、哪些类型的公司有可用账号，以及能进 dev_admin / admin 公司的人数",
+  "based_on": "4b52dd3297e5:30-38,66-81（迁移只给 dev admin 建 1 个 devAdmin 公司账号）；dev_admin/transport/handlers.py:88-122 + core/dev_admin_accounts/services.py:47-107（assign_accounts 可给任何人含自己在任意有 company_type 的公司开任意角色账号）；dev_admin_accounts/repositories.py:136；middlewares/action_log.py:76-116（/dev-admin/* 不记日志）",
+  "interpret": "迁移只给 dev admin 建 1 个 dev_admin 公司账号；b5e1d7c3a920 之后，它的 CEO 角色映射成 Admin。dev_admin_usable_companies_total 和按 company_type 拆开的 dev_admin_accounts_usable 如果超出这 1 个，多出来的就是之后通过 /dev-admin 给自己开的、没有审计记录的账号，体现 N2 剩余风险的实际覆盖面；dev_admin_usable_ceo_accounts 是其中的 CEO 账号数。users_with_usable_account_in_dev_admin / admin 是能进 dev admin 公司或平台 admin 公司的人数，明显超出预期说明已经发生提权。dev_admin_users_found=0 说明 test 上固定账号已被删除。"
+ },
+ {
+  "key": "ROLE_mig_fail_pre",
+  "findings": "额外（N3 相关）：b5e1d7c3a920 RAISE / b9d4f2a7c6e1 主键 / 23e8d26d41eb 唯一索引",
+  "env": "pre",
+  "title": "角色相关迁移会不会因 uat/prod 现有角色数据直接失败",
+  "based_on": "b5e1d7c3a920:59-94（公司级角色找不到同类型、同 code、未删除的门店级角色且仍被成员/onboarding/订单历史引用时 RAISE）；9d18fcda7ab1:42-56（只给没有门店级 ceo 的类型补 CEO）；a3d9632e77e0:79-104（角色按业务大类复制到 7 个子类型，code 由名字生成）；b9d4f2a7c6e1:58（模板 id = md5('role_tem:'||type||':'||name)，同类型同名活角色会主键冲突）；23e8d26d41eb:75-91（先建 (company_id, code) 部分唯一索引再复制角色）",
+  "interpret": "b5e1d7c3a920_unmapped_company_roles_in_use > 0：有公司级角色（例如某组没有同 code 门店级角色的 CFO）仍被成员、onboarding 成员或订单/发票/拣货单历史引用，b5e1d7c3a920 会 RAISE，中止整个升级；rows_referencing_unmapped_roles 是受影响的行数。b9d4f2a7c6e1_dup_live_facility_role_names > 0 会让模板插入主键冲突；23e8d26d41eb_dup_live_facility_role_codes > 0 会让每家公司复制角色时撞 (company_id, code) 唯一索引。全为 0 则这三处不会因数据失败。角色表由迁移种子生成、各环境大体一致，但引用行因库而异，uat 和 prod 都要跑。"
+ },
+ {
+  "key": "N59_pre_country_suffix",
+  "findings": "N59、F6",
+  "env": "pre",
+  "title": "uat/prod 升级时以 , US / , USA / , United States 结尾、会进入 b3e8d1c47a52 拆分的地址有多少，新版能拆开多少，旧版会拆错多少",
+  "based_on": "b3e8d1c47a52:28-29（_ADDRESS_PATTERN、_TRAILING_COUNTRY_PATTERN）、:44-66（_split 先去国家再拆，只拆 city/state/zip 全空的行）、:135（对 client/client_temporary_store/quotation_vendor_client/company/quotation 两列都执行）；旧版见 git show 4c4870f0^ 同文件（直接 regexp_match(btrim(street))）；f2a7c4e9b3d1:19、:118 与 29fc58b26229:23、:36 要求以邮编结尾，以国家结尾的地址留给 b3e8d1c47a52；b7d82c2e651b:110-135 把 store/restaurant/manufacturer_subdivision.address 复制进 company；d5a1c9e3f7b4:27-39 先用厂商 profile 街道覆盖 company.address",
+  "interpret": "每行一个地址来源：company(existing)=原公司（已折算 d5a1c9e3f7b4 的 profile 覆盖），company<-store/restaurant/manufacturer_subdivision=b7d82c2e651b 复制出的公司行，其余是 client/client_temporary_store/quotation_vendor_client/quotation 各列。addresses=非空地址数（规模参照）；ends_with_country=以 , US/USA/United States 结尾的（_live=其中未删）；new_version_splits=uat/prod 将执行的新版能正确拆出街道/城市/州/邮编的条数；new_version_leaves_whole=去掉国家后仍拆不开、升级后整串留在街道列且 city/state/zip 为空的条数（多为两段式，和 N61 重叠，需人工拆）；old_version_would_missplit=如果跑旧版会被拆成 city='TX 77584'、state='US' 的条数，用来对照 test。ends_with_country 全为 0 说明 N59 对该库无影响。"
+ },
+ {
+  "key": "N59_post_us_state",
+  "findings": "N59、F6",
+  "env": "post",
+  "title": "test 上被旧版 b3e8d1c47a52 拆错（state='US'、city 形如「TX 77584」）的行，以及它们被复制到 Bill To、订单快照、邀请里的数量",
+  "based_on": "b3e8d1c47a52 旧版（git show 4c4870f0^：regexp_match(btrim(street), _ADDRESS_PATTERN)，邮编可选，未先去掉结尾国家）；b3e8d1c47a52:68-80 _FILL_VENDOR_CLIENT_FROM_RESTAURANT 把 company 的 city/state 抄给 quotation_vendor_client；fe799a734a27:98-103 把 company/temporary 的 city/state 写进 client.bill_to_*、:125-134 写进 order.bill_to；c4d8e2a6f1b3:69-75、:92-104 把 company 的 city/state 复制进 company_invitation",
+  "interpret": "正常应全为 0。state_us_and_city_st_zip>0 就是旧版 b3e8d1c47a52 拆错的行（city='TX 77584'、state='US'、zip 为空，城市还留在街道里）；新版只处理 city/state/zip 全空的行，不会重跑修复（F6）。state_us 大于 state_us_and_city_st_zip 的差额可能是「…, TX, US」这种被拆成 city='TX' 的，也可能是人工录入，需个案看。client.bill_to_* 和 order.bill_to 行有值，说明错误已经被 fe799a734a27 带进客户 Bill To 和历史订单快照；company_invitation 行有值，说明已复制进邀请记录。>0 时需要补修复迁移或手工 SQL。"
+ },
+ {
+  "key": "N61_N10_pre_profile_overwrite",
+  "findings": "N61、N10",
+  "env": "pre",
+  "title": "d5a1c9e3f7b4 会用厂商 profile 街道覆盖多少 company.address、其中原值是单独维护（覆盖后不可恢复）的有多少；只有城市/州/邮编没有街道的 profile 有多少",
+  "based_on": "d5a1c9e3f7b4:25-40（UPDATE company SET address = trim(p.address) …；:35 只迁有街道的 profile，:36-39 长度条件，不过滤 company.deleted_at）、:44-63（downgrade 只做拼接，恢复不了原值）；origin/main core/manufacturer_profile/services.py compose_flat_address（主线 company.address = 街道, 城市, 州 邮编, 国家）；f2a7c4e9b3d1:19 与 b3e8d1c47a52:28-29（两段式「城市, ST 邮编[, USA]」都拆不开）；f2a7c4e9b3d1:157-179（company_billing 改名 deprecated，address 不再使用）",
+  "interpret": "will_overwrite=d5a1c9e3f7b4 会覆盖 company.address 的 profile 数；overwrite_changes_address=覆盖后值确实变了的；overwrite_loses_independent_address=原 company.address 既不是 profile 拼出的整串，也不等于 profile 街道，说明是单独维护的值，覆盖后无法恢复（downgrade 只会拼接），这是 N10 的实际风险面，>0 建议升级前导出这些公司的原地址；overwrite_drops_country=profile 填了国家，覆盖后国家从地址里消失；overwrite_on_deleted_company=覆盖到已删公司（无害）；profiles_sharing_one_company>0 时 UPDATE…FROM 会任取一条。no_street_has_city_state_zip=只有城市/州/邮编、没有街道的 profile（N61），这些厂商不会被迁移；no_street_flat_address_unsplittable=其中整串地址连新版 b3e8d1c47a52 也拆不开、升级后 city/state/zip 为空、需人工拆的数量；company_billing_addresses_dropped=按 D22 视为丢弃的账单地址数。"
+ },
+ {
+  "key": "N61_N10_post_profile_address",
+  "findings": "N61、N10",
+  "env": "post",
+  "title": "test 上厂商地址被 profile 覆盖、以及无街道 profile 的厂商地址仍是整串或被拆错的数量",
+  "based_on": "d5a1c9e3f7b4:25-40；e8b2f4a6c1d3（manufacturer_profile 改名为 deprecated_manufacturer_profile）；5365a6cf834e（deprecated_company_back = b7d82c2e651b 之前 company 的整表快照）；b3e8d1c47a52 旧版（「城市, ST 邮编, US」会被拆成 state='US'）",
+  "interpret": "street_profile_address_differs_from_backup=有街道 profile 的厂商，当前地址和升级前快照不一样的数量（主要是被 profile 街道覆盖，也可能之后用户改过），可抽查原值是否有价值（N10）；no_street_profile=只有城市/州/邮编的 profile 数；no_street_still_flat=这些厂商的 company.address 仍是整串、city/state/zip 为空（N61 的残留，>0 需人工拆或补拆分迁移）；no_street_missplit_state_us=被旧版 b3e8d1c47a52 拆成 state='US' 的（和 N59 叠加）；live_manufacturers_flat_address=所有在用厂商里地址仍是整串的总数。"
+ },
+ {
+  "key": "N53_pre_phone_backfill",
+  "findings": "N53",
+  "env": "pre",
+  "title": "5286c79e362d 会给多少公司插回 primary 电话行，其中原有公司里「电话行都被软删过」和「从没有电话行」各多少",
+  "based_on": "5286c79e362d:26-37（公司未删、btrim(phone_number) 非空、没有未删电话行 → 插一条 primary 'phone'）；f2a7c4e9b3d1:36（company_phone_number 改名 company_info_phone_number，在 5286c79e362d 之前）；b7d82c2e651b:110-135（门店/餐厅/分部的 phone_number 复制进新 company 行，这些行没有电话行）；8011513c0d5c:31-34（有子行的母公司之后被软删）",
+  "interpret": "will_insert_primary_phone=升级时会被插入一条 primary 电话行的公司数。copy<-* 三行是 b7d82c2e651b 复制出的门店/餐厅/分部，本来就没有电话行，补行是设计意图，不算问题。重点看 company:* 行：will_insert_had_only_deleted_rows=原有公司电话行全被软删过，基本可以确定是「删光电话」后号码会被重新插回（N53），升级后会出现在电话列表里，并经 fe799a734a27 写进历史订单 bill_to；will_insert_never_had_rows=从没有过电话行（如果曾被硬删也混在这里，数据上分不出来）；will_insert_on_parent_company=有子行的母公司，之后多数会被 8011513c0d5c 软删，影响小；will_insert_standalone=真正会留在系统里的原公司。"
+ },
+ {
+  "key": "N53_post_phone_backfill",
+  "findings": "N53",
+  "env": "post",
+  "title": "test 上 5286c79e362d 插入的电话行现状：多少在原有公司上、其中有被删电话的、多少已写进订单 bill_to",
+  "based_on": "5286c79e362d:22（_ROW_ID = md5('company.phone_number:' || c.id)::uuid，可据此认出回填行）、:26-37；5365a6cf834e（deprecated_company_back 只含 b7d82c2e651b 之前就有的公司）；fe799a734a27:114-134（order.bill_to 的 phone 取 company_info_phone_number，不过滤 deleted_at）",
+  "interpret": "backfilled_rows=test 上仍在的回填行；on_pre_existing_company=其中属于升级前就有的原公司，只有这部分可能是「admin 删光后又被插回」；pre_existing_with_other_deleted_rows=这些原公司还有其他被软删的电话行，基本可以确认是被删的号码又出现了（N53 在 test 的实际行数）；now_has_other_live_rows=之后又补了别的电话；used_in_order_bill_to=号码已经写进该公司（作为餐厅）历史订单的 bill_to 快照；backfilled_row_deleted_since=回填后又被删掉的。门店/餐厅复制行（不在 deprecated_company_back 里）的回填属设计意图。"
+ },
+ {
+  "key": "F35_pre_parent_quotations",
+  "findings": "F35",
+  "env": "pre",
+  "title": "from_store_id / store_id 为空、3b7e9d1c5a64 不会改挂的报价单和报价客户，升级后其 vendor 公司是否会被软删（即谁都看不到）",
+  "based_on": "3b7e9d1c5a64:55-56、:61-62（只改挂 from_store_id / store_id 非空的行）；d8aaccb9a900:56（先清空所有 parent_company_id，原公司都成顶层）；b7d82c2e651b:110-135（门店/餐厅/分部成为 parent_company_id 指向原公司的子行，含已删）；8011513c0d5c:31-34（软删有子行的顶层公司）；36cd67a87d67:26-28（恢复 MANUFACTURER）；8b980708773e:30-35 + d6b0f4a8c2e5:68-74（只恢复 INVITED 且有 owner 的母公司，owner 在公司里没有账号即 INVITED）；permission_company/services/account_access.py:59（find_account_id 要求公司未删）",
+  "interpret": "只统计不会被改挂、留在原 vendor 公司上的报价单和报价客户。带 INVISIBLE 的两类：vendor 是有门店的母公司，升级后被 8011513c0d5c 软删（或本来就已删），find_account_id 进不去，这些行升级后谁都看不到；live_rows>0 时建议升到 medium，并在升级前决定改挂到哪个门店。no_store_vendor:stays_visible=没有门店的独立公司，不受影响；no_store_vendor:already_deleted=升级前就已删、本来就看不到的非厂商公司；manufacturer_top=会被 36cd67a87d67 恢复的厂商；parent_owner_without_member:est_restored=按 8b980708773e 估算会恢复的母公司（用 company_member 近似判断 INVITED，属于估算）。vendor_companies=涉及的公司数。"
+ },
+ {
+  "key": "F35_post_invisible_quotations",
+  "findings": "F35",
+  "env": "post",
+  "title": "test 上 vendor 公司已删除（因而谁都看不到）的报价单和报价客户数量",
+  "based_on": "3b7e9d1c5a64:55-56、:61-62、:99-107（from_store_id/store_id 改名 deprecated_*，原值保留）；8011513c0d5c:31-34；36cd67a87d67:26-28；8b980708773e:30-35；quotation/repositories.py:150-155（只按 vendor_company_id 查）",
+  "interpret": "只列 vendor 公司已删除的行，这些在 test 上已经没人能看到。vendor_is_top_level=true 且 had_no_store=true 就是 F35 描述的情况：挂在被软删的母公司上、原本就没选门店；vendor_is_top_level=false 是门店本身被删，属正常删除。前一类 live_rows>0 说明问题在 test 已经发生，可以据此估计 uat/prod 的规模。"
+ },
+ {
+  "key": "F30_pre_guard_comment_author",
+  "findings": "F30",
+  "env": "pre",
+  "title": "有没有三个成员列全空的订单评论（会让 0f14a819f8de 设 account_id NOT NULL 时整个升级失败）",
+  "based_on": "0f14a819f8de:43（account_id = COALESCE(company_member_id, restaurant_member_id, store_member_id)）、:47（alter_column account_id nullable=False）；env.py transaction_per_migration=True",
+  "interpret": "应为 0。>0 时 0f14a819f8de 的 SET NOT NULL 会报错，uat/prod 的升级会在这一步停住，需要先处理这些评论（删掉或补作者）再升级。"
+ },
+ {
+  "key": "F30_pre_comment_side",
+  "findings": "F30",
+  "env": "pre",
+  "title": "母公司账号（company_member）写的历史订单评论，升级后哪些会被 5f8c3e1a9d27 改挂到门店/餐厅账号、哪些改不了（会被判成餐厅侧并从 LV 发票备注消失）",
+  "based_on": "0f14a819f8de:43（COALESCE 优先取 company_member_id）；8c6f5e1a90b1（成员复制成 account 保留原 id、company_id=原门店/餐厅/公司 id）；9d18fcda7ab1:35-41、:61-105（母公司账号复制到未删的门店/餐厅：:75-84 需门店侧有同 code 非公司级角色，:85 门店未删，:86-88 已有账号不复制；同时为每个类型补 code='ceo' 角色）；a3d9632e77e0:43（code = 名称小写、非字母数字换 _）；5f8c3e1a9d27:29-51（作者公司 = 门店/餐厅的母公司且该用户在门店/餐厅有账号才改挂）；core/orders/domains.py:684-686、main_app/orders/transport/responses.py:70-72、main_app/invoices/invoice_render.py:281-284",
+  "interpret": "只看作者是母公司账号（company_member）的评论。side：store_parent=作者公司是订单门店的母公司（供应商总部写的）；restaurant_parent=作者公司是餐厅的母公司；neither_parent=作者公司和这张订单无关。moved:* 会被 5f8c3e1a9d27 改挂；moved_est 是按 9d18fcda7ab1 复制规则估算能改挂的（同 code 角色用旧 role 表近似）。所有 not_moved:* 的 live_comments 合计就是 F30 的影响面：store_parent 侧这些供应商评论升级后会被判成餐厅侧，两侧的评论都会从 LV 发票备注里消失，而且 5f8c3e1a9d27 的 downgrade 为空、不可逆。>0 时需要团队决定是否接受，或在升级前补一步修正。"
+ },
+ {
+  "key": "F30_post_comment_side",
+  "findings": "F30",
+  "env": "post",
+  "title": "test 上订单评论作者账号与订单门店/餐厅的对应情况（判侧错误和发票备注丢失的实际行数）",
+  "based_on": "5f8c3e1a9d27:29-51；core/orders/domains.py:684-686（作者公司 == store_id 才算供应商侧）；main_app/orders/transport/responses.py:70-72（其余一律 RESTAURANT）；main_app/invoices/invoice_render.py:281-284（两边都对不上的评论丢弃）",
+  "interpret": "vendor_side 和 restaurant_side 是正常行。MISJUDGED:author_in_store_parent=供应商总部账号写的评论，现在被显示成餐厅评论，也不进 LV 发票备注；DROPPED_FROM_LV:*=作者账号不在订单的门店或餐厅，发票备注里不显示。这几类的 live_comments 就是 test 上 F30 已经发生的影响；authored_as_company_member=true 说明来自原 company_member，正是 5f8c3e1a9d27 没改挂成功的那部分。"
+ },
+ {
+  "key": "F126_pre_category_remap",
+  "findings": "F126",
+  "env": "pre",
+  "title": "按 7c2d4e8a1b96 + 8e4f2b6d9c31 的条件，uat/prod 升级后还会剩多少商品挂在全局分类或非本店分类上（之后不改分类就保存不了）",
+  "based_on": "1f7c3a9e5b28（store_product 改名 product，store_id→company_id）；7c2d4e8a1b96:55-72（每个门店复制母公司全部分类含已删、保留 deleted_at，商品改指本店副本；全局分类不复制）；8e4f2b6d9c31:47-62（门店商品在全局分类上→本店同名、未删、顶层分类，找不到就保留）、:64-94（餐厅商品按 select_company_id 或最小 id 的关联门店商品定门店）；core/products/repositories.py:294-309（exists_product_category 带 company_id 时只认本公司未删分类）",
+  "interpret": "重点看 store_product 行：global->STAYS_GLOBAL=升级后仍挂在全局分类上的商品，编辑时不改分类直接保存会报「分类不存在」；parent_category_deleted->deleted_copy（原分类已删，副本也是已删）和 other_company_category 同样会被 exists_product_category 拒绝。这三类 live_rows 都为 0，团队「所有数据都不受影响」的答复才在该库成立；>0 时 F126 不能按前提不计入，需要补映射或提前清理。restaurant_product 行仅供参考（餐厅商品的分类是供应商分类的快照，不走 exists_product_category）；global_no_vendor_store=找不到供应商门店、无法映射的餐厅商品。"
+ },
+ {
+  "key": "F126_post_category",
+  "findings": "F126",
+  "env": "post",
+  "title": "test 上商品当前挂的分类是否属于本店（全局分类、已删分类、他公司分类的数量）及 8e4f2b6d9c31 实际改挂行数",
+  "based_on": "8e4f2b6d9c31:35-107（改挂记录写入 deprecated_product_category_remap_backup）；7c2d4e8a1b96:55-72；core/products/repositories.py:294-309",
+  "interpret": "product 行里 GLOBAL_category / own_category_deleted / other_company_category 的 live_rows，就是 test 上现在不改分类就保存不了的商品数，应为 0；>0 说明 8e4f2b6d9c31 之后确实留下了这类商品（F126 在 test 已发生）。restaurant_product 行仅供参考：category_of_deleted_company 多是还挂在已软删母公司分类上的餐厅商品；other_company_category 里包含没选门店、分类属于关联门店的正常行。remap_backup 行是 8e4f2b6d9c31 实际改挂的条数。"
+ },
+ {
+  "key": "N141_N150_pre_bill_to",
+  "findings": "N141、N150",
+  "env": "pre",
+  "title": "按 fe799a734a27 回填公式估算 uat/prod 升级后 Bill To 八项不全的存量客户数（区分未注册/已注册）",
+  "based_on": "fe799a734a27:36-110（未注册：coalesce(temporary_*, 餐厅公司值) + 最早联系人；已注册：餐厅公司名称地址 + 最早 CEO 账号的 user 手机/邮箱）；b3e8d1c47a52:28-29、:44-66 与 f2a7c4e9b3d1:110-129（temporary_address 与餐厅公司地址的拆分）；b7d82c2e651b（restaurant 复制成同 id 的 company，company_status=status）；9d18fcda7ab1:35-105（餐厅本无 CEO 角色，CEO 账号来自母公司 CEO 的复制，created_at=now()、id=md5(账号id:餐厅id)）；core/clients/bill_to.py:81-107；前端 Information.tsx 八项 requiredRule（47cbf964）",
+  "interpret": "按回填公式估算升级后的 Bill To。bill_to_incomplete=升级后八项有空的在用客户，即 N150 的影响面：这些客户在 Information 页的邀请联系人、价格层、销售员、酒牌、状态等都保存不了，直到补全 Bill To。no_contact_at_all（看 unregistered 行）=没有联系人的未注册客户，供应商一保存就得手填联系人，填完后和默认值不再相等，客户注册时 copy_registered_bill_to 不会刷新（N141）；only_one_of_phone_email（看 registered 行）=CEO 只用手机或只用邮箱注册；address_not_split=地址拆不开、city/state 为空；split_without_zip=拆开了但没有邮编。"
+ },
+ {
+  "key": "N141_N150_post_bill_to",
+  "findings": "N141、N150",
+  "env": "post",
+  "title": "test 上 Bill To 不全的客户数，以及未注册客户中 Bill To 已偏离当前默认值、注册时不会被刷新的数量",
+  "based_on": "core/clients/bill_to.py:32-39（未注册判定）、:81-94（_unregistered_values = coalesce(temporary_*, 餐厅值) + 最早联系人）、:120-121（_matches 八列 is_not_distinct_from）、:144-155（copy_registered_bill_to 只刷新仍等于默认值的行）；fe799a734a27:93-109；core/onboardings/services.py:465-472（注册时先 link 再 copy）",
+  "interpret": "bill_to_incomplete=test 上 Bill To 八项有空的在用客户，即 N150 的影响数（这些客户在 Information 页的其他字段都存不了）；bill_to_all_empty=回填之后新建、从没写过 Bill To 的；no_contact / only_one_of_phone_email 说明缺的是哪部分。linked_unreg_will_not_refresh=已关联未注册餐厅、但 Bill To 已经和按当前数据重算的默认值不一致的客户，餐厅注册时不会被刷新（N141 的实际规模）。unreg_company_part_diverged / unreg_contact_part_diverged 区分是公司地址部分还是联系人部分不一致（供应商补过联系人、改过 temporary 地址都会造成）。no_restaurant_yet 组的「一致」只按当前数据算，以后关联到新注册的餐厅时，只要 temporary_* 有空项就会变成不一致。"
+ },
+ {
+  "key": "pre_acct_merge_counts",
+  "findings": "无独立编号（8c6f5e1a90b1 / 96fe8aa55b8c 成员表合并）",
+  "env": "pre",
+  "title": "四张成员表按迁移原样复制成账号：每张表会产生多少账号、其中已删除/停用/挂在已删用户或已删分支上的有多少，有没有会让插入或外键失败的行",
+  "based_on": "8c6f5e1a90b1:39-55（建 account，:50 user 外键 CASCADE，:52 uq_account_user_id_company_id 为全表唯一、含已删除行），:69-81（四张表逐表 INSERT ... SELECT，不去重、不过滤已删除/停用，id 原样保留）；96fe8aa55b8c:32-40（按同 id 把成员 role_id 写进 account_role_m2m）",
+  "interpret": "TOTAL 行的 accounts_created = 8c6f5e1a90b1 之后 account 的行数，也是 96fe8aa55b8c 写入 account_role_m2m 的行数。deleted_accounts 是复制成已删除账号的行数。live_on_deleted_user>0：用户已软删，但名下有在用账号。live_in_deleted_business>0：门店/餐厅/子部门已删，账号仍在用。user_missing_fk_fail>0 会让 8c6f5e1a90b1 建外键时失败；business_missing>0 会让 049461d68471 报孤儿账号 RuntimeError；role_missing>0 会让 96fe8aa55b8c 的角色外键失败。旧表都有外键，这三项正常应为 0。"
+ },
+ {
+  "key": "pre_acct_merge_conflicts",
+  "findings": "无独立编号（8c6f5e1a90b1 唯一约束/主键）、F5",
+  "env": "pre",
+  "title": "合并成账号时会撞唯一约束或主键的成员行，以及业务 id 跨表撞号导致账号落到别的公司上的成员行",
+  "based_on": "8c6f5e1a90b1:52（全表唯一 (user_id, company_id)）、:69-81（四表 INSERT 无 ON CONFLICT）；b7d82c2e651b:116（id 已被 company 占用时改用 gen_random_uuid()，成员账号的 company_id 仍是原 id）",
+  "interpret": "第 1 行 groups_found>0：8c6f5e1a90b1 插入时违反 (user_id, company_id) 唯一约束，升级失败。第 2 行 groups_found>0：两张成员表里出现同一个 id，违反 account 主键，升级失败。第 3 行 groups_found>0：有门店/餐厅/子部门与公司或彼此同 id，b7d82c2e651b 给后复制的那行换了随机 id，挂在它下面的成员账号仍指向原 id，落到了另一家公司（F5）；member_rows/live_member_rows 是受影响账号数的上限。三行正常都应为 0。"
+ },
+ {
+  "key": "pre_acct_copies_9d18",
+  "findings": "F17、N72（9d18fcda7ab1 账号副本数）",
+  "env": "pre",
+  "title": "9d18fcda7ab1 会把多少母公司账号复制到分支、多少因分支没有同 code 角色或用户已在分支而跳过，以及 admin 迁移新增的账号数，用来估算升级后 system_account 总量",
+  "based_on": "9d18fcda7ab1:35-41（母公司=parent_company_id 为空的 company 行，分支=其子行）、:61-106（含已删除/停用账号都复制；分支未删；分支类型里要有同 code、未删的分店级角色；用户在分支已有账号（含已删除）则跳过）、:46-57（为每个类型补 code='ceo' 的分店级角色）；a3d9632e77e0 + 2e1bd951650a（同一大类各公司类型角色名相同，code 由 name 推出）；a9d3f7b2e6c1（每个未删除的 admin 用户一个账号）；4b52dd3297e5（dev admin 1 个账号）",
+  "interpret": "copies_made 是 9d18fcda7ab1 新增的账号数（含复制成已删除的）；live_copies 为在用；usable_copies 还要求账号启用、用户未删除。skipped_no_branch_role 是因分支类型下没有同 code 的在用分店级角色而没复制的（母公司账号, 分支）对；skipped_already_member 是用户在该分支已有成员行（含已删除）而跳过的对。升级后 system_account 总数 ≈ pre_acct_merge_counts 的 TOTAL + copies_made + admin_accounts_added_a9d3f7b2e6c1 + 1（dev admin）。母公司随后被 8011513c0d5c 软删，live_copies 基本就是原公司级人员在各分支里还能用的账号数。（store/restaurant 与 company 撞 id 的 F5 情况下，副本会落到随机 id 的子行，且「已是成员」的判断会失准，以 pre_acct_merge_conflicts 第 3 行为 0 为前提。）"
+ },
+ {
+  "key": "pre_F7_chat_member_cascade",
+  "findings": "F7",
+  "env": "pre",
+  "title": "80a123f47df0 硬删三个 member 列全空的 chat_member 时，经 ON DELETE CASCADE 连带删掉多少消息、附件和其他聊天成员",
+  "based_on": "80a123f47df0:31-36（DELETE FROM chat_member WHERE 三个 member 列全为 NULL）；chats/models.py:72（chat_message.chat_member_id ON DELETE CASCADE）、:82（chat_message.forwarded_message_id CASCADE）、:180（chat_member.last_read_message_id CASCADE，库里的约束由 3f495b4e9a92:40-50 建为 CASCADE）、:245（chat_message_attachment CASCADE）",
+  "interpret": "orphan_members_deleted 是 80a123f47df0 直接硬删的行数。messages_deleted 是被级联删掉的消息总数（含转发了被删消息的消息）。other_members_deleted_by_last_read_cascade 是本身有成员身份、只因最后已读消息被删而连带删掉的 chat_member，这些人会从聊天里消失，自己发的消息也一起被删。attachments_deleted 是被删的附件关联行。团队说 uat/prod 没有这类数据，只有全部为 0 才成立；任何一项 >0 都是物理删除，没有备份，downgrade 也恢复不了。"
+ },
+ {
+  "key": "pre_chat_member_account_fk",
+  "findings": "F7、F8（80a123f47df0 外键与唯一约束）",
+  "env": "pre",
+  "title": "chat_member 改指 account_id 时，会不会因为找不到账号或同一聊天合并成同一账号而让升级失败，以及多身份行和用户不一致的行",
+  "based_on": "80a123f47df0:37-45（account_id = COALESCE(store_member_id, restaurant_member_id, company_member_id)，:40 NOT NULL，:41-43 外键指向 account，:44 唯一约束 (chat_id, account_id)）；账号 id 等于成员 id（8c6f5e1a90b1:69-81）",
+  "interpret": "no_member_deleted 应等于 pre_F7_chat_member_cascade 的 orphan_members_deleted。account_missing_fk_fail>0：COALESCE 出来的 id 在四张成员表里都找不到，:41 建外键失败，升级回滚。dup_chat_account_unique_fail>0：同一聊天里有两行合并成了同一个账号，:44 唯一约束失败。several_member_cols 是一行设了多个成员列的，只按 store→restaurant→company 取第一个，其他身份丢掉。chat_user_differs_from_account_user>0：chat_member.user_id 和账号所属用户不是同一个人，升级后按账号显示会对不上。"
+ },
+ {
+  "key": "pre_F15_order_comment_account",
+  "findings": "F15、F30",
+  "env": "pre",
+  "title": "order_comment 改指 account_id 时，三个作者列全空的行（升级会失败）、找不到账号的行和多作者行各有多少",
+  "based_on": "0f14a819f8de:40-46（account_id = COALESCE(company_member_id, restaurant_member_id, store_member_id)，updated_by_account_id 同理），:47（直接 SET NOT NULL，之前没有任何 DELETE），:48-58（两条外键指向 account）",
+  "interpret": "no_author_not_null_fail>0：0f14a819f8de:47 设 NOT NULL 时失败，整个升级回滚（F15：没有任何迁移删这类行，团队说「会被删除」与代码不符）；首末日期用来判断是哪一批旧数据。author/editor_account_missing_fk_fail>0：:48-58 建外键失败，正常应为 0。company_and_store_author 是同时有公司成员和门店成员的评论，COALESCE 取公司成员账号；several_authors 里被丢掉的作者身份，以及 5f8c3e1a9d27 只能部分改写回门店/餐厅账号的问题，属于 F30。"
+ },
+ {
+  "key": "pre_packing_slip_accounts",
+  "findings": "无独立编号（a56e6f86e0d7）",
+  "env": "pre",
+  "title": "order_packing_slip 改指 account 列时，各经手人列有多少值、有没有找不到账号会让外键失败的，以及同时有餐厅和门店确认人的行",
+  "based_on": "a56e6f86e0d7:59-76（四个 account 列照搬成员 id，delivery_approved_by_account_id = COALESCE(餐厅确认人, 门店确认人)；只加外键 ON DELETE SET NULL，没有 NOT NULL，也不删行）",
+  "interpret": "各 *_missing_fk_fail>0 会让 :66-74 建外键失败、升级回滚，正常都应为 0。both_delivery_approvers>0 的行只保留餐厅确认人，门店确认人从新列里丢失。packer_or_driver_member_deleted 是经手人成员已软删的拣货单，升级后指向已删除账号，按 packer/driver 账号列自己拣货单时看不到。"
+ },
+ {
+  "key": "pre_049461_orphan_accounts",
+  "findings": "N97（c4d8e2a6f1b3 硬删公司，叠加 049461d68471 的孤儿账号检查）",
+  "env": "pre",
+  "title": "c4d8e2a6f1b3 硬删的「邀请占位公司」里有没有成员账号：有的话 049461d68471 会因孤儿账号直接报错停止升级",
+  "based_on": "c4d8e2a6f1b3:21-64（_DOOMED：顶层、未删、2026-09-17 后创建、CLIENT/VENDOR、无 owner、非 admin 创建、邀请码未用，再按客户关联/名称+街道匹配），:128-143、:183（DELETE FROM company）；此时 system_account.company_id 还没有外键（8c6f5e1a90b1 未建），049461d68471:96-102（存在 company_id 不对应任何公司的账号即 RuntimeError）；d8aaccb9a900:56（原公司全部成为顶层）；b7d82c2e651b（无公司的餐厅复制成顶层 CLIENT，company_status=restaurant.status）",
+  "interpret": "accounts_in_predicted_deleted>0：c4d8e2a6f1b3（第 78 个）硬删这些公司时，system_account 还没有外键，账号不会被级联删除，留下孤儿；049461d68471（第 84 个）统计到后报 RuntimeError，升级停止。candidates_upper_bound 和 accounts_in_candidates 只按基础条件算，是上限，为 0 即可直接排除风险。predicted_* 加上了名称/街道匹配，是近似值：街道本身含逗号，或者拆地址正则没匹配上（拆分后保留整串）时会有偏差，非零时要逐条核对。"
+ },
+ {
+  "key": "pre_N41_invited_staged_members",
+  "findings": "N41",
+  "env": "pre",
+  "title": "按迁移规则预测升级后为 INVITED 的公司，在旧 onboarding 暂存成员表里有多少成员（升级后全部作废），以及这些 owner 停在旧 onboarding 的哪一步",
+  "based_on": "d6b0f4a8c2e5:50-74（status：无 owner、无在用账号、无已用邀请码、有未用邀请码 → INVITED；有 owner 但 owner 在公司里没有任何账号（含已删除）→ INVITED；母公司的账号此时就是 company_member 复制来的）；a2c4e6f8b0d1:28-40（五张 onboarding 表只改名为 deprecated_*，之后无代码读写）；onboardings/services.py:407、:418（_finish_onboarding 只给母公司 owner 和请求体里的成员建账号）",
+  "interpret": "INVITED(owner_signed_up)/INVITED(code_unused) 行的 rows_live，是升级后作废的暂存成员数：a2c4e6f8b0d1 只把表改名，之后不会建账号，也不会补发邀请（N41 前半句，按 D22 视为已丢失，用来评估影响面）。ACTIVE 行是已完成 onboarding 的公司残留的暂存行，同样作废，但这些公司一般已经有正式成员。'owner onboarding.step=…' 行显示这些已注册 owner 停在旧多步 onboarding 的哪一步，company_team/places 说明分支团队可能已经暂存。NO_PARENT 表示对应的门店/餐厅/子部门已不存在，或餐厅不属于任何公司。"
+ },
+ {
+  "key": "pre_N41_branches_without_accounts",
+  "findings": "N41、N129",
+  "env": "pre",
+  "title": "升级后每个在用的子餐厅/门店/子部门是否还有在用账号（自己的成员 + 9d18fcda7ab1 从母公司复制来的），按母公司预测状态分组",
+  "based_on": "b7d82c2e651b（未删分支复制为在用 company 行，user_id 为空）；9d18fcda7ab1:61-106（只把母公司已有账号复制到未删分支，需分支类型有同 code 的在用分店级角色）；d6b0f4a8c2e5:50-74（母公司 status）；8011513c0d5c:29-36（有子行的顶层公司软删）、8b980708773e:28-36（只恢复 INVITED 且有 owner 的母公司，子公司不动）、36cd67a87d67:24-31（恢复所有顶层 MANUFACTURER）；onboardings/services.py:407、:418（finish 只给母公司建账号）",
+  "interpret": "no_live_account_after_upgrade：分支自己没有在用成员，母公司也没有能复制过来的在用账号，升级后这个在用 company 行没有任何账号，除 admin/dev admin 手工开户外谁也进不去。INVITED(owner_signed_up) 行就是 N41 剩下的「旧流程建出的子公司没有账号」：母公司会被 8011513c0d5c 软删、再被 8b980708773e 恢复，owner 完成 onboarding 后也只在母公司拿到账号。INVITED(code_unused) 的母公司没有 owner，被 8011513c0d5c 软删后不会恢复（N129；MANUFACTURER 例外，36cd67a87d67 会把所有顶层制造商恢复）。no_account_but_staged_team 表示这些分支在旧 onboarding 里暂存过团队，这批人随 a2c4e6f8b0d1 作废。ACTIVE 行里的 no_live_account 同样是没人能进的分支，只是与 onboarding 中途无关。no_usable_account 另外把停用账号和已删用户也算作没有账号。"
+ },
+ {
+  "key": "pre_b5e1_member_roles_unmapped",
+  "findings": "无独立编号（b5e1d7c3a920 RuntimeError，涉及成员/账号角色）",
+  "env": "pre",
+  "title": "成员和 onboarding 暂存成员持有的公司级角色里，有没有找不到同 code 分店级角色的（b5e1d7c3a920 会直接报错停止升级）",
+  "based_on": "b5e1d7c3a920:59-77（公司级角色映射到同类型、同 code、未删的分店级角色）、:79-94（system_account_role_m2m、deprecated_*_member、onboarding_*_member 等仍引用、却映射不到的公司级角色 → RuntimeError）；9d18fcda7ab1:46-57（每个类型补 code='ceo' 的分店级角色）；96fe8aa55b8c（账号角色 = 成员角色）；a3d9632e77e0 / d51500b2df5e（拆分后同一大类各公司类型的角色名相同，code 由 name 推出）",
+  "interpret": "只要返回一行，升级就会在 b5e1d7c3a920 报 RuntimeError 并停止。role_code 是需要在分店级补建（或恢复未删状态）的角色 code，referenced_from/rows_referencing 是引用它的表和行数；如果出现在 order_*_history，说明历史记录里留着的公司级角色找不到分店级对应角色。'ceo' 已由 9d18fcda7ab1 补齐，除非库里原本就有一个已删除的分店级 CEO，否则不会出现。返回 0 行，才能排除这一步失败的风险。"
+ },
+ {
+  "key": "post_acct_origin",
+  "findings": "无独立编号（8c6f5e1a90b1 合并结果）、F17",
+  "env": "post",
+  "title": "test 上 system_account 按来源（四张旧成员表、9d18fcda7ab1 副本、ADMIN 公司、升级后新建）拆分的在用/可用/挂在已删公司/没有角色的数量",
+  "based_on": "8c6f5e1a90b1:69-81（账号 id = 成员 id）；9d18fcda7ab1:36（副本 id = md5(母账号 id:分支 id)）；4b52dd3297e5 / a9d3f7b2e6c1（ADMIN 公司账号）；23e8d26d41eb:147-152（删掉映射不到公司角色的 system_account_role_m2m 行）；8011513c0d5c:29-36（母公司软删，账号不动）",
+  "interpret": "live_in_deleted_company 主要是 8011513c0d5c 软删母公司后留下的公司级账号，已经不可用；9d18fcda7ab1_copy 行是这些人在分支上的替身。live_without_role>0：账号没有任何角色，登录后没有权限。live_on_deleted_user>0：用户已删，账号仍在用。把 pre_acct_merge_counts 的 TOTAL、pre_acct_copies_9d18 的 copies_made 和这里的 *_member / 9d18fcda7ab1_copy 行对照，可以估算 uat/prod 升级后的量级（test 是老 dev 数据，只能参考比例）。"
+ },
+ {
+  "key": "post_members_without_account",
+  "findings": "无独立编号（8c6f5e1a90b1 合并结果）",
+  "env": "post",
+  "title": "test 上旧成员行和账号是否一一对应：还剩多少成员找不到同 id 的账号，以及在用账号落在已删公司里的数量",
+  "based_on": "8c6f5e1a90b1:69-81（逐行复制、保留 id）；920893696493（成员表改名 deprecated_*，行不变）；049461d68471:103-104（system_account.company_id ON DELETE CASCADE）",
+  "interpret": "迁移刚跑完时 without_account 应为 0；现在 >0 说明对应账号后来被物理删除了（用户或公司物理删除时级联等）。live_member_without_account 是旧表里仍在用、却已经没有账号的成员。company_member 行的 live_account_in_deleted_company，就是被 8011513c0d5c 软删的母公司里留下的账号数。"
+ },
+ {
+  "key": "post_F7_chat_member",
+  "findings": "F7",
+  "env": "post",
+  "title": "test 上 chat_member 改指 account_id 后的结果：升级前的无主行是否已清掉、有没有被改到别的账号、多少在用聊天成员挂在已删账号或已删公司上",
+  "based_on": "80a123f47df0:31-45（删无主行，account_id = COALESCE(旧三列)）；8011513c0d5c:29-36（母公司软删，账号不动）；chats/models.py:168（account_id ON DELETE CASCADE）",
+  "interpret": "old_rows_without_member 应为 0，说明三列全空的旧行都已被 80a123f47df0 删掉。当时删了多少、级联带走多少消息，事后已经统计不了，只能在 uat/prod 上用 pre_F7_chat_member_cascade 提前看。account_differs_from_old_member>0 表示有行在升级后被改到了别的账号。live_on_deleted_account / live_on_account_in_deleted_company 是挂在已删账号或已删公司（主要是被软删的母公司）上的在用聊天成员，chats_with_dead_member 是受影响的聊天数：这些人按账号进入聊天时已经没有可用身份。"
+ },
+ {
+  "key": "post_F15_order_comment",
+  "findings": "F15、F30",
+  "env": "post",
+  "title": "test 上 order_comment 改指 account_id 后的结果：升级前无作者行、作者被改写、作者账号或其公司已删、编辑人丢失的数量",
+  "based_on": "0f14a819f8de:40-58（COALESCE 回填后直接 NOT NULL；updated_by_account_id 外键 ON DELETE SET NULL）；5f8c3e1a9d27:33-49（作者从母公司账号改到门店/餐厅账号，只覆盖部分作者）；orders/domains.py:684-686、invoice_render.py:281-284（F30 的判边规则）",
+  "interpret": "old_rows_without_author 必须为 0，否则 0f14a819f8de 在 test 上不可能执行成功；这只说明 test 没有这类行，代表不了 uat/prod，uat/prod 以 pre_F15_order_comment_account 为准。author_moved_off_old_member 是被 5f8c3e1a9d27 改写过作者的评论数。author_company_deleted 是作者账号还在已软删母公司里的评论，按 F30 的规则可能被判成餐厅侧，或者从 LV 发票备注里消失。editor_lost>0 表示编辑人账号后来被物理删除，被 SET NULL。"
+ },
+ {
+  "key": "post_packing_slip_accounts",
+  "findings": "无独立编号（a56e6f86e0d7）",
+  "env": "post",
+  "title": "test 上拣货单改指 account 列后的结果：旧列有人、新列已空（账号被删后 SET NULL）的数量，以及经手人账号已删或在已删公司里的数量",
+  "based_on": "a56e6f86e0d7:59-76（account 列照搬成员 id，外键 ON DELETE SET NULL，旧列改名 deprecated_* 保留原值）",
+  "interpret": "*_lost>0：旧列有经手人，新账号列却是空的，说明账号后来被物理删除，拣货单经 SET NULL 丢了经手人，需要时只能从 deprecated_* 列找回。*_account_deleted 是经手人账号已软删的拣货单。packer_in_deleted_company>0：packer 账号在已删公司里，按 packer_account_id 列自己的拣货单时可能看不到。"
+ },
+ {
+  "key": "post_N41_companies_without_accounts",
+  "findings": "N41",
+  "env": "post",
+  "title": "test 上在用公司按类型、状态、层级（顶层/分支及其母公司状态）统计，没有任何在用账号或没有可用账号的数量",
+  "based_on": "9d18fcda7ab1:61-106（分支只拿到母公司已有账号的副本）；8011513c0d5c:29-36、8b980708773e:28-36、36cd67a87d67:24-31（母公司删除/恢复）；onboardings/services.py:407、:418（finish 只给母公司建账号）",
+  "interpret": "no_live_account 是没有任何在用账号的在用公司；no_usable_account 还把停用账号、已删或停用的用户也算作没有。level='branch(parent INVITED,live)' 的行就是 N41 说的、8b980708773e 恢复的 INVITED 母公司下面没有账号的分支。top 且 status=INVITED 是还没完成 onboarding 的公司，owner 还没建账号，属于正常。ACTIVE 且 no_live_account>0 的公司除 admin 外没人能进，需要逐个确认。按 no_usable_account 倒序，最多 20 行。"
+ },
+ {
+  "key": "post_N41_invited_parents",
+  "findings": "N41、N129、N148",
+  "env": "post",
+  "title": "test 上未删除的顶层 INVITED 公司：有 owner 的数量、有在用账号的数量、名下在用分支及其中没有账号的数量，以及在旧 onboarding 暂存、已作废的团队成员数",
+  "based_on": "8b980708773e:28-36（恢复 INVITED 且有 owner、有子行的母公司，子公司不动）；a2c4e6f8b0d1:28-40（暂存表只改名，无人再读）；onboardings/services.py:385-441（_finish_onboarding 只在 :407 给母公司 owner、:418 给请求体成员建账号，之后设为 ACTIVE）",
+  "interpret": "live_branches_without_live_account 就是 N41 还没解决的部分：INVITED 母公司下的分支没有任何账号，owner 完成 onboarding 后也进不去。with_owner 是已注册、但未完成 onboarding 的公司，8b980708773e 恢复的就在其中。staged_*_void 是这些公司在旧 onboarding 里暂存的团队成员，升级后不建账号、也不补发邀请（按 D22 视为已丢失）。test 是老 dev 数据，只能说明问题的形态；uat/prod 的影响面看 pre_N41_invited_staged_members 和 pre_N41_branches_without_accounts。"
+ }
+]

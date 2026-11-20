@@ -208,18 +208,20 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div class="verdict">
       <strong>结论：仍然不能上 uat / prod</strong>
       <p><b>这一轮进展很大：未关闭从 163 条降到 107 条，高危从 7 条降到 4 条。</b>开发按「第 6 版补充」页面修改后答复了 145 条，逐条核实：成立 43、部分成立 36、不成立或没答到点 20、按设计接受 24、按前提不计入 22。N73（高危）已修好，N2 的 dev admin 全公司放行已去掉（降为中危），N97（高危）团队已用 SQL 查过 uat/prod，按前提不计入但升级前要再查一次。</p>
-      <p><b>还没解决的高危 4 条</b>：N140（Bill To 取餐厅 CEO 的登录邮箱和手机号，本轮没改，也不在团队答复范围内）、N129（部分修复：INVITED 母公司已恢复，订阅和主发票问题仍在；团队「母公司全删」的说法和代码不一致）、H5、H6。<b>新问题</b>：N148（中危）<code>8b980708773e</code> 恢复范围过宽，系列之前删掉的 INVITED 公司也会回来；N149–N152（低）。不成立的答复里最需要回问的是 F73、F127：答复说「全部按新权限结构控制」，后端写损和分类写接口其实仍不校验权限。</p>
+      <p><b>还没解决的高危 4 条（三库数据核实后剩 N140、N129 两条，H5 降为中危、H6 降为低危）</b>：N140（Bill To 取餐厅 CEO 的登录邮箱和手机号，本轮没改，也不在团队答复范围内）、N129（部分修复：INVITED 母公司已恢复，订阅和主发票问题仍在；团队「母公司全删」的说法和代码不一致）、H5、H6。<b>新问题</b>：N148（原中危，按数据降为低危）<code>8b980708773e</code> 恢复范围过宽，系列之前删掉的 INVITED 公司也会回来；N149–N152（低）。不成立的答复里最需要回问的是 F73、F127：答复说「全部按新权限结构控制」，后端写损和分类写接口其实仍不校验权限。</p>
+      <p><b>第 9 版补充（2026-11-20）</b>：你在 test 上实测发现「挂了好几家公司的账号只能看到管理端」，补记 <b>N153（中危）</b>：当前账号是 Admin 公司时进管理端，管理端侧边栏没有公司切换器，切不回其他公司。只核对了这一条（后端 <code>0aafd5a6</code>、前端 <code>5454caed</code>），未关闭 107 → 108。</p>
     </div>
     <p class="correction prose"><b>test 环境：</b>这些提交都已在 test 上。<code>b176ff9a</code> 推送的 <code>476ff599ad47</code> 旧版在所有库上都会失败，test 部署曾因此中断，<code>e050bab3</code> 修正后才继续；建议在 test 上查一下有没有公司被设成 admin 类型。本版没有连接任何数据库，也没有运行测试；迁移链单一 head <code>8b980708773e</code>，从 uat/prod 的 <code>731ddff784cc</code> 升级执行 92 个，不重跑。</p>
+    <p class="correction prose"><b>三库只读数据核实（11-20，D25）：</b>uat 和 prod 升级都不会因为现有数据失败（92 个迁移的唯一索引、NOT NULL、外键、主动报错检查，违反数据都是 0）。在 prod 真实数据上会发生的：N140（76 个客户写入 23 家餐厅 CEO 的登录邮箱）、N129（66 家公司升级后仍被删，3 家订阅在用）、N99（39 家公司的定制权限被重置）、N119（86 家供应商 CEO 缺节点）、N150（约 95% 客户 Bill To 不全）。不会发生的：H6 的 id 冲突、N148 和 N133 的误恢复、H5 只丢 1 条关系。详见报告「〇-E」，查询在 <code>工具/数据核实/</code>，升级前要再跑一次。</p>
   </header>
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>107</b><span>当前未关闭（第 8 版 163 条：关闭 61、新增 5）</span></div>
-      <div class="stat h"><b>4</b><span>高危（N73 修复、N97 按前提不计入、N2 降为中危）</span></div>
-      <div class="stat m"><b>32</b><span>中危（新增 N148；N99、N101–N103 你决定不接受，改回未关闭）</span></div>
-      <div class="stat l"><b>71</b><span>低危（新增 N149–N152）</span></div>
-      <div class="stat n"><b>5</b><span>第 9 版新发现（N148–N152）</span></div>
+      <div class="stat"><b>108</b><span>当前未关闭（第 8 版 163 条：关闭 61、新增 6；三库数据核实后调整了 7 条级别）</span></div>
+      <div class="stat h"><b>2</b><span>高危（N140、N129；H5、H6 按 prod 数据降级）</span></div>
+      <div class="stat m"><b>31</b><span>中危（新增 N153；N150 按数据升为中危；N133、F4、N41 降为低危）</span></div>
+      <div class="stat l"><b>75</b><span>低危（新增 N148–N152 中的 4 条：N148 按数据降为低危，N150 升为中危）</span></div>
+      <div class="stat n"><b>6</b><span>第 9 版新发现（N148–N153，N153 为补充）</span></div>
     </div>
     <h2>第 8 版的 252 条问题的现状</h2>
     <div class="flow">
@@ -313,8 +315,8 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <article class="issue lo"><div class="id">N97</div><div class="body"><h3>迁移按规则硬删「邀请占位公司」（按前提不计入）</h3><p>团队答复已用 SQL 查过 uat 和 prod、跑这个迁移没问题，按 D19 按前提不计入。但 main 每次发邀请都会新建占位公司，要删的公司会一直变化：升级前要紧挨着再查一次，并留存被删公司清单。</p></div><div class="side"><span class="by">8eaef720 · lucy</span><span class="chip down">按前提不计入</span></div></article>
       <article class="issue m"><div class="id">N2</div><div class="body"><h3>dev admin 对所有公司放行（部分修复，降为中危）</h3><p>Felix 的 <code>b176ff9a</code> 去掉了权限中间件里 dev admin 的全公司放行（人工核对）。但 <code>/dev-admin</code> 仍允许它给自己在任意公司开账号（只禁止删掉自己的 dev_admin 账号），不记日志；团队答复「devadmin 拥有最高权限」，这一半按设计接受。</p></div><div class="side"><span class="by">3e945bde · Felix</span><span class="chip part">部分修复 · b176ff9a</span></div></article>
       <article class="issue done"><div class="id">N73</div><div class="body"><h3>新建的 vendor 公司一接单，订单列表就 500（已修复）</h3><p>Felix 的 <code>b176ff9a</code> 让 Add Company 建 vendor 时也补配送设置（<code>me/services.py:200-201</code>），全仓库只剩这里和 onboarding 两个入口，都覆盖了（人工核对）。</p></div><div class="side"><span class="by">c8fb1cd6 · Felix</span><span class="chip fixed">已修复 · b176ff9a</span></div></article>
-      <article class="issue"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id（F5）</h3><p><code>b7d82c2e651b</code> 没变。第 6 版：<code>049461d68471</code> 的孤儿检查发现不了这类冲突，新外键反而会把错挂的账号固定在错误的公司上。H6 的另一半 F4（副本混进列表）因母公司被删，第 6 版关闭；2026-11-19 厂商母公司被 <code>36cd67a87d67</code> 恢复后重开，改为部分修复（中危）。</p></div><div class="side"><span class="by">2a7d08bc e3ba8005</span><span class="chip open">F5 未修，F4 部分修复</span><small>uat 执行前先做只读冲突核查</small></div></article>
-      <article class="issue"><div class="id">H5</div><div class="body"><h3>迁移清空所有公司的 parent_company_id</h3><p><code>d8aaccb9a900</code> 没变。原值只在 <code>company_back</code> 里（新库里叫 <code>deprecated_company_back</code>），按 D9 要删。第 7 版：厂商母公司被 <code>36cd67a87d67</code> 恢复，「分支指向已删除行」现在只对门店和餐厅成立；已删除的厂商子公司也被清空了 parent，会被一并恢复。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip open">未修</span><small>prod 升级前只读导出层级，请产品书面确认</small></div></article>
+      <article class="issue lo"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id（F5，按数据降为低危）</h3><p><code>b7d82c2e651b</code> 的代码缺陷还在，但 11-20 只读核实 uat、prod：store / restaurant / 子部门的 id 与 company 或彼此冲突都是 0，随机 id 的分支一行都不会走。升级前紧挨着再查一次即可。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip down">高危 → 低危</span></div></article>
+      <article class="issue m"><div class="id">H5</div><div class="body"><h3>迁移清空所有公司的 parent_company_id（按数据降为中危）</h3><p><code>d8aaccb9a900</code> 没变，清空不可逆。但 11-20 只读核实：prod 只会丢 1 条在用的 Master Database 母子关系，uat 3 条（test 已丢 9 条）。prod 升级前先记下这 1 条，升级后人工补回。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip down">高危 → 中危</span></div></article>
       <article class="issue lo"><div class="id">N88</div><div class="body"><h3>deprecated_* 表是多条问题唯一的数据来源（按 D22 不计入）</h3><p>用户确认 <code>deprecated_</code> 开头的表以后都会删除，审查时当作不存在（D22）。本条的风险完全建立在「这些表还能用来找回或核查数据」上，所以不再计入；它列出的数据丢失分别由 F3（旧层级）、F5、N41、F13、N61、N99、N129、N133、N3 跟踪，按 D22 视为已丢失。</p></div><div class="side"><span class="by">删表前提</span><span class="chip down">按 D22 不计入</span></div></article>
       <article class="issue done"><div class="id">N34</div><div class="body"><h3>只合入了公司角色迁移，没合入代码</h3><p>已修：配套代码经 <code>b6c1083a</code> 合入，ORM、读取方和所有写角色的入口都改到 <code>system_company_role</code>（人工核对）。已执行过中间版本的库缺 10 个迁移，记在 F6。</p></div><div class="side"><span class="by">3f19b998</span><span class="chip fixed">已修复 · ded52c12 69c5cb38</span></div></article>
       <article class="issue done"><div class="id">N35</div><div class="body"><h3>账号接管链</h3><p>已修：<code>3e945bde</code> 删除了 <code>PUT /team/members/{id}</code>，这是唯一能改别人全局邮箱和手机号的一环（人工核对）。加人仍不需要对方确认（F58），新出现的「改写他人显示名」另列为 N122。</p></div><div class="side"><span class="by">fbfc9b9c 13e16617</span><span class="chip fixed">已修复 · 3e945bde</span></div></article>
@@ -348,8 +350,9 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>中危问题</h2>
-    <h3 class="sub">第 9 版新发现的中危 1 条，以及第 8 版的 N141、N142</h3>
+    <h3 class="sub">第 9 版新发现的中危 2 条（含补充的 N153），以及第 8 版的 N141、N142</h3>
     <div class="issues">
+      <article class="issue m"><div class="id">N153</div><div class="body"><h3>平台管理员账号兼有其他公司账号时，进了管理端就切不回其他公司</h3><p>Felix 的 <code>f401b438</code> 把「进管理端」改成按当前账号是不是 Admin 公司判定，可管理端侧边栏 <code>AdminSidebar</code> 没有公司切换器，切换器只在普通侧边栏里。test 上登录默认按公司名排序，Admin 排第一，每次登录都落在管理端；sprint6 的 <code>daea0b53</code> 改成打开最早建的公司，但切进 Admin 后仍然只能登出。修法：管理端也放切换器，或者分配账号时拦下这种组合。第 9 版补充，你在 test 上实测发现。</p></div><div class="side"><span class="by">f401b438 · Felix</span><span class="chip new">新问题</span></div></article>
       <article class="issue m"><div class="id">N148</div><div class="body"><h3>8b980708773e 恢复的范围超过 8011513c0d5c 删掉的那一批</h3><p>Felix 的 <code>b176ff9a</code>：凡是顶层、INVITED、有 owner、有过子行的已删公司都会恢复，包括系列之前被 CSS Admin 在 Master Database 删掉的公司，owner 可以重新登录、走完 onboarding；downgrade 为 pass。和 N133 是同一种写法，修法也一样：限定在 <code>8011513c0d5c</code> 的事务时间戳上。</p></div><div class="side"><span class="by">b176ff9a · Felix</span><span class="chip new">新问题</span></div></article>
     </div>
     <div class="issues">
@@ -410,7 +413,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前八版的 252 条加本版新问题 5 条（N148–N152）。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「有团队答复」筛选列出团队答复过的 193 条（第 1–3 批），每条下面显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）。</p>
+    <p class="prose count">前八版的 252 条加本版新问题 6 条（N148–N152，以及第 9 版补充的 N153）。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「有团队答复」筛选列出团队答复过的 193 条（第 1–3 批），每条下面显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -448,6 +451,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <ol class="steps">
         <li><b>回问团队</b>：第 3 批答复里不成立的 20 条、部分成立的 36 条（页面上选「有团队答复」可以逐条看核实结论）；N140 和第 7–9 版的新问题也请交给团队。</li>
         <li><b>N148、N133</b>：两个恢复公司的迁移都限定在 <code>8011513c0d5c</code> 的事务时间戳上。</li>
+        <li><b>N153</b>：管理端也放公司切换器，或者分配账号时拦下「Admin + 业务公司」的组合，并补测试。</li>
         <li><b>N97</b>：升级前紧挨着再查一次要删的公司。</li>
         <li><b>N140</b>：Bill To 默认联系人改取公司对外的邮箱和电话，至少排除停用的人；<code>fe799a734a27</code> 回填前确认口径。</li>
         <li><b>N142</b>：删除用户时，如果他是某家 INVITED 公司唯一的账号，要拦下或提示。</li>
