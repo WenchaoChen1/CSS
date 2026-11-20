@@ -18,6 +18,8 @@ export const meta = {
 //   batches      string[][] finding ids to recheck, grouped by area (6–8 per batch); every open and closed id once
 //   finders      {key, prompt}[] one reviewer per area of the new commits
 //   sevDef       string  optional override of the severity definition
+//   repliesPath  string  optional: JSON {id: [{seg, text}]} with the development team's written replies; when given,
+//                        each recheck result also judges the reply (reply_verdict / reply_check, per D19)
 
 const A = args || {}
 for (const k of ['ctx', 'findingsPath', 'prevLabel', 'baseBe', 'baseFe', 'batches', 'finders']) {
@@ -43,8 +45,10 @@ const RECHECK_SCHEMA = {
           severity_now: { type: 'string', enum: ['high', 'medium', 'low', 'none'] },
           evidence: { type: 'string' },
           note: { type: 'string' },
+          reply_verdict: { type: 'string', enum: ['none', 'holds', 'partly', 'not_hold', 'design_accept', 'premise_waive'] },
+          reply_check: { type: 'string' },
         },
-        required: ['id', 'status', 'changed_since_prev', 'fixed_by', 'severity_now', 'evidence', 'note'],
+        required: ['id', 'status', 'changed_since_prev', 'fixed_by', 'severity_now', 'evidence', 'note', 'reply_verdict', 'reply_check'],
       },
     },
   },
@@ -70,8 +74,18 @@ ${RULES}
 3. changed_since_prev：相关代码或结论自${A.prevLabel}以来是否有变化。
 4. severity_now：按现状给 high/medium/low；fixed/obsolete 填 none。${SEV_DEF}
 5. evidence：HEAD 上 文件:行号 + 关键代码片段（简短）。note：1–3 句中文说明，重点说与${A.prevLabel}相比的变化（没变化就直说"本轮未改动"）。
-以代码为准，${A.prevLabel}的描述也可能有误，发现就指出。`
+以代码为准，${A.prevLabel}的描述也可能有误，发现就指出。
+${A.repliesPath ? REPLY_RULES : '6. reply_verdict 填 none，reply_check 填空字符串。'}`
 }
+
+const REPLY_RULES = `6. 开发团队对部分条目给了书面答复，在 ${A.repliesPath}（JSON：id → [{seg, text}]，同一条可能有前后不一致的几段答复）。答复是按团队拿到的那一版报告写的，修复可能在之后的提交里，以 HEAD 代码为准。对有答复的条目，按 D19 判断 reply_verdict：
+   - holds：答复说「已改/已修复/已删除/不存在/不再使用/已废弃」，代码里找到了证据（status 应为 fixed 或 obsolete）；
+   - partly：答复部分成立（例如只修了一半、或只对部分入口成立），写清楚剩什么；
+   - not_hold：答复与代码不符、没答到问题本身，或几段答复互相矛盾（写清楚哪里不符，可回问团队的问题）；
+   - design_accept：答复是设计或需求取舍（「需求如此」「正常需求」「不用改」），代码确实按这个设计在工作，可以按设计接受；如果这个取舍会带来跨租户、数据丢失等高风险，仍判 design_accept，但在 reply_check 里写明风险，由人工决定；
+   - premise_waive：答复是环境数据或发布流程方面的说法（「uat/prod 没有这种数据」「同时上线」「downgrade 不会执行」「测试不影响业务」），无法连库验证，可按团队确认的前提不计入；要指出代码里是否仍有入口会继续产生这种数据；
+   - none：这条没有答复。
+   reply_check：1–2 句中文，说明怎么核实的（文件:行号或提交），没有答复就填空字符串。status 和 severity_now 仍按代码事实填，不要因为答复而改。`
 
 const FIND_SCHEMA = {
   type: 'object',

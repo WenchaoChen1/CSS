@@ -197,38 +197,38 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 7 版</div>
+    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 9 版</div>
     <h1>「账号与公司合并」系列提交审查</h1>
     <div class="meta">
-      <span>2026-11-19 第 7 版复核（同日第 6 版及团队答复补充之后）</span>
-      <span>当前代码：后端 <code>bd254f8e</code>，前端 <code>f9ae662e</code>（与 <code>origin/test</code> 相同）</span>
-      <span>第 6 版：后端 <code>9d19c8a2</code>，前端 <code>e4b966df</code></span>
-      <span>本版新增审查：4 个新提交（Felix、Lily），以及 Felix 把 test、uat、main 合进 sprint6</span>
+      <span>2026-11-20 第 9 版复核，并核实开发团队第 3 批答复（145 条）</span>
+      <span>当前代码：后端 <code>e050bab3</code>，前端 <code>fa528e21</code>（冻结点之后后端又有 2 个提交）</span>
+      <span>第 8 版：后端 <code>997cefe3</code>，前端 <code>9c3e1047</code></span>
+      <span>本版新增审查：后端 9 个、前端 4 个提交（Felix、Lily、lucy），主要是修审查问题</span>
     </div>
     <div class="verdict">
       <strong>结论：仍然不能上 uat / prod</strong>
-      <p><b>sprint6 现在等于 test。</b>Felix 把 <code>test</code> 整体合进了 sprint6（N136）：非酒类供应商 Clients 页的销售员、价格层筛选失效（一条 jest 用例必然失败）；Products 页的报价开关从关变开，不看报价权限；Liquor Vendor 发票 PDF 标题退回固定文字；5 个 uat/prod 已执行迁移被改了 down_revision。合并后 main、uat 都是 sprint6 的祖先，以后合进 uat/main 是快进合并、没有冲突提示，等于把 test 合进 uat。</p>
-      <p>Felix 的新迁移 <code>36cd67a87d67</code> 恢复了所有已删除的顶层厂商：N129 的厂商一块补上了（改为部分修复；供应商、客户母公司仍被软删，维持高危），但范围过宽，系列之前就被删除或合并的厂商也会回来（N133）；厂商母公司回来后，停用又不级联到子部门（N69 升回中危）。Lily 的新代码有 3 条低危（N137–N139）。uat/prod 已部署到 sprint5（迁移 head <code>731ddff784cc</code>），从这里升级执行 86 个迁移，按图计算不重跑、不跳过。</p>
+      <p><b>这一轮进展很大：未关闭从 163 条降到 103 条，高危从 7 条降到 4 条。</b>开发按「第 6 版补充」页面修改后答复了 145 条，逐条核实：成立 43、部分成立 36、不成立或没答到点 20、按设计接受 24、按前提不计入 22。N73（高危）已修好，N2 的 dev admin 全公司放行已去掉（降为中危），N97（高危）团队已用 SQL 查过 uat/prod，按前提不计入但升级前要再查一次。</p>
+      <p><b>还没解决的高危 4 条</b>：N140（Bill To 取餐厅 CEO 的登录邮箱和手机号，本轮没改，也不在团队答复范围内）、N129（部分修复：INVITED 母公司已恢复，订阅和主发票问题仍在；团队「母公司全删」的说法和代码不一致）、H5、H6。<b>新问题</b>：N148（中危）<code>8b980708773e</code> 恢复范围过宽，系列之前删掉的 INVITED 公司也会回来；N149–N152（低）。不成立的答复里最需要回问的是 F73、F127：答复说「全部按新权限结构控制」，后端写损和分类写接口其实仍不校验权限。</p>
     </div>
-    <p class="correction prose"><b>test 环境（第 6 版，11-19 只读核实）：</b>当时 test 库在 <code>8011513c0d5c</code>：279 家母公司被软删，26 家付费订阅方从列表消失，<b>57 个未走完 onboarding 的 owner 无法登录</b>；同批的 28 家厂商母公司已由你手工恢复（D16）。<code>36cd67a87d67</code> 进入 test 后很可能已执行，本版没有核实。本版没有连接任何数据库，也没有运行测试。</p>
+    <p class="correction prose"><b>test 环境：</b>这些提交都已在 test 上。<code>b176ff9a</code> 推送的 <code>476ff599ad47</code> 旧版在所有库上都会失败，test 部署曾因此中断，<code>e050bab3</code> 修正后才继续；建议在 test 上查一下有没有公司被设成 admin 类型。本版没有连接任何数据库，也没有运行测试；迁移链单一 head <code>8b980708773e</code>，从 uat/prod 的 <code>731ddff784cc</code> 升级执行 92 个，不重跑。</p>
   </header>
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>168</b><span>当前未关闭（第 7 版 174 条；按 D22 又有 6 条不计入）</span></div>
-      <div class="stat h"><b>7</b><span>高危（N129 改为部分修复；N88 按 D22 不计入）</span></div>
-      <div class="stat m"><b>53</b><span>中危（新增 N136，N69 升回中危；N93 按 D22 降为低危）</span></div>
-      <div class="stat l"><b>108</b><span>低危（补录 N134、N135，新增 N137–N139；N13、N19、N94–N96 按 D22 不计入）</span></div>
-      <div class="stat n"><b>4</b><span>第 7 版新发现（N136–N139）</span></div>
+      <div class="stat"><b>103</b><span>当前未关闭（第 8 版 163 条：关闭 65、新增 5）</span></div>
+      <div class="stat h"><b>4</b><span>高危（N73 修复、N97 按前提不计入、N2 降为中危）</span></div>
+      <div class="stat m"><b>28</b><span>中危（新增 N148；按设计接受 N99、N101–N103 等）</span></div>
+      <div class="stat l"><b>71</b><span>低危（新增 N149–N152）</span></div>
+      <div class="stat n"><b>5</b><span>第 9 版新发现（N148–N152）</span></div>
     </div>
-    <h2>第 6 版补充的 238 条问题的现状</h2>
+    <h2>第 8 版的 252 条问题的现状</h2>
     <div class="flow">
-      <div class="fx"><b>70</b><span>已关闭或不计入</span><ul><li>本版没有新关闭的条目</li><li>已修复 32、不再适用 16，均未回归</li><li>按设计接受 11、按前提不计入 11（F6 又多 5 个迁移改写，仍按 D19 不计入）</li></ul></div>
-      <div class="pt"><b>41</b><span>部分修复</span><ul><li>N129 厂商一块由 <code>36cd67a87d67</code> 补上</li><li>F67 切换已修、访问仍缺</li><li>F4 厂商又是「母公司 + 子部门行」</li></ul></div>
-      <div class="wr"><b>8</b><span>更严重</span><ul><li>N69 停用不级联，升回中危</li><li>N88 本版更严重，随后按 D22 不计入</li><li>F63、N112 测试被整文件删掉；N63 角色接口改为 422</li></ul></div>
-      <div class="op"><b>119</b><span>仍存在</span><ul><li>N118 跨租户拿到员工联系方式</li><li>N97 迁移硬删公司</li><li>N2 dev admin 对所有公司放行</li><li>N133 恢复厂商范围过宽</li></ul></div>
+      <div class="fx"><b>154</b><span>已关闭或不计入</span><ul><li>本版关闭 65 条：已修复或不再适用 26（含 N73）、按设计接受 19、按前提不计入 20（含 N97）</li><li>累计：已修复 72、不再适用 17、按设计接受 29、按前提不计入 36</li></ul></div>
+      <div class="pt"><b>40</b><span>部分修复</span><ul><li>N2 dev admin 放行已去掉，仍可给自己开账号</li><li>N129 INVITED 母公司已恢复</li><li>N120 Packer/Driver 登录落在 Quotations</li></ul></div>
+      <div class="wr"><b>6</b><span>更严重</span><ul><li>F4 恢复的母公司和门店副本同时出现</li><li>F6 又改写了 test 已执行的迁移</li><li>N133 又多一类恢复过宽；F51、F63、N141</li></ul></div>
+      <div class="op"><b>52</b><span>仍存在</span><ul><li>N140 Bill To 泄露 CEO 登录信息</li><li>F73、F127 后端不校验权限</li><li>N136 test 合并带进的回退</li></ul></div>
     </div>
-    <p class="count prose">复核方法：238 条分 32 批逐条复核（含已关闭的）；新提交从 7 个方向审查（<code>5b319dae</code>、<code>02d1c1a3</code>、test 合并的后端改动、<code>e152d0e3</code>、前端 fix bug 与 test 合并、迁移、横向安全），17 条候选对抗式验证后新增 4 条、并入 5 条、没有驳回。人工核对了 N136 的三处回退和 <code>36cd67a87d67</code> 原文；迁移链用脚本建图计算。没有连接数据库，没有运行测试。</p>
+    <p class="count prose">复核方法：252 条分 35 批逐条复核，有答复的同时按 D19 判断答复是否成立；新提交从 7 个方向审查，25 条候选对抗式验证后新增 4 条、补记 1 条、并入 10 条、驳回 4 条（2 条记为范围外）。人工核对了 N73 的修复和 N2 的放行已去掉。没有连接数据库，没有运行测试。</p>
   </section>
 
   <section>
@@ -246,6 +246,13 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li><b>F67、F68、F69</b> 「接口已不再使用」：前端仍在调 /me/accounts</li>
         <li><b>F15</b> 没有迁移会删 order_comment 的空行；<b>F9</b> 9 个迁移仍没有 lock_timeout；<b>F13</b> 兜底类型和答复不一致</li>
         <li><b>F19、F23、F25、F30、F32、F41、F47、F52</b> 见报告「〇-B」的回问问题</li>
+      </ul></div>
+      <div class="cat"><h3>第 3 批答复（11-20） <span>145 条</span></h3><ul>
+        <li><b>成立 43</b>：N73、N8、N9、N11、N12、N38、N39、N40、N49 等，代码里找到了修复</li>
+        <li><b>部分成立 36</b>：N129、N2、N17、N41、N57、N68、N105 等，写明还剩什么</li>
+        <li><b>不成立 20</b>：F73、F127「全部按新权限控制」后端其实不拦；F77、F113、F149「已处理」找不到提交；F97 接口仍在用；N133、N119「没问题」没给理由</li>
+        <li><b>按设计接受 24</b>：N99、N101、N102、N103、N72、N58、F136 是中危取舍，请你确认代价</li>
+        <li><b>按前提不计入 22</b>：N97 升级前要再查一次；测试类按团队取舍；N90、F118 不关闭</li>
       </ul></div>
       <div class="cat"><h3>第 7 版复核 <span>没有推翻</span></h3><ul>
         <li>按答复关闭的条目都没有回归</li>
@@ -284,9 +291,13 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
           <tr><td>平台用户、日志与成员资料</td><td class="mono">784f5b30 8ce6cdca 9b43adcb 1a7e3d9c 02109b99 dd4c0618</td><td class="mono">887d6080 ebadc663 bda0aefe</td><td>Lily：Add User 只认已注册公司；日志页只显示成功的登录和登出；GENERAL 日志；写操作清缓存；成员选择器带角色和联系方式；Complete Your Profile</td></tr>
           <tr><td>访问状态与采购组</td><td class="mono">dc7f326a 4b1db16c</td><td>—</td><td>lucy：区分失去公司访问权的成员；采购组按 id 选择并同步（迁移 <code>0ca8a0bba508</code>）（第 5 版）</td></tr>
           <tr><td>母公司下线与访问守卫（第 6 版）</td><td class="mono">9d19c8a2</td><td class="mono">79c4cbc8 fb943c94 e4b966df</td><td>Felix：迁移 <code>049461d68471</code> 给系统表约束和索引改名、账号补外键；迁移 <code>8011513c0d5c</code> 软删所有带子行的母公司。lucy：识别 <code>company_access_disabled</code>；采购组选择器</td></tr>
-          <tr class="newphase"><td>单一公司类型、恢复厂商</td><td class="mono">5b319dae</td><td class="mono">3e31cfee</td><td>Felix：公司和 onboarding 只存一个类型，<code>/companies/roles</code> 必须带参数，删约 800 行测试；迁移 <code>36cd67a87d67</code> 恢复所有已删除的顶层厂商；前端打开账号失败只对 404/403 回退</td></tr>
-          <tr class="newphase"><td>平台用户管理</td><td class="mono">02d1c1a3</td><td class="mono">e152d0e3</td><td>Lily：Join Company 的 secondary email；公司详情返回 <code>can_add_users</code>；停用与「最后一名 CEO」弹窗按设计稿重做</td></tr>
-          <tr class="newphase"><td>把 test 合进 sprint6</td><td class="mono">1cd587f2 4434ee4c bd254f8e</td><td class="mono">cbe19c45 9a6786f6 f9ae662e</td><td>Felix：依次合入 test、uat、main。test 带进 10 个后端、6 个前端只在 test 上的旧提交；净改动是发票标题、报价开关、Clients 筛选和 5 个迁移改写（N136）</td></tr>
+          <tr><td>单一公司类型、恢复厂商</td><td class="mono">5b319dae</td><td class="mono">3e31cfee</td><td>Felix：公司和 onboarding 只存一个类型，<code>/companies/roles</code> 必须带参数，删约 800 行测试；迁移 <code>36cd67a87d67</code> 恢复所有已删除的顶层厂商；前端打开账号失败只对 404/403 回退</td></tr>
+          <tr><td>平台用户管理</td><td class="mono">02d1c1a3</td><td class="mono">e152d0e3</td><td>Lily：Join Company 的 secondary email；公司详情返回 <code>can_add_users</code>；停用与「最后一名 CEO」弹窗按设计稿重做</td></tr>
+          <tr><td>把 test 合进 sprint6</td><td class="mono">1cd587f2 4434ee4c bd254f8e</td><td class="mono">cbe19c45 9a6786f6 f9ae662e</td><td>Felix：依次合入 test、uat、main。test 带进 10 个后端、6 个前端只在 test 上的旧提交；净改动是发票标题、报价开关、Clients 筛选和 5 个迁移改写（N136）</td></tr>
+          <tr><td>Bill To</td><td class="mono">3769e44a</td><td class="mono">54ab08ca</td><td>lucy：每个客户一个 Bill To，下单时复制进订单，发票和拣货单改读副本；迁移 <code>fe799a734a27</code> 回填存量客户和订单</td></tr>
+          <tr><td>修审查问题</td><td class="mono">c95928f5 fbd71eb5 41afeffd 4c4870f0</td><td class="mono">6a314423 3a1779de 9c3e1047 842e823a</td><td>Lily：packers/drivers 补门店成员校验、批量加人和 Join Company 整批提交、最后一名 CEO 加行锁；lucy：地址拆分、一行地址解锁、profile 校验、合作方邮件、删除日志，前端只在当前公司被拒时才离开。<code>4c4870f0</code> 原地改写了 <code>b3e8d1c47a52</code></td></tr>
+          <tr><td>Packer / Driver 按钮</td><td class="mono">997cefe3</td><td>—</td><td>lucy：迁移 <code>f61cc6c66caf</code> 按角色名去掉 Packer 的 Driving、Driver 的 Packing</td></tr>
+          <tr class="newphase"><td>修审查问题第二轮</td><td class="mono">b176ff9a 5ca4bbbd 5d035298 3b205c7c 27b92211 ad0cebdc 8d520099 be60cb05 e050bab3</td><td class="mono">94309405 fa528e21 47cbf964 76273f00</td><td>Felix：去掉 dev admin 全公司放行，多公司账号权限、onboarding、文件访问策略；迁移补 admin 类型、采购组名唯一、节点改名、恢复 INVITED 母公司。Lily、lucy：修 N122、N128、N123、N117、N114、N111 等；<code>3b205c7c</code> 原地改写了 test 已执行的迁移</td></tr>
         </tbody>
       </table>
     </div>
@@ -294,13 +305,14 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>高危问题</h2>
-    <p class="prose count">状态按后端 <code>bd254f8e</code>、前端 <code>f9ae662e</code> 复核。前 8 张卡片是未关闭的 8 条，后面是已关闭或降级的高危，最后是范围外的 X1。</p>
+    <p class="prose count">状态按后端 <code>e050bab3</code>、前端 <code>fa528e21</code> 复核。N140、N129、H6、H5 是未关闭的 4 条高危；N73 已修复、N2 降为中危、N97 按前提不计入。</p>
     <div class="issues">
+      <article class="issue"><div class="id">N140</div><div class="body"><h3>Bill To 默认取餐厅 CEO 的登录邮箱和手机号，写进供应商的客户行</h3><p>lucy 的 <code>3769e44a</code>：<code>bill_to.py:56-72</code> 取餐厅最早一个 CEO 账号对应 <code>system_user</code> 的 email 和 phone_number，只过滤账号是否删除，不排除停用的人；供应商凭 <code>clients:view</code> 就能在客户详情读到。供应商可以通过客户导入单方面关联已注册餐厅；迁移 <code>fe799a734a27</code> 用同样口径给 uat/prod 的全部存量客户回填。与刚修好的 N118 同类（人工核对）。</p></div><div class="side"><span class="by">3769e44a · lucy</span><span class="chip new">新问题</span><small>默认值改取公司对外邮箱和电话，至少排除停用账号；回填前确认口径</small></div></article>
       <article class="issue"><div class="id">N129</div><div class="body"><h3>迁移软删所有母公司，但订阅、主发票等数据还挂在母公司上，一批 owner 无法登录</h3><p><code>8011513c0d5c</code> 把每家没有 parent、有子行的公司标记删除，不搬数据、不做备份，downgrade 为 pass；前提「母公司已不再使用」不成立。<b>第 7 版</b>：Felix 的新迁移 <code>36cd67a87d67</code> 恢复了所有顶层厂商，厂商目录和库存回来了，已执行过 <code>8011513c0d5c</code> 的库也能修到（范围过宽另记 N133）。供应商、客户母公司仍被软删：付费订阅方从 Subscribers 消失、INVITED owner 无法登录、供应商母公司上的商品和主发票失去入口。test 上（第 6 版核实）：279 家被删、57 个 owner 无法登录。</p></div><div class="side"><span class="by">9d19c8a2 · Felix</span><span class="chip part">部分修复 · 5b319dae</span><small>订阅、主发票搬到分支或保留母公司；INVITED 公司不要删；删前记下 id</small></div></article>
-      <article class="issue"><div class="id">N118</div><div class="body"><h3>任何登录用户都能拿到其他公司门店员工的登录邮箱和手机号</h3><p><code>GET /vendors/{store_id}/packers</code>、<code>/drivers</code> 只校验 token，服务层不接收调用者、不做任何成员或权限校验。这个缺口在第 4 版基线就有，但当时只返回姓名；Lily 的 <code>02109b99</code> 为了让选择器显示「Role | email」，给响应加上了邮箱、手机号和角色名，停用账号也会返回。门店 id 对下单的餐厅是可见的。</p></div><div class="side"><span class="by">02109b99 · Lily</span><span class="chip new">新问题</span><small>补门店成员校验，只返回选择器需要的字段</small></div></article>
-      <article class="issue"><div class="id">N97</div><div class="body"><h3>迁移按规则硬删「邀请占位公司」，不留备份</h3><p><code>c4d8e2a6f1b3</code> 选出 9-17 之后创建、没有 owner、邀请码没用过、并命中「被客户关联」「名称和第一段街道与供应商的临时客户相同」「VENDOR 名称为空」之一的公司，直接 <code>DELETE FROM company</code>，级联删掉公司信息、订阅、电话、配送设置和公司角色。Admin 导入、没有联系方式的公司不受保护；没有客户关联的被删公司邀请码不转存，已发出的邀请升级后失效；downgrade 不重建公司。<b>本地实测</b>：删了 43 家（含 5 家 ACTIVE），26 家的码丢失。</p></div><div class="side"><span class="by">8eaef720 · lucy</span><span class="chip new">新问题</span><small>先在 prod 副本上跑 SELECT 看会删谁；改成软删除或先导出。test 很可能已执行</small></div></article>
-      <article class="issue"><div class="id">N2</div><div class="body"><h3>dev admin 对所有公司放行，又回来了</h3><p><code>b8e906f7</code> 一度删掉了中间件里 dev admin 的放行，<code>3e945bde</code> 又加了回来：调用者自己的校验失败后，只要是 dev admin、公司没停用，就直接放行，不看权限码，也不要求在该公司有账号，<code>/account/*</code> 同样适用。「平台 admin 提权成 dev admin」一侧已堵上；本版又给 dev admin 增加了改全局权限树的接口，都没有审计。固定密码的种子账号（H1）仍在。</p></div><div class="side"><span class="by">3e0391c7 08ec08da 3e945bde</span><span class="chip worse">更严重</span></div></article>
-      <article class="issue"><div class="id">N73</div><div class="body"><h3>新建的 vendor 公司一接单，订单列表就 500</h3><p><code>3e945bde</code> 让 onboarding 收尾时给 VENDOR 补建 <code>store_delivery</code>，邀请、Admin 建公司、导入这些要走 onboarding 的路径都覆盖了。剩下公司切换器里的 Add Company：直接建出 ACTIVE 的 vendor，不经过 onboarding，也不补这行。</p></div><div class="side"><span class="by">c8fb1cd6 2538e427</span><span class="chip part">部分修复</span><small>Add Company 也补，或缺行时兜底为 0</small></div></article>
+      <article class="issue done"><div class="id">N118</div><div class="body"><h3>任何登录用户都能拿到其他公司门店员工的登录邮箱和手机号</h3><p>已修：Lily 的 <code>fbd71eb5</code> 让 <code>/vendors/{vendor_id}/packers</code>、<code>/drivers</code> 要求是该门店成员并有 <code>packing_slips:assign_packer_driver</code>，<code>/managers</code> 要求门店成员，都过滤停用账号（人工核对 <code>vendor/transport/handlers.py:2679</code>、<code>:3123</code>）。<code>/managers</code> 返回邮箱手机号只限本店成员，并入 N104。</p></div><div class="side"><span class="by">02109b99 · Lily</span><span class="chip fixed">已修复 · fbd71eb5</span></div></article>
+      <article class="issue lo"><div class="id">N97</div><div class="body"><h3>迁移按规则硬删「邀请占位公司」（按前提不计入）</h3><p>团队答复已用 SQL 查过 uat 和 prod、跑这个迁移没问题，按 D19 按前提不计入。但 main 每次发邀请都会新建占位公司，要删的公司会一直变化：升级前要紧挨着再查一次，并留存被删公司清单。</p></div><div class="side"><span class="by">8eaef720 · lucy</span><span class="chip down">按前提不计入</span></div></article>
+      <article class="issue m"><div class="id">N2</div><div class="body"><h3>dev admin 对所有公司放行（部分修复，降为中危）</h3><p>Felix 的 <code>b176ff9a</code> 去掉了权限中间件里 dev admin 的全公司放行（人工核对）。但 <code>/dev-admin</code> 仍允许它给自己在任意公司开账号（只禁止删掉自己的 dev_admin 账号），不记日志；团队答复「devadmin 拥有最高权限」，这一半按设计接受。</p></div><div class="side"><span class="by">3e945bde · Felix</span><span class="chip part">部分修复 · b176ff9a</span></div></article>
+      <article class="issue done"><div class="id">N73</div><div class="body"><h3>新建的 vendor 公司一接单，订单列表就 500（已修复）</h3><p>Felix 的 <code>b176ff9a</code> 让 Add Company 建 vendor 时也补配送设置（<code>me/services.py:200-201</code>），全仓库只剩这里和 onboarding 两个入口，都覆盖了（人工核对）。</p></div><div class="side"><span class="by">c8fb1cd6 · Felix</span><span class="chip fixed">已修复 · b176ff9a</span></div></article>
       <article class="issue"><div class="id">H6</div><div class="body"><h3>门店复制进 company 时，id 冲突就换随机 id（F5）</h3><p><code>b7d82c2e651b</code> 没变。第 6 版：<code>049461d68471</code> 的孤儿检查发现不了这类冲突，新外键反而会把错挂的账号固定在错误的公司上。H6 的另一半 F4（副本混进列表）因母公司被删，第 6 版关闭；2026-11-19 厂商母公司被 <code>36cd67a87d67</code> 恢复后重开，改为部分修复（中危）。</p></div><div class="side"><span class="by">2a7d08bc e3ba8005</span><span class="chip open">F5 未修，F4 部分修复</span><small>uat 执行前先做只读冲突核查</small></div></article>
       <article class="issue"><div class="id">H5</div><div class="body"><h3>迁移清空所有公司的 parent_company_id</h3><p><code>d8aaccb9a900</code> 没变。原值只在 <code>company_back</code> 里（新库里叫 <code>deprecated_company_back</code>），按 D9 要删。第 7 版：厂商母公司被 <code>36cd67a87d67</code> 恢复，「分支指向已删除行」现在只对门店和餐厅成立；已删除的厂商子公司也被清空了 parent，会被一并恢复。</p></div><div class="side"><span class="by">2a7d08bc</span><span class="chip open">未修</span><small>prod 升级前只读导出层级，请产品书面确认</small></div></article>
       <article class="issue lo"><div class="id">N88</div><div class="body"><h3>deprecated_* 表是多条问题唯一的数据来源（按 D22 不计入）</h3><p>用户确认 <code>deprecated_</code> 开头的表以后都会删除，审查时当作不存在（D22）。本条的风险完全建立在「这些表还能用来找回或核查数据」上，所以不再计入；它列出的数据丢失分别由 F3（旧层级）、F5、N41、F13、N61、N99、N129、N133、N3 跟踪，按 D22 视为已丢失。</p></div><div class="side"><span class="by">删表前提</span><span class="chip down">按 D22 不计入</span></div></article>
@@ -336,13 +348,20 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>中危问题</h2>
-    <h3 class="sub">本版新发现或升回中危的 2 条，以及第 6 版的 N130</h3>
+    <h3 class="sub">第 9 版新发现的中危 1 条，以及第 8 版的 N141、N142</h3>
+    <div class="issues">
+      <article class="issue m"><div class="id">N148</div><div class="body"><h3>8b980708773e 恢复的范围超过 8011513c0d5c 删掉的那一批</h3><p>Felix 的 <code>b176ff9a</code>：凡是顶层、INVITED、有 owner、有过子行的已删公司都会恢复，包括系列之前被 CSS Admin 在 Master Database 删掉的公司，owner 可以重新登录、走完 onboarding；downgrade 为 pass。和 N133 是同一种写法，修法也一样：限定在 <code>8011513c0d5c</code> 的事务时间戳上。</p></div><div class="side"><span class="by">b176ff9a · Felix</span><span class="chip new">新问题</span></div></article>
+    </div>
+    <div class="issues">
+      <article class="issue m"><div class="id">N141</div><div class="body"><h3>客户注册后刷新 Bill To 经常不生效</h3><p>lucy 的 <code>3769e44a</code>：「仍是默认值」的判断在注册时按当前数据重算，补过联系人、地址没拆开或注册时改过公司资料的客户都不会刷新；Team 加人、Information 保存关联到已注册餐厅后也从不刷新。</p></div><div class="side"><span class="by">3769e44a · lucy</span><span class="chip new">新问题</span></div></article>
+      <article class="issue m"><div class="id">N142</div><div class="body"><h3>删除多公司用户时，静默删掉他在 INVITED 公司里的唯一账号</h3><p>Lily 的 <code>41afeffd</code> 把 INVITED 公司整体移出 Admin 的用户和成员列表，又让它跳过最后一名 CEO 检查；以前这条路径会 409，现在会静默删除，这家公司从此没有 owner、无法完成 onboarding，在 Admin 端也看不到。</p></div><div class="side"><span class="by">41afeffd · Lily</span><span class="chip new">新问题</span></div></article>
+    </div>
     <div class="issues">
       <article class="issue m"><div class="id">N136</div><div class="body"><h3>把 test 整体合进 sprint6，带进 test 独有的旧状态</h3><p>Felix 11-19 把 <code>test</code> 合进 sprint6（后端 <code>1cd587f2</code>、前端 <code>cbe19c45</code>），合并后 sprint6 与 test 完全相同。净改动只有 test 独有的部分：① <code>useClientsTable.tsx</code> 只对酒类供应商拉筛选选项、提交销售员和价格层条件，筛选面板却对所有供应商显示，Food Vendor 看到空列表，选了也不生效，带进来的一条 jest 用例必然失败；② <code>IS_QUOTATION_ENABLED</code> 由 false 变 true，Products 页对所有供应商角色显示报价控件，不看报价权限；③ Liquor Vendor 发票 PDF 不再写 <code>document_title</code>，标题退回固定文字；④ 5 个 uat/prod 已执行迁移的 down_revision 被改（并入 F6）。main、uat 都是 sprint6 的祖先，以后合进 uat/main 是快进合并，等于把 test 合进 uat。</p></div><div class="side"><span class="by">1cd587f2 cbe19c45 · Felix</span><span class="chip new">新问题</span><small>合进 uat/main 前先把这几处改回 main 的版本；sprint 只从 main 合入</small></div></article>
       <article class="issue m"><div class="id">N69</div><div class="body"><h3>停用公司不级联到子部门（升回中危）</h3><p>第 6 版因母公司被软删降为低危。<code>36cd67a87d67</code> 恢复了厂商母公司，在厂商母公司上停用后，旗下子部门的成员照常登录作业，经销商也照常看到这些子部门。门店、餐厅母公司仍是软删状态。</p></div><div class="side"><span class="by">6e1a7673 · lucy；5b319dae · Felix</span><span class="chip worse">更严重</span></div></article>
     </div>
     <div class="issues">
-      <article class="issue m"><div class="id">N130</div><div class="body"><h3>任何「访问已停用」都被算到当前公司头上，会把人踢出正常的公司</h3><p>lucy 修 N121 的 <code>79c4cbc8</code>：拦截器只看错误类型就调用不带参数的 <code>reportAccessLost()</code>，处理器一律把当前公司当成失去访问的公司。切换到刚停用的公司失败、或从报价单打开兄弟门店的单据被拒时，用户会被从仍然正常的公司切走，只剩这两家时直接登出。</p></div><div class="side"><span class="by">79c4cbc8 · lucy</span><span class="chip new">新问题</span></div></article>
+      <article class="issue done"><div class="id">N130</div><div class="body"><h3>任何「访问已停用」都被算到当前公司头上（已修复）</h3><p>lucy 的 <code>6a314423</code>：切走之前重新查一次当前公司的权限，只有当前公司自己被停用才离开或登出（人工核对）。</p></div><div class="side"><span class="by">79c4cbc8 · lucy</span><span class="chip fixed">已修复 · 6a314423</span></div></article>
     </div>
     <h3 class="sub">第 5 版新发现的 12 条（状态按第 6 版）</h3>
     <div class="cats">
@@ -378,10 +397,12 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>低危问题</h2>
-    <p class="prose count">第 7 版：F63、N112 更严重（<code>5b319dae</code> 整文件删掉约 800 行测试），N63 更严重（<code>/companies/roles</code> 不带参数改为 422）；F35、F77、F92、N18、N30、N33、N125 没有再恶化，记为仍存在。第 6 版：F50 已修复，F122、F155 不再适用。第 5、6、7 版共新增 22 条，类别如下。</p>
+    <p class="prose count">第 8 版：已修复 N27、N55、N56、N59、N60、N66、N76、N78、N80、N81、N127；N61、N65 部分修复；N68、N106 降为低危；F6 重新计入。第 7 版：F63、N112 更严重（删掉约 800 行测试）。第 5–8 版共新增 27 条，类别如下。</p>
     <div class="cats">
       <div class="cat"><h3>新权限体系 <span>Felix · 新 9</span></h3><ul><li><b>N100</b> 改公司类型后角色不补种（零权限主路径已修）</li><li><b>N108</b> 鉴权读缓存，撤权最长约 3 分钟滞后</li><li><b>N109</b> dev admin 分配其他公司的角色返回 500；GET 会写库</li><li><b>N111</b> 配送设置同时按权限码和角色名判断</li><li><b>N114</b> Statement 和条款模板的前后端权限码不一致</li><li><b>N115</b> 已登录用户打不开 Terms / Privacy / Cookies 和内部运维页</li><li><b>N116</b> 恢复上次账号失败就静默改开第一个账号</li><li><b>N117</b> 账号访问接口不带城市、州、邮编</li><li><b>N127</b> 编辑权限树会顺带写入未选的默认范围</li></ul></div>
       <div class="cat"><h3>测试与合并 <span>Felix · 新 2</span></h3><ul><li><b>N112</b> 两个提交把一批测试掏空成 pass，留下必然失败的用例</li><li><b>N113</b> 合并把已删除接口的测试恢复回来</li></ul></div>
+      <div class="cat"><h3>第 9 版新问题 <span>低 · 4</span></h3><ul><li><b>N149</b> 只做了邀请码注册的用户可以直接建 ACTIVE 公司，跳过 onboarding（Felix）</li><li><b>N150</b> Bill To 必填后，Bill To 不全的存量客户整页存不了（lucy）</li><li><b>N151</b> Add Company 下拉列出待激活公司的类型，没账号的 owner 选了会 400（Felix）</li><li><b>N152</b> 切换器 Activate 清空公司的 logo 和营业时间（Felix，之前漏记）</li></ul></div>
+      <div class="cat"><h3>Bill To 与地址 <span>lucy · 第 8 版新 5</span></h3><ul><li><b>N143</b> 一行地址解锁后不校验新街道，可反复改</li><li><b>N144</b> Bill To 公司名清空后发票打印 None</li><li><b>N145</b> 回填后历史拣货单的 Bill To 会变</li><li><b>N146</b> Bill To 没有测试，发票上下文单测全部报错</li><li><b>N147</b> 去掉国家名后客户导入匹配不到已注册商家</li></ul></div>
       <div class="cat"><h3>平台用户与成员 <span>Lily · 第 7 版新 3、第 5 版 3</span></h3><ul><li><b>N137</b> Join Company 能给只用手机号注册的用户存 secondary email</li><li><b>N138</b> 「最后一名 CEO」弹窗按显示名去重，同名的人被当成一个</li><li><b>N139</b> 停用某家公司成员资格的确认框写成了停用整个用户</li><li><b>N110</b> USER_* 事件和失败登录只写不读</li><li><b>N123</b> 酒牌通知收件人接口返回全店成员的手机号</li><li><b>N128</b> onboarding 团队步骤没跟上 secondary email 新规则</li></ul></div>
       <div class="cat"><h3>采购组 <span>lucy · 第 6 版新 2、第 5 版 3</span></h3><ul><li><b>N131</b> MFR 条款的采购组选过就清不掉，删掉的组名留在条款上</li><li><b>N132</b> 新的采购组提交没有测试</li><li><b>N124</b> 报价单 buying_group_id 只接了一半，也不校验归属</li><li><b>N125</b> 改名同步会改写已接受的报价单，还会写入临时 UUID 名</li><li><b>N126</b> MFR Contact 导出改读未回填的新列</li></ul></div>
     </div>
@@ -389,7 +410,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前六版（含第 6 版补充）的 238 条、另一台电脑补录的 2 条（N134、N135），加本版新问题 4 条（N136–N139）。X1、X2 是范围外的存量问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「本版新增」筛选包括本版内已修或部分修复的新问题。级别是复核后的当前级别（已关闭的显示关闭前级别）。「部分修复」的条目下面直接写了修好了哪部分、还剩什么（按后端 <code>bd254f8e</code>、前端 <code>f9ae662e</code> 核对）；团队答复过的条目下面有团队原话和核实结论；点开说明可以看到各版复核的结论和证据行号。</p>
+    <p class="prose count">前八版的 252 条加本版新问题 5 条（N148–N152）。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「有团队答复」筛选列出团队答复过的 193 条（第 1–3 批），每条下面显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -425,6 +446,12 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div style="display:grid;gap:12px;min-width:0">
       <h2>上线前必须处理</h2>
       <ol class="steps">
+        <li><b>回问团队</b>：第 3 批答复里不成立的 20 条、部分成立的 36 条（页面上选「有团队答复」可以逐条看核实结论）；N140 和第 7–9 版的新问题也请交给团队。</li>
+        <li><b>N148、N133</b>：两个恢复公司的迁移都限定在 <code>8011513c0d5c</code> 的事务时间戳上。</li>
+        <li><b>N97</b>：升级前紧挨着再查一次要删的公司。</li>
+        <li><b>N140</b>：Bill To 默认联系人改取公司对外的邮箱和电话，至少排除停用的人；<code>fe799a734a27</code> 回填前确认口径。</li>
+        <li><b>N142</b>：删除用户时，如果他是某家 INVITED 公司唯一的账号，要拦下或提示。</li>
+        <li><b>F6</b>：给 test 补一个幂等修复迁移，重拆被旧版拆错的「…, US」地址；已推送的迁移不再原地改。</li>
         <li><b>N136</b>：不要把现在的 sprint6 直接合进 uat/main。先把 test 独有的改动改回 main 的版本（Clients 筛选的 hook 和测试、报价开关、发票 <code>document_title</code>、5 个迁移文件）；sprint 分支只从 main 合入。</li>
         <li><b>N129、N133</b>：供应商、客户母公司上的订阅、主发票等先搬到分支或保留母公司，INVITED 公司不要删；<code>36cd67a87d67</code> 收窄为只恢复 <code>8011513c0d5c</code> 删的那批（看 updated_at 是否等于它的事务时间戳）。</li>
         <li><b>核实 test 环境</b>：<code>36cd67a87d67</code> 是否已执行、多恢复了哪些厂商；被软删的供应商、客户母公司按 <code>8011513c0d5c</code> 的事务时间戳核对。</li>
@@ -444,11 +471,13 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div style="display:grid;gap:12px;align-content:start;min-width:0">
       <h2>范围外，建议立即处理</h2>
       <ul class="steps">
+        <li><b>X3</b>：配送设置更新加上门店归属校验（main 上就能跨店改写）；<b>X4</b>：酒牌到期通知发信时按当前成员过滤。</li>
         <li><b>X1</b>：在 main 上热修三个订单接口的成员和归属校验。</li>
         <li><b>X2</b>：<code>sms_sender</code>、<code>email_sender</code> 不要打印消息正文。</li>
       </ul>
       <h2 style="margin-top:12px">需要你或产品确认</h2>
       <ul class="steps">
+        <li>第 3 批答复按设计接受的中危取舍：N99（升级把各公司权限重置成模板）、N101（有编辑权就能给自己提权）、N102（很多按钮权限后端不拦）、N103（admin 公司受限角色在后端不起作用）、N72、N58、F136，是否都接受？</li>
         <li><s>9 张备份表按 D9 保留还是一起删（N93）？</s> 已按 D22 处理：<code>deprecated_*</code> 表以后都会删。</li>
         <li>升级时各公司的定制权限重置成模板，是否接受（N99）？</li>
         <li>新公司的新订单邮件只发 CEO、不再发门店邮箱，是否有意（N106）？</li>
@@ -456,9 +485,9 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li>成员能否把自己改成 CEO（F57）？停用母公司时分支是否一起停用（N69）？</li>
         <li>供应商、客户母公司被 <code>8011513c0d5c</code> 软删，这是否就是「放弃旧母子层级」的决定（H5）？订阅、主发票这些挂在母公司上的数据要怎么处理（N129）？报价开关是否要在 uat/prod 重新打开（N136）？</li>
       </ul>
-      <h2 style="margin-top:12px">冻结点之后（留到第 8 版）</h2>
+      <h2 style="margin-top:12px">冻结点之后（留到第 10 版）</h2>
       <ul class="steps">
-        <li>审查结束时 sprint6 又前进到后端 <code>f216dde9</code>、前端 <code>54ab08ca</code>：Lily 的 <code>fbd71eb5</code>（packers / drivers 只返回本店成员，可能修复 N118）、lucy 的 <code>6a314423</code>（只在被拒绝的是当前公司时才离开，可能修复 N130）、lucy 的 Bill To（新迁移 <code>fe799a734a27</code>）等，下一轮核实。</li>
+        <li>整理报告时后端又前进到 <code>0aafd5a6</code>：lucy 的 <code>daea0b53</code>（登录时打开最早的公司）、Lily 的 <code>b8df9543</code>（镜像内置 DB-IP 数据库），下一轮审查。</li>
       </ul>
       <h2 style="margin-top:12px">已推送、未合入 sprint6</h2>
       <ul class="steps">
@@ -476,7 +505,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
   </section>
 
   <footer>
-    <p>第 7 版：复核到后端 <code>bd254f8e</code>、前端 <code>f9ae662e</code>（2026-11-19）。第 6 版：后端 <code>9d19c8a2</code>、前端 <code>e4b966df</code>（2026-11-19，同日补充团队答复）。第 5 版：后端 <code>4b1db16c</code>、前端 <code>bc820add</code>（2026-11-18）。第 4 版：后端 <code>a4db1e5f</code>、前端 <code>6eb46852</code>。第 3 版：后端 <code>f6891d8d</code>、前端 <code>1aedac54</code>。第 2 版：后端 <code>2582af89</code>、前端 <code>7a2cccc2</code>。第 1 版：后端 <code>d49f0bd9</code>、前端 <code>ea616539</code>。</p>
+    <p>第 9 版：复核到后端 <code>e050bab3</code>、前端 <code>fa528e21</code>（2026-11-20，含团队第 3 批答复核实）。第 8 版：后端 <code>997cefe3</code>、前端 <code>9c3e1047</code>。第 7 版：后端 <code>bd254f8e</code>、前端 <code>f9ae662e</code>（含 D22 补充）。第 6 版：后端 <code>9d19c8a2</code>、前端 <code>e4b966df</code>。第 5 版：后端 <code>4b1db16c</code>、前端 <code>bc820add</code>。第 4 版：后端 <code>a4db1e5f</code>、前端 <code>6eb46852</code>。第 3 版：后端 <code>f6891d8d</code>、前端 <code>1aedac54</code>。第 2 版：后端 <code>2582af89</code>、前端 <code>7a2cccc2</code>。第 1 版：后端 <code>d49f0bd9</code>、前端 <code>ea616539</code>。</p>
     <p>结论来自代码阅读；第 7 版没有连接任何数据库，迁移链用脚本建图计算。第 5、6 版另在本地 test 数据副本上执行了 sprint6 迁移、在临时空库上试过 upgrade（用户要求，见沟通与决策记录 D12），经用户同意以只读会话查了 test 库（D15）；没有连接 uat/prod 的数据库，没有运行测试。页面中的固定密码已打码。删表相关结论以 D7、D9 为准。</p>
   </footer>
 </div>
