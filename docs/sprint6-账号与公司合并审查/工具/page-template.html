@@ -202,16 +202,17 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 10 版</div>
+    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 11 版</div>
     <h1>「账号与公司合并」系列提交审查</h1>
     <div class="meta">
-      <span>2026-11-20 第 10 版：复核全部 258 条，审查 17 个新提交，给每条未关闭的问题写了建议解决方案</span>
-      <span>当前代码：后端 <code>160638ae</code>，前端 <code>5e43ea47</code></span>
-      <span>第 9 版：后端 <code>e050bab3</code>，前端 <code>fa528e21</code>（含 D24 的 N153、D25 的三库数据核实）</span>
-      <span>本版新增审查：后端 9 个、前端 8 个提交（Lily、lucy），没有迁移改动</span>
+      <span>2026-11-23 第 11 版：复核全部 265 条，审查 Felix 的 2 个新提交，按新代码重写建议解决方案</span>
+      <span>当前代码：后端 <code>b949d18b</code>，前端 <code>246036f0</code></span>
+      <span>第 10 版：后端 <code>160638ae</code>，前端 <code>5e43ea47</code></span>
+      <span>本版新增审查：后端、前端各 1 个提交（Felix「devadmin and admin issues」），新迁移 <code>a4c9e2f7b1d3</code></span>
     </div>
     <div class="verdict">
       <strong>结论：仍然不能上 uat / prod</strong>
+      <p><b>第 11 版：未关闭 116 条（高 2、中 30、低 84）。</b>本版只有 Felix 11-23 的 2 个提交：dev admin 的 Menu Management、Company Types、Route Management 三页改为只读（后端写接口用硬编码开关返回 403）；Company Types 列出 dev_admin、admin 两类平台公司类型；新迁移 <code>a4c9e2f7b1d3</code> 给两家平台公司各建一个 CEO 角色；Add Company 下拉排除平台公司。<b>新问题 N161（中危）</b>：平台 admin 可以经 Master Database 给 devAdmin 公司设邀请码，再用新邮箱注册；新迁移之后注册出的账号会自动挂上 CEO，直接成为 dev admin（人工核对）。N162（低危）：Company Types 的写接口只靠只读开关挡着平台类型。N151 部分修复；没有修好的条目，也没有级别变化；高危仍是 N140、N129，本版都没有改动。</p>
       <p><b>第 10 版：未关闭 114 条（高 2、中 29、低 83），每条都有了建议解决方案。</b>在「全部问题」表里点状态筛选的「未关闭」，每条问题下面的绿色块就是建议的改法：改哪里、怎么改、存量数据怎么处理、怎么验证。这些建议由一个代理写、另一个代理独立复核（107 条里修正了 97 条），并按另一台电脑 D25 的三库数据结论对齐。</p>
       <p><b>和第 9 版相比</b>：修好 2 条（N37 短信正文不再进日志，N153 管理端加了公司切换器）；N56 回退（<code>3de5f94e</code> 有意允许 CSS Admin 员工、包括操作者本人，被加进任何租户公司）；<b>N140（高危）更严重</b>：<code>160638ae</code> 让餐厅 CEO 每次保存个人资料后，新的登录邮箱和手机号自动重写进各供应商没改过的 Bill To；N138、N151 也有新入口。新问题 7 条（N154–N160），都是低危。高危仍是 N140、N129 两条，按 D25 的数据在 prod 上都会发生。</p>
       <p><b>这一轮进展很大：未关闭从 163 条降到 107 条，高危从 7 条降到 4 条。</b>开发按「第 6 版补充」页面修改后答复了 145 条，逐条核实：成立 43、部分成立 36、不成立或没答到点 20、按设计接受 24、按前提不计入 22。N73（高危）已修好，N2 的 dev admin 全公司放行已去掉（降为中危），N97（高危）团队已用 SQL 查过 uat/prod，按前提不计入但升级前要再查一次。</p>
@@ -224,11 +225,11 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>114</b><span>当前未关闭（第 9 版 108 条：修好 2、重开 1、新增 7）</span></div>
-      <div class="stat h"><b>2</b><span>高危（N140 本版更严重；N129 部分修复）</span></div>
-      <div class="stat m"><b>29</b><span>中危（N37、N153 已修复）</span></div>
-      <div class="stat l"><b>83</b><span>低危（新增 N154–N160；N56 重新打开）</span></div>
-      <div class="stat n"><b>7</b><span>第 10 版新发现（N154–N160）</span></div>
+      <div class="stat"><b>116</b><span>当前未关闭（第 10 版 114 条：关闭 0、新增 2）</span></div>
+      <div class="stat h"><b>2</b><span>高危（N140、N129，本版都没有改动）</span></div>
+      <div class="stat m"><b>30</b><span>中危（新增 N161：平台 admin 经邀请码造出 dev admin）</span></div>
+      <div class="stat l"><b>84</b><span>低危（新增 N162；N151 部分修复）</span></div>
+      <div class="stat n"><b>2</b><span>第 11 版新发现（N161、N162）</span></div>
     </div>
     <h2>第 9 版的 258 条问题的现状</h2>
     <div class="flow">
@@ -314,7 +315,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>高危问题</h2>
-    <p class="prose count">卡片是第 9 版写的（后端 <code>e050bab3</code>、前端 <code>fa528e21</code>）。第 10 版（<code>160638ae</code> / <code>5e43ea47</code>）：未关闭的高危是 N140、N129 两条；H5、H6 已按 D25 的数据降为中危、低危；N140 因 <code>160638ae</code> 新增的自动同步更严重。每条的建议解决方案见「全部问题」表。</p>
+    <p class="prose count">卡片是第 9 版写的（后端 <code>e050bab3</code>、前端 <code>fa528e21</code>）。第 11 版（<code>b949d18b</code> / <code>246036f0</code>）：N140、N129 都没有改动。第 10 版（<code>160638ae</code> / <code>5e43ea47</code>）：未关闭的高危是 N140、N129 两条；H5、H6 已按 D25 的数据降为中危、低危；N140 因 <code>160638ae</code> 新增的自动同步更严重。每条的建议解决方案见「全部问题」表。</p>
     <div class="issues">
       <article class="issue"><div class="id">N140</div><div class="body"><h3>Bill To 默认取餐厅 CEO 的登录邮箱和手机号，写进供应商的客户行</h3><p>lucy 的 <code>3769e44a</code>：<code>bill_to.py:56-72</code> 取餐厅最早一个 CEO 账号对应 <code>system_user</code> 的 email 和 phone_number，只过滤账号是否删除，不排除停用的人；供应商凭 <code>clients:view</code> 就能在客户详情读到。供应商可以通过客户导入单方面关联已注册餐厅；迁移 <code>fe799a734a27</code> 用同样口径给 uat/prod 的全部存量客户回填。与刚修好的 N118 同类（人工核对）。</p></div><div class="side"><span class="by">3769e44a · lucy</span><span class="chip new">新问题</span><small>默认值改取公司对外邮箱和电话，至少排除停用账号；回填前确认口径</small></div></article>
       <article class="issue"><div class="id">N129</div><div class="body"><h3>迁移软删所有母公司，但订阅、主发票等数据还挂在母公司上，一批 owner 无法登录</h3><p><code>8011513c0d5c</code> 把每家没有 parent、有子行的公司标记删除，不搬数据、不做备份，downgrade 为 pass；前提「母公司已不再使用」不成立。<b>第 7 版</b>：Felix 的新迁移 <code>36cd67a87d67</code> 恢复了所有顶层厂商，厂商目录和库存回来了，已执行过 <code>8011513c0d5c</code> 的库也能修到（范围过宽另记 N133）。供应商、客户母公司仍被软删：付费订阅方从 Subscribers 消失、INVITED owner 无法登录、供应商母公司上的商品和主发票失去入口。test 上（第 6 版核实）：279 家被删、57 个 owner 无法登录。</p></div><div class="side"><span class="by">9d19c8a2 · Felix</span><span class="chip part">部分修复 · 5b319dae</span><small>订阅、主发票搬到分支或保留母公司；INVITED 公司不要删；删前记下 id</small></div></article>
@@ -357,6 +358,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>中危问题</h2>
+    <h3 class="sub">第 11 版新发现的中危 1 条</h3>
+    <div class="issues">
+      <article class="issue m"><div class="id">N161</div><div class="body"><h3>平台 admin 可以给 devAdmin 公司发邀请码，再用新用户注册出一个 dev admin</h3><p>Felix 的 <code>b949d18b</code>：迁移 <code>a4c9e2f7b1d3</code> 给 dev_admin 类型补了 CEO 角色模板。Master Database 的 <code>PUT /{company_id}/subscription</code> 和生成邀请码接口不排除平台公司，平台 admin 可以给 devAdmin 公司设一个码；用新邮箱带这个码注册时，<code>create_owner_account_no_commit</code> 按「公司类型的 CEO 模板」给 owner 挂上 CEO，账号直接满足 <code>is_dev_admin</code>，可以按 N2 不留日志地给任何人开任意公司的账号。迁移之前注册出的账号没有角色，不算 dev admin。人工核对。</p></div><div class="side"><span class="by">b949d18b · Felix</span><span class="chip new">新问题</span><small>订阅和发码接口拒绝平台公司；注册不给平台公司 owner 挂 CEO</small></div></article>
+    </div>
     <h3 class="sub">第 9 版新发现的中危 2 条（含补充的 N153），以及第 8 版的 N141、N142</h3>
     <div class="issues">
       <article class="issue m"><div class="id">N153</div><div class="body"><h3>平台管理员账号兼有其他公司账号时，进了管理端就切不回其他公司</h3><p>Felix 的 <code>f401b438</code> 把「进管理端」改成按当前账号是不是 Admin 公司判定，可管理端侧边栏 <code>AdminSidebar</code> 没有公司切换器，切换器只在普通侧边栏里。test 上登录默认按公司名排序，Admin 排第一，每次登录都落在管理端；sprint6 的 <code>daea0b53</code> 改成打开最早建的公司，但切进 Admin 后仍然只能登出。修法：管理端也放切换器，或者分配账号时拦下这种组合。第 9 版补充，你在 test 上实测发现。</p></div><div class="side"><span class="by">f401b438 · Felix</span><span class="chip new">新问题</span></div></article>
@@ -407,7 +412,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>低危问题</h2>
-    <p class="prose count">第 8 版：已修复 N27、N55、N56、N59、N60、N66、N76、N78、N80、N81、N127；N61、N65 部分修复；N68、N106 降为低危；F6 重新计入。第 7 版：F63、N112 更严重（删掉约 800 行测试）。第 5–8 版共新增 27 条，类别如下。</p>
+    <p class="prose count">第 11 版：新增 N162（Company Types 的写接口在 <code>b949d18b</code> 之后只靠硬编码只读开关挡住平台公司类型，开关改回 False 后 dev admin 能清空全体平台管理员的菜单）；N151 部分修复（平台管理员选 admin 必然 400 的那一半已修好）。第 8 版：已修复 N27、N55、N56、N59、N60、N66、N76、N78、N80、N81、N127；N61、N65 部分修复；N68、N106 降为低危；F6 重新计入。第 7 版：F63、N112 更严重（删掉约 800 行测试）。第 5–8 版共新增 27 条，类别如下。</p>
     <div class="cats">
       <div class="cat"><h3>新权限体系 <span>Felix · 新 9</span></h3><ul><li><b>N100</b> 改公司类型后角色不补种（零权限主路径已修）</li><li><b>N108</b> 鉴权读缓存，撤权最长约 3 分钟滞后</li><li><b>N109</b> dev admin 分配其他公司的角色返回 500；GET 会写库</li><li><b>N111</b> 配送设置同时按权限码和角色名判断</li><li><b>N114</b> Statement 和条款模板的前后端权限码不一致</li><li><b>N115</b> 已登录用户打不开 Terms / Privacy / Cookies 和内部运维页</li><li><b>N116</b> 恢复上次账号失败就静默改开第一个账号</li><li><b>N117</b> 账号访问接口不带城市、州、邮编</li><li><b>N127</b> 编辑权限树会顺带写入未选的默认范围</li></ul></div>
       <div class="cat"><h3>测试与合并 <span>Felix · 新 2</span></h3><ul><li><b>N112</b> 两个提交把一批测试掏空成 pass，留下必然失败的用例</li><li><b>N113</b> 合并把已删除接口的测试恢复回来</li></ul></div>
@@ -420,7 +425,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前九版的 258 条加第 10 版新问题 7 条（N154–N160）。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。<b>每条未关闭的问题下面有绿色的「建议解决方案」</b>（点状态筛选的「未关闭」可以只看这 114 条）；「部分修复」的条目另有「已修好 / 还剩」两行；团队答复过的 193 条（第 1–3 批）显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
+    <p class="prose count">前十版的 265 条加第 11 版新问题 2 条（N161、N162）。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。<b>每条未关闭的问题下面有绿色的「建议解决方案」</b>（点状态筛选的「未关闭」可以只看这 116 条）；「部分修复」的条目另有「已修好 / 还剩」两行；团队答复过的 193 条（第 1–3 批）显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -462,6 +467,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li><s><b>N153</b>：管理端也放公司切换器。</s> 第 10 版：已由 <code>d076e5b5</code> 修复。</li>
         <li><b>N97</b>：升级前紧挨着再查一次要删的公司。</li>
         <li><b>N140</b>：Bill To 默认联系人改取公司对外的邮箱和电话，至少排除停用的人；<code>fe799a734a27</code> 回填前确认口径。第 10 版：<code>160638ae</code> 新加的「CEO 保存资料后重填」也要一起去掉或只同步姓名。</li>
+        <li><b>N161（第 11 版）</b>：Master Database 的订阅和发码接口拒绝平台公司，注册时拒绝指向平台公司的码，邀请码注册不给平台公司的 owner 挂 CEO；修好前先在 test 只读查一下有没有这种码和多出来的 dev admin。</li>
         <li><b>N56（第 10 版）</b>：请产品确认 CSS Admin 员工能否把自己加进租户公司；不是需求就恢复对操作者本人的拦截。</li>
         <li><b>N142</b>：删除用户时，如果他是某家 INVITED 公司唯一的账号，要拦下或提示。</li>
         <li><b>F6</b>：给 test 补一个幂等修复迁移，重拆被旧版拆错的「…, US」地址；已推送的迁移不再原地改。</li>
@@ -498,9 +504,9 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li>成员能否把自己改成 CEO（F57）？停用母公司时分支是否一起停用（N69）？</li>
         <li>供应商、客户母公司被 <code>8011513c0d5c</code> 软删，这是否就是「放弃旧母子层级」的决定（H5）？订阅、主发票这些挂在母公司上的数据要怎么处理（N129）？报价开关是否要在 uat/prod 重新打开（N136）？</li>
       </ul>
-      <h2 style="margin-top:12px">冻结点之后（留到第 10 版）</h2>
+      <h2 style="margin-top:12px">冻结点之后</h2>
       <ul class="steps">
-        <li>整理报告时后端又前进到 <code>0aafd5a6</code>：lucy 的 <code>daea0b53</code>（登录时打开最早的公司）、Lily 的 <code>b8df9543</code>（镜像内置 DB-IP 数据库），下一轮审查。</li>
+        <li>第 11 版冻结在后端 <code>b949d18b</code>、前端 <code>246036f0</code>；整理报告时（2026-11-23）<code>origin/sprint/sprint6</code> 没有更新的提交。</li>
       </ul>
       <h2 style="margin-top:12px">已推送、未合入 sprint6</h2>
       <ul class="steps">
