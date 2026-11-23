@@ -19,11 +19,12 @@
 
 Felix 在 sprint/sprint6 上做了「四张 `*_member` 表合并进 account、store / restaurant / manufacturer_subdivision 合并进 company 表」
 的系列提交，Lily（Team、平台用户管理、操作日志）和 lucy（公司信息、地址、Master Database、公司停用）在此基础上继续开发。
-每一轮要做三件事：
+每一轮要做四件事：
 
 1. 把上一版报告里的**每一条**问题对照最新代码复核：仍存在、部分修复、更严重、已修复、不再适用，并重新评估严重度；
 2. 审查上一版之后合入 sprint6 的新提交，找出新问题，逐条做对抗式验证；
-3. 更新问题清单、Markdown 报告和报告页面，并在沟通记录里补上本轮的用户决定。
+3. 给每条未关闭的问题写（或按新代码重写）建议解决方案，部分修复的写明修好了什么、还剩什么；
+4. 更新问题清单、Markdown 报告和报告页面，并在沟通记录里补上本轮的用户决定。
 
 ### 1. 约束（必须遵守）
 
@@ -56,6 +57,7 @@ Felix 在 sprint/sprint6 上做了「四张 `*_member` 表合并进 account、st
   「表已废弃」必须在代码里找到证据（「不再使用」要查前后端有没有调用方、接口是否还挂在路由上）；答复没答到点或与代码不符的，
   状态不变并列出回问问题。复核时不要推翻按答复关闭的条目，除非代码事实变了。
 - **X1（订单接口越权）是 main 上已存在的问题，不属于本系列**，单列为范围外，不计入统计；用户暂不修。
+- **D25 的三库只读数据核实以数据为准**（2026-11-20）：另一台电脑在 test / uat / prod 只读查过数据，结论写在各条说明的「第 9 版数据核实」段落和报告「〇-E」里，并按数据调过 7 条的级别。复核时不要用只读代码得出的判断推翻它；建议解决方案里已被 D25 回答的查询，写成「D25 已查」的结果并说明升级前是否还要再查。两台电脑的结论合并时，已推送的编号优先（D21）。
 - 审查范围包含 Felix、Lily、lucy 三人的提交；新问题要注明作者。
 - 迁移改写（改已推送迁移的内容或 down_revision、删已推送的 revision）统一记在 F6，不在各条里重复计数。
 - 一个根因只记一条；新提交只是放大已知问题时，并入已知问题并在说明里补充。
@@ -88,6 +90,12 @@ cd <工作区>/CSS_frontend-main  && git branch --show-current && git status --s
 - `baseBe` / `baseFe`：上一版的后端、前端基线提交。
 - `batches`：把 findings.json 里**所有**条目（含已关闭的，用于确认没有回归）按领域分批，每批 6–8 条：
   迁移、账号与 me、公司、商品与门店、Team、onboarding、平台用户管理、设置与公司信息、前端、已关闭项。
+- `withAdvice: true`（第 10 版起）：复核后仍未关闭的条目同时写 `advice`（建议解决方案），部分修复的写 `done` / `remain`，
+  每批再由另一个代理独立复核（是否对症、在现有代码里是否可行、是否和已确认的决定冲突）。
+- `lightBatches`（可选）：本轮新提交很少时，把上一版已关闭的条目放这里（每批 12–20 条），只查新提交有没有让它们回归；
+  这时 `batches` 只放未关闭的条目。新提交多的轮次不要用，全部放进 `batches`。
+- 增量复核时可以加 `skipAdviceVerify: true`（建议在第一段已经独立复核过，增量只是按新提交修订）和 `coarseVerify: true`（候选按仓库分组验证，代理更少）；
+  `apply_delta.py` 加 `--partial` 时只叠加增量结果里有的条目。背景说明里要写清楚：清单里的 `sol` 是底稿，只改和新提交或数据结论不一致的地方。
 - `finders`：按本轮提交的领域各派一个审查代理（6–8 个），每个写明要看的提交、文件和重点；
   另外固定加两个：`migrations`（迁移链、PG16 兼容、存量数据安全、downgrade、改写已推送迁移）和
   `security-cross`（横向安全：IDOR、只校验 token 不校验公司归属、dev admin / 平台 admin、账号接管、敏感字段泄露）。
@@ -99,6 +107,8 @@ cd <工作区>/CSS_frontend-main  && git branch --show-current && git status --s
   用同一个 `recheck-workflow.js` 跑增量（`findingsPath` 指向中间稿，`baseBe`/`baseFe` 用第一段的 HEAD，
   背景说明只写新提交），最后用 `工具/apply_delta.py` 叠加，`prev`/`psev` 会保持上一版的值。
   定一个冻结点，冻结后再推送的提交写进报告「冻结点之后」一节，留到下一轮。
+- Workflow 中途被打断（额度、网络）时不要整轮重跑：已完成代理的结果在会话目录的 `workflows/<runId>.json` 里（含原始参数和 `result`），
+  用同一个脚本和**完全相同**的参数加 `resumeFromRunId` 续跑；或者像第 10 版那样，把已有结果写进一个只补跑缺失部分的续跑脚本。
 - Workflow 返回 `{recheck, review}`，存成 scratchpad 里的 `wf_result.json`。
   在 Windows 上运行工具脚本前设 `PYTHONUTF8=1`。
 - 统计 recheck 的状态迁移、级别变化，逐条读 review 的全部 verdict（`idx` 从 0 开始，对应 `group.items[idx]`）。
@@ -120,11 +130,14 @@ cd <工作区>/CSS_frontend-main  && git branch --show-current && git status --s
 ```bash
 cd docs/sprint6-账号与公司合并审查/工具
 python3 apply_recheck.py --findings ../findings.json --result <scratchpad>/wf_result.json \
-    --decisions <scratchpad>/decisions.json --backend <工作区>/CSS_backend-main --out ../findings.json
+    --decisions <scratchpad>/decisions.json --backend <工作区>/CSS_backend-main --out ../findings.json [--keep-closed-notes]
+python3 gen_report_tables.py --findings ../findings.json --report ../审查报告.md \
+    --label '第 N 版' --backend-rev <后端 HEAD> --frontend-rev <前端 HEAD>
 ```
 
-- `apply_recheck.py` 会用本轮复核说明**替换**每条的 `note`。运行后对比上一版：第 6 版补充的团队答复核实说明（D19）、用户决定相关的说明不能丢，丢了要手工追加回去（第 7 版遇到过）。
-- 每条「部分修复」都要有 `done`（已修好）和 `remain`（还剩）各一两句话，页面直接显示在问题下面，报告「〇-C」逐条列出。`apply_recheck.py` 只在状态仍是部分修复时把旧的带过来，**每版都要按新基线重新核对**（2026-11-19 起用 Workflow：每组一个写作代理 + 一个独立复核代理，读代码一律带基线版本号）；新变成部分修复的条目要新写。
+- `apply_recheck.py` 会用本轮复核说明**替换**每条的 `note`，并自动把上一版说明里从「（以下为…保留）」「第 N 版补充」「第 N 版补记」「第 N 版数据核实」开始到末尾的段落接回去（团队答复的核实说明、D22 / D23、D25 的数据核实等）。以后要长期保留的补充说明，另起一行并用这几种开头。用了 `lightBatches` 的轮次加 `--keep-closed-notes`，已关闭且没变化的条目保留原说明。运行后仍要抽查几条对比上一版。
+- 脚本最后会列出「未关闭但没有建议解决方案」「部分修复但没有 done / remain」的条目，都应为空；新问题的建议写在 `decisions.new[].sol` 里。
+- 每条未关闭的问题都要有 `sol`（建议解决方案）；每条「部分修复」都要有 `done`（已修好）和 `remain`（还剩）各一两句话。页面直接显示在问题下面，报告「〇-A」「〇-C」由 `gen_report_tables.py` 按 findings.json 生成，不要手工改这两节。**每版都要按新基线重写**（`withAdvice`）。建议要遵守已确认的决定：已推送的迁移不原地修改、`deprecated_` 表视为不存在、按设计接受的条目不推翻。
 - 按脚本打印的数字更新 `审查报告.md`：页头（日期、当前代码、上一版基线、本版新增审查的提交数）、
   〇 结论与数字表、一 阶段表（本版新增的提交加粗）、二 阻断项、三 高危（3.1 未关闭 / 3.2 已关闭或降级 / 3.3 范围外）、
   四 中危（4.1 本版新增 / 4.2 前几版现状）、五 低危、六 驳回与更正、七 建议。

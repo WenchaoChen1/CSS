@@ -178,6 +178,11 @@ button:focus-visible, input:focus-visible, a:focus-visible, summary:focus-visibl
 .all .prog .rk { display: inline-block; font-size: 11px; font-weight: 600; margin-right: 6px; white-space: nowrap; }
 .all .prog .rk.ok { color: var(--ok); }
 .all .prog .rk.left { color: var(--med); }
+/* 建议解决方案：每条未关闭的问题下面直接显示 */
+.all .sol { margin-top: 6px; padding: 6px 10px; border-left: 3px solid var(--ok); background: var(--ok-bg); border-radius: 0 6px 6px 0; font-size: 13px; }
+/* 建议里有很长的不可断字符串（SQL、路径列表），不允许任意处换行会把整张表撑到几千像素宽 */
+.all .sol, .all .prog, .all .reply { overflow-wrap: anywhere; }
+.all .sol .rk { display: inline-block; font-size: 11px; font-weight: 600; color: var(--ok); margin-right: 6px; white-space: nowrap; }
 .all .pane.loc { white-space: normal; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
 .all .pane.loc ul { margin: 0; padding-left: 16px; display: grid; gap: 2px; }
 .all .pane.loc li { overflow-wrap: anywhere; }
@@ -197,16 +202,18 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 9 版</div>
+    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 10 版</div>
     <h1>「账号与公司合并」系列提交审查</h1>
     <div class="meta">
-      <span>2026-11-20 第 9 版复核，并核实开发团队第 3 批答复（145 条）</span>
-      <span>当前代码：后端 <code>e050bab3</code>，前端 <code>fa528e21</code>（冻结点之后后端又有 2 个提交）</span>
-      <span>第 8 版：后端 <code>997cefe3</code>，前端 <code>9c3e1047</code></span>
-      <span>本版新增审查：后端 9 个、前端 4 个提交（Felix、Lily、lucy），主要是修审查问题</span>
+      <span>2026-11-20 第 10 版：复核全部 258 条，审查 17 个新提交，给每条未关闭的问题写了建议解决方案</span>
+      <span>当前代码：后端 <code>160638ae</code>，前端 <code>5e43ea47</code></span>
+      <span>第 9 版：后端 <code>e050bab3</code>，前端 <code>fa528e21</code>（含 D24 的 N153、D25 的三库数据核实）</span>
+      <span>本版新增审查：后端 9 个、前端 8 个提交（Lily、lucy），没有迁移改动</span>
     </div>
     <div class="verdict">
       <strong>结论：仍然不能上 uat / prod</strong>
+      <p><b>第 10 版：未关闭 114 条（高 2、中 29、低 83），每条都有了建议解决方案。</b>在「全部问题」表里点状态筛选的「未关闭」，每条问题下面的绿色块就是建议的改法：改哪里、怎么改、存量数据怎么处理、怎么验证。这些建议由一个代理写、另一个代理独立复核（107 条里修正了 97 条），并按另一台电脑 D25 的三库数据结论对齐。</p>
+      <p><b>和第 9 版相比</b>：修好 2 条（N37 短信正文不再进日志，N153 管理端加了公司切换器）；N56 回退（<code>3de5f94e</code> 有意允许 CSS Admin 员工、包括操作者本人，被加进任何租户公司）；<b>N140（高危）更严重</b>：<code>160638ae</code> 让餐厅 CEO 每次保存个人资料后，新的登录邮箱和手机号自动重写进各供应商没改过的 Bill To；N138、N151 也有新入口。新问题 7 条（N154–N160），都是低危。高危仍是 N140、N129 两条，按 D25 的数据在 prod 上都会发生。</p>
       <p><b>这一轮进展很大：未关闭从 163 条降到 107 条，高危从 7 条降到 4 条。</b>开发按「第 6 版补充」页面修改后答复了 145 条，逐条核实：成立 43、部分成立 36、不成立或没答到点 20、按设计接受 24、按前提不计入 22。N73（高危）已修好，N2 的 dev admin 全公司放行已去掉（降为中危），N97（高危）团队已用 SQL 查过 uat/prod，按前提不计入但升级前要再查一次。</p>
       <p><b>还没解决的高危 4 条（三库数据核实后剩 N140、N129 两条，H5 降为中危、H6 降为低危）</b>：N140（Bill To 取餐厅 CEO 的登录邮箱和手机号，本轮没改，也不在团队答复范围内）、N129（部分修复：INVITED 母公司已恢复，订阅和主发票问题仍在；团队「母公司全删」的说法和代码不一致）、H5、H6。<b>新问题</b>：N148（原中危，按数据降为低危）<code>8b980708773e</code> 恢复范围过宽，系列之前删掉的 INVITED 公司也会回来；N149–N152（低）。不成立的答复里最需要回问的是 F73、F127：答复说「全部按新权限结构控制」，后端写损和分类写接口其实仍不校验权限。</p>
       <p><b>第 9 版补充（2026-11-20）</b>：你在 test 上实测发现「挂了好几家公司的账号只能看到管理端」，补记 <b>N153（中危）</b>：当前账号是 Admin 公司时进管理端，管理端侧边栏没有公司切换器，切不回其他公司。只核对了这一条（后端 <code>0aafd5a6</code>、前端 <code>5454caed</code>），未关闭 107 → 108。</p>
@@ -217,20 +224,20 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>108</b><span>当前未关闭（第 8 版 163 条：关闭 61、新增 6；三库数据核实后调整了 7 条级别）</span></div>
-      <div class="stat h"><b>2</b><span>高危（N140、N129；H5、H6 按 prod 数据降级）</span></div>
-      <div class="stat m"><b>31</b><span>中危（新增 N153；N150 按数据升为中危；N133、F4、N41 降为低危）</span></div>
-      <div class="stat l"><b>75</b><span>低危（新增 N148–N152 中的 4 条：N148 按数据降为低危，N150 升为中危）</span></div>
-      <div class="stat n"><b>6</b><span>第 9 版新发现（N148–N153，N153 为补充）</span></div>
+      <div class="stat"><b>114</b><span>当前未关闭（第 9 版 108 条：修好 2、重开 1、新增 7）</span></div>
+      <div class="stat h"><b>2</b><span>高危（N140 本版更严重；N129 部分修复）</span></div>
+      <div class="stat m"><b>29</b><span>中危（N37、N153 已修复）</span></div>
+      <div class="stat l"><b>83</b><span>低危（新增 N154–N160；N56 重新打开）</span></div>
+      <div class="stat n"><b>7</b><span>第 10 版新发现（N154–N160）</span></div>
     </div>
-    <h2>第 8 版的 252 条问题的现状</h2>
+    <h2>第 9 版的 258 条问题的现状</h2>
     <div class="flow">
-      <div class="fx"><b>150</b><span>已关闭或不计入</span><ul><li>本版关闭 61 条：已修复或不再适用 26（含 N73）、按设计接受 15、按前提不计入 20（含 N97）</li><li>累计：已修复 72、不再适用 17、按设计接受 25、按前提不计入 36</li></ul></div>
-      <div class="pt"><b>41</b><span>部分修复</span><ul><li>N2 dev admin 放行已去掉，仍可给自己开账号</li><li>N129 INVITED 母公司已恢复</li><li>N120 Packer/Driver 登录落在 Quotations</li></ul></div>
-      <div class="wr"><b>6</b><span>更严重</span><ul><li>F4 恢复的母公司和门店副本同时出现</li><li>F6 又改写了 test 已执行的迁移</li><li>N133 又多一类恢复过宽；F51、F63、N141</li></ul></div>
-      <div class="op"><b>55</b><span>仍存在</span><ul><li>N140 Bill To 泄露 CEO 登录信息</li><li>F73、F127 后端不校验权限</li><li>N136 test 合并带进的回退</li></ul></div>
+      <div class="fx"><b>151</b><span>已关闭或不计入</span><ul><li>本版修复 2 条：N37、N153</li><li>累计：已修复 73、不再适用 17、按设计接受 25、按前提不计入 36</li><li>N56 重新打开，不在其中</li></ul></div>
+      <div class="pt"><b>43</b><span>部分修复</span><ul><li>N87 DB-IP 库已固定并校验，页面仍无署名</li><li>N56 审计已补，自加限制被撤掉</li><li>每条下面写了已修好什么、还剩什么</li></ul></div>
+      <div class="wr"><b>3</b><span>更严重</span><ul><li>N140 CEO 改资料后继续同步给供应商</li><li>N138 按显示名反查，同名会显示错联系方式</li><li>N151 管理端 Add Company 选 admin 类型必然 400</li></ul></div>
+      <div class="op"><b>61</b><span>仍存在</span><ul><li>F73、F127 后端不校验权限</li><li>N99、N102、N103 你已决定不接受（D23）</li><li>N136 test 合并带进的回退</li></ul></div>
     </div>
-    <p class="count prose">复核方法：252 条分 35 批逐条复核，有答复的同时按 D19 判断答复是否成立；新提交从 7 个方向审查，25 条候选对抗式验证后新增 4 条、补记 1 条、并入 10 条、驳回 4 条（2 条记为范围外）。人工核对了 N73 的修复和 N2 的放行已去掉。没有连接数据库，没有运行测试。</p>
+    <p class="count prose">复核方法：第一段在后端 <code>0aafd5a6</code>、前端 <code>d076e5b5</code> 上，未关闭的 107 条分 14 批逐条复核并写建议，每批由另一个代理独立复核；已关闭的 150 条只查新提交有没有造成回归。合并另一台电脑的 D24、D25 之后，在 <code>160638ae</code> / <code>5e43ea47</code> 上做增量：受新提交或数据结论影响的 44 条重新复核，13 个新提交从后端、前端两个方向审查。共 19 条候选，新增 6 条、补记 1 条、并入 8 条、驳回 1 条（记为范围外）。人工核对了 N37、N153 的修复、N56 的回退和 N140 的新同步路径。本机没有连接数据库，没有运行测试；数据结论来自 D25。</p>
   </section>
 
   <section>
@@ -307,7 +314,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>高危问题</h2>
-    <p class="prose count">状态按后端 <code>e050bab3</code>、前端 <code>fa528e21</code> 复核。N140、N129、H6、H5 是未关闭的 4 条高危；N73 已修复、N2 降为中危、N97 按前提不计入。</p>
+    <p class="prose count">卡片是第 9 版写的（后端 <code>e050bab3</code>、前端 <code>fa528e21</code>）。第 10 版（<code>160638ae</code> / <code>5e43ea47</code>）：未关闭的高危是 N140、N129 两条；H5、H6 已按 D25 的数据降为中危、低危；N140 因 <code>160638ae</code> 新增的自动同步更严重。每条的建议解决方案见「全部问题」表。</p>
     <div class="issues">
       <article class="issue"><div class="id">N140</div><div class="body"><h3>Bill To 默认取餐厅 CEO 的登录邮箱和手机号，写进供应商的客户行</h3><p>lucy 的 <code>3769e44a</code>：<code>bill_to.py:56-72</code> 取餐厅最早一个 CEO 账号对应 <code>system_user</code> 的 email 和 phone_number，只过滤账号是否删除，不排除停用的人；供应商凭 <code>clients:view</code> 就能在客户详情读到。供应商可以通过客户导入单方面关联已注册餐厅；迁移 <code>fe799a734a27</code> 用同样口径给 uat/prod 的全部存量客户回填。与刚修好的 N118 同类（人工核对）。</p></div><div class="side"><span class="by">3769e44a · lucy</span><span class="chip new">新问题</span><small>默认值改取公司对外邮箱和电话，至少排除停用账号；回填前确认口径</small></div></article>
       <article class="issue"><div class="id">N129</div><div class="body"><h3>迁移软删所有母公司，但订阅、主发票等数据还挂在母公司上，一批 owner 无法登录</h3><p><code>8011513c0d5c</code> 把每家没有 parent、有子行的公司标记删除，不搬数据、不做备份，downgrade 为 pass；前提「母公司已不再使用」不成立。<b>第 7 版</b>：Felix 的新迁移 <code>36cd67a87d67</code> 恢复了所有顶层厂商，厂商目录和库存回来了，已执行过 <code>8011513c0d5c</code> 的库也能修到（范围过宽另记 N133）。供应商、客户母公司仍被软删：付费订阅方从 Subscribers 消失、INVITED owner 无法登录、供应商母公司上的商品和主发票失去入口。test 上（第 6 版核实）：279 家被删、57 个 owner 无法登录。</p></div><div class="side"><span class="by">9d19c8a2 · Felix</span><span class="chip part">部分修复 · 5b319dae</span><small>订阅、主发票搬到分支或保留母公司；INVITED 公司不要删；删前记下 id</small></div></article>
@@ -413,7 +420,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前八版的 252 条加本版新问题 6 条（N148–N152，以及第 9 版补充的 N153）。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。「有团队答复」筛选列出团队答复过的 193 条（第 1–3 批），每条下面显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）。</p>
+    <p class="prose count">前九版的 258 条加第 10 版新问题 7 条（N154–N160）。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。<b>每条未关闭的问题下面有绿色的「建议解决方案」</b>（点状态筛选的「未关闭」可以只看这 114 条）；「部分修复」的条目另有「已修好 / 还剩」两行；团队答复过的 193 条（第 1–3 批）显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -424,6 +431,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div class="controls" role="group" aria-label="按状态筛选">
       <span class="lbl">状态</span>
       <button type="button" data-k="st" data-v="all" aria-pressed="true">全部</button>
+      <button type="button" data-k="st" data-v="open" aria-pressed="false">未关闭</button>
       <button type="button" data-k="st" data-v="new" aria-pressed="false">本版新增</button>
       <button type="button" data-k="st" data-v="worse" aria-pressed="false">更严重</button>
       <button type="button" data-k="st" data-v="still_present" aria-pressed="false">仍存在</button>
@@ -451,9 +459,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <ol class="steps">
         <li><b>回问团队</b>：第 3 批答复里不成立的 20 条、部分成立的 36 条（页面上选「有团队答复」可以逐条看核实结论）；N140 和第 7–9 版的新问题也请交给团队。</li>
         <li><b>N148、N133</b>：两个恢复公司的迁移都限定在 <code>8011513c0d5c</code> 的事务时间戳上。</li>
-        <li><b>N153</b>：管理端也放公司切换器，或者分配账号时拦下「Admin + 业务公司」的组合，并补测试。</li>
+        <li><s><b>N153</b>：管理端也放公司切换器。</s> 第 10 版：已由 <code>d076e5b5</code> 修复。</li>
         <li><b>N97</b>：升级前紧挨着再查一次要删的公司。</li>
-        <li><b>N140</b>：Bill To 默认联系人改取公司对外的邮箱和电话，至少排除停用的人；<code>fe799a734a27</code> 回填前确认口径。</li>
+        <li><b>N140</b>：Bill To 默认联系人改取公司对外的邮箱和电话，至少排除停用的人；<code>fe799a734a27</code> 回填前确认口径。第 10 版：<code>160638ae</code> 新加的「CEO 保存资料后重填」也要一起去掉或只同步姓名。</li>
+        <li><b>N56（第 10 版）</b>：请产品确认 CSS Admin 员工能否把自己加进租户公司；不是需求就恢复对操作者本人的拦截。</li>
         <li><b>N142</b>：删除用户时，如果他是某家 INVITED 公司唯一的账号，要拦下或提示。</li>
         <li><b>F6</b>：给 test 补一个幂等修复迁移，重拆被旧版拆错的「…, US」地址；已推送的迁移不再原地改。</li>
         <li><b>N136</b>：不要把现在的 sprint6 直接合进 uat/main。先把 test 独有的改动改回 main 的版本（Clients 筛选的 hook 和测试、报价开关、发票 <code>document_title</code>、5 个迁移文件）；sprint 分支只从 main 合入。</li>
@@ -542,7 +551,7 @@ function syncAllLoc() {
 function refreshAutoLoc() {
   const term = q.value.trim().toLowerCase();
   autoLoc = new Set(!term ? [] : DATA.filter(d => String(d.file || '').toLowerCase().includes(term) &&
-    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by, d.reply, d.replyv, d.done, d.remain].join(' ').toLowerCase().includes(term)).map(d => d.id));
+    ![d.id, d.lab, d.text, d.hash, d.note, d.fix, d.by, d.reply, d.replyv, d.done, d.remain, d.sol].join(' ').toLowerCase().includes(term)).map(d => d.id));
 }
 function locCell(d) {
   const locs = splitLoc(d.file);
@@ -557,6 +566,7 @@ function locCell(d) {
 function stMatch(d) {
   if (f.st === 'all') return true;
   if (f.st === 'closed') return CLOSED.includes(d.st);
+  if (f.st === 'open') return !CLOSED.includes(d.st);
   if (f.st === 'changed') return d.chg;
   if (f.st === 'replied') return !!d.reply;
   // 本版新发现：上一版没有这条（prev 为空），不论本版内是否已修
@@ -566,7 +576,7 @@ function stMatch(d) {
 function render() {
   const term = q.value.trim().toLowerCase();
   const list = DATA.filter(d => (f.sev === 'all' || d.sev === f.sev) && stMatch(d) &&
-    (!term || [d.id, d.lab, d.text, d.hash, d.file, d.note, d.fix, d.by, d.reply, d.replyv, d.done, d.remain].join(' ').toLowerCase().includes(term)));
+    (!term || [d.id, d.lab, d.text, d.hash, d.file, d.note, d.fix, d.by, d.reply, d.replyv, d.done, d.remain, d.sol].join(' ').toLowerCase().includes(term)));
   rows.innerHTML = list.map(d => {
     const st = ST[d.st] || [d.st, 'open'];
     const closed = CLOSED.includes(d.st);
@@ -582,10 +592,11 @@ function render() {
     const prog = d.done || d.remain ? '<div class="prog">' +
       (d.done ? `<div><span class="rk ok">已修好</span>${esc(d.done)}</div>` : '') +
       (d.remain ? `<div><span class="rk left">还剩</span>${esc(d.remain)}</div>` : '') + '</div>' : '';
+    const sol = d.sol && !closed ? `<div class="sol"><span class="rk">建议解决方案</span>${esc(d.sol)}</div>` : '';
     return `<tr><td class="n">${id}${d.lab ? `<span class="lab">${esc(d.lab)}</span>` : ''}</td>` +
       `<td><span class="sev ${d.sev}">${SEV[d.sev] || d.sev}</span>${was}</td>` +
       `<td><span class="chip ${st[1]}">${st[0]}</span>${prev}${fix}</td>` +
-      `<td class="txt">${esc(d.text)}${prog}${reply}<div class="acts">` +
+      `<td class="txt">${esc(d.text)}${prog}${reply}${sol}<div class="acts">` +
       `<button type="button" class="tog" data-t="note" data-id="${id}" aria-expanded="${noteOpen}" aria-controls="note-${id}">${!d.prev ? '详情与证据' : '复核说明'}</button>` +
       `${loc.btn}</div><div class="pane" id="note-${id}"${noteOpen ? '' : ' hidden'}>${esc(d.note)}</div>${loc.pane}</td>` +
       `<td class="h">${esc(d.hash || '—')}${by}</td></tr>`;

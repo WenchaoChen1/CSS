@@ -12,11 +12,14 @@
         --decisions <scratchpad>/decisions_delta.json \
         --backend  /path/to/CSS_backend-main \
         --label    '增量复核（后端 4b1db16c、前端 bc820add）' \
-        --out      ../findings.json
+        --out      ../findings.json \
+        [--partial]
 
 与 apply_recheck.py 的区别：
 - prev / psev 保持中间稿里的值（即上一版的状态），这样报告里的「状态变化」仍是相对上一版；
-- 说明不覆盖，在中间稿说明后面追加「<label>：…」；
+- 说明不覆盖，把「<label>：…」接在中间稿的主说明后面（排在「（以下为…保留）」「第 N 版补充 / 补记 / 数据核实」这些长期保留的段落之前）；
+- 增量结果里带 advice / done / remain 时更新 sol / done / remain；条目在增量里被关闭时去掉这三个字段；
+- 加 --partial 时只叠加增量结果里有的条目，其余原样保留（增量只复核受新提交影响的条目时用）；
 - 中间稿里 st=new 的条目（本版新发现）增量后仍存在时保持 new，被后续提交修好时改为 fixed；
 - decisions 格式与 apply_recheck.py 相同（overrides / new / merged / rejected），新编号接着中间稿最大的 N 号。
 """
@@ -31,6 +34,8 @@ from pathlib import Path
 
 CLOSED = ('fixed', 'obsolete', 'accepted', 'waived')
 KEEP = ('accepted', 'waived')
+# 与 apply_recheck.py 相同：说明里长期保留的段落从这些开头的行开始
+TAIL = re.compile(r'^(（以下为|第 \d+ 版补充|第 \d+ 版补记|第 \d+ 版数据核实)', re.M)
 
 
 def load_secret(backend: Path) -> str | None:
@@ -45,6 +50,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     for k in ('findings', 'result', 'decisions', 'backend', 'label', 'out'):
         ap.add_argument('--' + k, required=True)
+    ap.add_argument('--partial', action='store_true', help='只叠加增量结果里有的条目，其余原样保留')
     a = ap.parse_args()
 
     secret = load_secret(Path(a.backend))
@@ -65,7 +71,7 @@ def main() -> None:
     authors = dec.get('authors', ['Felix', 'Lily', 'lucy'])
 
     missing = [r['id'] for r in rows if r['id'] not in rc and r['st'] not in KEEP and r['id'] not in ov]
-    if missing:
+    if missing and not a.partial:
         sys.exit(f'增量结果里缺少这些 id：{missing}')
 
     out = []
@@ -88,10 +94,29 @@ def main() -> None:
             add = o.get('note', mask(x['note']) + o.get('append', ''))
             if st not in CLOSED and x.get('evidence'):
                 add += '\n证据：' + mask(x['evidence'])
-            r['note'] = mask(f['note']) + f'\n{a.label}：' + add
+            old_note = mask(f['note'])
+            m = TAIL.search(old_note)
+            if m:
+                r['note'] = old_note[:m.start()].rstrip('\n') + f'\n{a.label}：' + add + '\n' + old_note[m.start():]
+            else:
+                r['note'] = old_note + f'\n{a.label}：' + add
             fixes = [h for h in (f.get('fix', '').split() + (o.get('fix', '').split() or x.get('fixed_by') or [])) if h]
             r['fix'] = ' '.join(dict.fromkeys(fixes))
             r['st'], r['sev'] = st, sev
+            if st in CLOSED:
+                for k in ('sol', 'done', 'remain'):
+                    r.pop(k, None)
+            else:
+                sol = o.get('sol') or mask((x.get('advice') or '').strip())
+                if sol:
+                    r['sol'] = sol
+                if st == 'partially_fixed':
+                    d, rm = (x.get('done') or '').strip(), (x.get('remain') or '').strip()
+                    if d and rm:
+                        r['done'], r['remain'] = mask(d), mask(rm)
+                else:
+                    r.pop('done', None)
+                    r.pop('remain', None)
             r['chg'] = bool(f.get('chg')) or bool(x.get('changed_since_prev')) or bool(o) or st != f['st']
         out.append(r)
 
@@ -123,6 +148,7 @@ def main() -> None:
             id=n['id'], lab='', sev=n['sev'], psev='', orig=n['sev'], st='new', prev='', text=n['title'],
             hash=n.get('hash') or ' '.join(hs[:4]), file=re.split(r'[；;]', main_i.get('file') or '')[0],
             note=mask(note), fix='', by=by, chg=True,
+            **({'sol': mask(n['sol'])} if n.get('sol') else {}),
         ))
         existing.add(n['id'])
 
@@ -158,6 +184,8 @@ def main() -> None:
     print('增量中改变级别的条目', [(r['id'], mid[r['id']]['sev'], r['sev']) for r in out
                           if r['id'] in mid and mid[r['id']]['sev'] != r['sev']])
     print('未关闭高危', [(r['id'], r['lab'], r['st']) for r in op if r['sev'] == 'high'])
+    print('未关闭但没有建议解决方案（sol）', [r['id'] for r in op if not r.get('sol')])
+    print('部分修复但没有 done / remain', [r['id'] for r in op if r['st'] == 'partially_fixed' and not (r.get('done') and r.get('remain'))])
 
 
 if __name__ == '__main__':
