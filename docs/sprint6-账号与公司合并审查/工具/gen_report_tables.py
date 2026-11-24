@@ -5,7 +5,7 @@
 - 「〇-A、未关闭问题的建议解决方案」：每条未关闭的问题一行（sol 字段），按高 / 中 / 低分组；
 - 「〇-C、部分修复的 N 条：修好了什么、还剩什么」：每条部分修复的问题一行（done / remain 字段）；
 - 加 --replies-batch N 时，另外生成「〇-F、团队第 N 批答复的核实」：这一批答复过的每条一行（reply / replyv 字段），
-  按核实结论分组，插在「〇-A」之后（已有就整节替换）。
+  按核实结论分组，插在「〇-A」之后（已有就整节替换）。前一批的表要保留时，新一批用 --replies-section 换个节号（例如 〇-H）。
 
 用法：
     python3 gen_report_tables.py --findings ../findings.json --report ../审查报告.md \
@@ -68,6 +68,7 @@ def main() -> None:
     ap.add_argument('--frontend-rev', required=True)
     ap.add_argument('--replies-batch', type=int, help='生成这一批团队答复的核实表（〇-F）')
     ap.add_argument('--replies-intro', default='', help='〇-F 开头的说明文字（一段）')
+    ap.add_argument('--replies-section', default='〇-F', help='答复核实表的节号；已有前一批的「〇-F」时，新一批用别的节号（例如 〇-H），旧表不动')
     a = ap.parse_args()
 
     rows = json.loads(Path(a.findings).read_text(encoding='utf-8'))
@@ -120,7 +121,8 @@ def main() -> None:
             label = (f.get('replyv') or '').split('：', 1)[0]
             groups[label if label in groups else '其他'].append(f)
         cnt = '、'.join(f'{k} {len(v)}' for k, v in groups.items() if v)
-        out = [f'## 〇-F、团队第 {b} 批答复的核实（{a.label}）', '']
+        sec = a.replies_section
+        out = [f'## {sec}、团队第 {b} 批答复的核实（{a.label}）', '']
         if a.replies_intro:
             out += [a.replies_intro, '']
         out += [f'共 {len(rs)} 条：{cnt}。「现在」是本版复核后的状态；✅ 表示已关闭，❌ 表示仍未关闭。', '']
@@ -135,14 +137,14 @@ def main() -> None:
                 out.append(f"| {name(f)} | {SEV[f['sev']]} | 「{cell(f['reply'])}」 | {cell(v[1] if len(v) > 1 else v[0])} | {now} |")
             out.append('')
         sec_f = '\n'.join(out) + '\n---\n\n'
-        if re.search(r'^## 〇-F、', text, re.M):
-            text = replace_section(text, '〇-F、', sec_f, '一、')
+        if re.search(r'^## ' + re.escape(sec) + '、', text, re.M):
+            text = replace_section(text, sec + '、', sec_f, '一、')
         else:
             m0 = re.search(r'^## 〇-A、', text, re.M)
             nxt = re.search(r'^## ', text[m0.end():], re.M)
             pos = m0.end() + nxt.start()
             text = text[:pos] + sec_f + text[pos:]
-        print(f'〇-F 第 {b} 批 {len(rs)} 条：{cnt}')
+        print(f'{sec} 第 {b} 批 {len(rs)} 条：{cnt}')
     p.write_text(text, encoding='utf-8')
     print(f'〇-A {len(op)} 条（缺建议：{missing}）；〇-C {len(pf)} 条（缺 done/remain：'
           f"{[f['id'] for f in pf if not (f.get('done') and f.get('remain'))]}）")

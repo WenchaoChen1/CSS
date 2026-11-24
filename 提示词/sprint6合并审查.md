@@ -136,10 +136,11 @@ python3 apply_replies.py --findings ../findings.json --result <scratchpad>/wf_re
     --batch <批次> --keep-open <不因答复关闭的条目> [--overrides <scratchpad>/reply_overrides.json] \
     --backend <工作区>/CSS_backend-main --out ../findings.json
 python3 gen_report_tables.py --findings ../findings.json --report ../审查报告.md \
-    --label '第 N 版' --backend-rev <后端 HEAD> --frontend-rev <前端 HEAD> [--replies-batch <批次> --replies-intro '<一段说明>']
+    --label '第 N 版' --backend-rev <后端 HEAD> --frontend-rev <前端 HEAD> [--replies-batch <批次> --replies-intro '<一段说明>' --replies-section 〇-H]
 ```
 
-- 团队答复的核实（第 12 版起）：`apply_replies.py` 写入 `reply` / `replyb` / `replyv`，按设计接受 → accepted、按前提不计入 → waived；`--keep-open` 放 D6、D23、D27 列出的条目（取舍带来越权、跨租户或大量数据代价的，暂不关闭、等用户决定）。数据说法逐条和 D25 对照。核实结论最好再用一个独立的 Workflow 以推翻为目标复核一遍（第 12 版：13 个代理），改判的写进 `reply_overrides.json`。`gen_report_tables.py --replies-batch` 生成「〇-F」。
+- 团队答复的核实（第 12 版起）：`apply_replies.py` 写入 `reply` / `replyb` / `replyv`，按设计接受 → accepted、按前提不计入 → waived；`--keep-open` 放 D6、D23、D27 列出的条目（取舍带来越权、跨租户或大量数据代价的，暂不关闭、等用户决定）。数据说法逐条和 D25 对照。核实结论最好再用一个独立的 Workflow 以推翻为目标复核一遍（第 12 版：13 个代理），改判的写进 `reply_overrides.json`。`gen_report_tables.py --replies-batch` 生成「〇-F」；已有前一批的表要保留时，新一批加 `--replies-section` 换节号（第 13 版的第 5 批用「〇-H」）。
+- 只有一批答复、代码几乎没变的小版本（第 13 版）：只复核答复涉及的条目，其余条目按上一版原样补进结果（状态、说明、建议不变）再跑 `apply_recheck.py --keep-closed-notes`。
 - 按答复或数据前提关闭的条目，如果「升级前要紧挨着再查」，把查询写进报告「〇-G 发布清单」（条目关闭后 `sol` 会被去掉，不能只留在建议里）。
 
 - `apply_recheck.py` 会用本轮复核说明**替换**每条的 `note`，并自动把上一版说明里从「（以下为…保留）」「第 N 版补充」「第 N 版补记」「第 N 版数据核实」开始到末尾的段落接回去（团队答复的核实说明、D22 / D23、D25 的数据核实等）。以后要长期保留的补充说明，另起一行并用这几种开头。用了 `lightBatches` 的轮次加 `--keep-closed-notes`，已关闭且没变化的条目保留原说明。运行后仍要抽查几条对比上一版。
