@@ -202,16 +202,17 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 13 版</div>
+    <div class="eyebrow">Code review · CSS_backend / CSS_frontend · sprint/sprint6 · 第 14 版</div>
     <h1>「账号与公司合并」系列提交审查</h1>
     <div class="meta">
-      <span>2026-11-24 第 13 版：核实团队第 5 批答复 17 条（Lily 负责的条目）</span>
-      <span>当前代码：后端 <code>7818612c</code>，前端 <code>64cc63cc</code></span>
-      <span>第 12 版（最终版）：后端 <code>7818612c</code>，前端 <code>e268bfcc</code></span>
-      <span>本版新增审查：后端没有新提交；前端 Lily <code>64cc63cc</code>（All Users 本人那一行的 Enable 开关禁用）</span>
+      <span>2026-11-25 第 14 版：审查 15 个新提交，核实团队第 6 批答复 58 条，全部 273 条按最新代码重新复核</span>
+      <span>当前代码：后端 <code>05ac2e86</code>，前端 <code>9b3c6f65</code></span>
+      <span>第 13 版：后端 <code>7818612c</code>，前端 <code>64cc63cc</code></span>
+      <span>本版新增审查：后端 Felix <code>312f5db3</code> <code>c0148e1e</code> <code>f42710af</code> <code>05ac2e86</code>、lucy <code>c56a2b61</code> <code>f89d6800</code>、Lily <code>8970d921</code> <code>026a9934</code>；前端 Felix <code>e89748a0</code> <code>9b3c6f65</code>、lucy <code>a170a9b1</code> <code>683caee4</code>、Lily <code>1637048b</code> <code>8a6f5291</code> <code>b334f5bf</code></span>
     </div>
     <div class="verdict">
       <strong>结论：仍然不能直接上 uat / prod，但需要处理的范围已经小了很多</strong>
+      <p><b>第 14 版：未关闭 28 条（高 2、中 10、低 16），第 13 版是 59 条。</b>本版关闭 37 条：已修复 25（含 N119 存量 CEO 补齐节点、N43 加人和建公司的每日上限、N67、N7）、按设计接受 9、按前提不计入 3。团队第 6 批答复 58 条：成立 24、部分成立 11、不成立 1、按设计接受 18、按前提不计入 4；另起 8 个代理以推翻为目标复核，同意 50 条、采纳更正 8 条。<b>新问题 6 条</b>：N169（中危，Account 去掉姓名映射后 FV/LV 固定模板客户导入、餐厅表格导入供应商、酒牌收件人一律 500）、N170（中危，新迁移 <code>fc545a0aa9c2</code> 没清角色和模板里的报价、厂商节点，三类供应商的角色保存返回 400）、N171–N174（低危）。<b>高危仍是 N129、N140</b>，团队都答复按需求接受，需要你决定；N140 更严重（Add Company 也会写入 CEO 的登录邮箱和手机号）。</p>
       <p><b>第 13 版：未关闭 59 条（高 2、中 16、低 41），第 12 版是 68 条。</b>本版核实了团队第 5 批答复（17 条，都是 Lily 负责的条目）：成立 5、部分成立 4、不成立 1、按设计接受 7。后端没有新提交，前端只有 <code>64cc63cc</code>，所以多数「已改」指的是第 12 版已审过的 Lily 那批提交。关闭 9 条：N158、N137 已修复；N68、N83、N139、N142、N155、N156、N160 按设计接受（N142 有风险：删除多公司用户会连带删掉他自家 INVITED 公司的账号）。<b>要回问团队的 4 条</b>：N67（答的是限流，没答到「被拒绝的请求记成成功事件」）、N56（「本人撤不掉」与代码不符）、N87（日志页仍没有 DB-IP 署名）、N57（「已改」只对邮件成立）。高危仍是 N140、N129。</p>
       <p><b>第 12 版（最终版）：未关闭 68 条（高 2、中 17、低 49），第 11 版是 116 条。</b>本版关闭 55 条：代码修好 32 条（主要来自 Felix 的 <code>af5c8a9d</code> / <code>31fff1dc</code> 和 lucy 的 <code>4c658ae4</code>：写损和商品分类写接口补了权限校验、删除 <code>/account/*</code>、删掉指向 <code>deprecated_</code> 表的外键、停用公司的管理员邀请码失效、Activate 保留 logo 和营业时间、停用公司的 Team 只读等），按团队答复关闭 23 条（按设计接受 7、按前提不计入 16，数据说法都和 D25 对过）。</p>
       <p><b>团队第 4 批答复 98 条，核实结果：成立 28、部分成立 30、不成立 7、按设计接受 17、按前提不计入 16。</b>在「全部问题」表里选「有团队答复」可以逐条看团队原话和核实结论；报告「〇-F」按结论分组列出。不成立的 7 条：N97、N119、N133、N136、N143、N147、N160，其中 N133 的「已修复」靠原地改写已推送的迁移，新条件几乎拦不住已删除的厂商，test 上也拿不到修改；N119 的「CEO 拥有全部权限」只对新公司成立，存量供应商的 CEO 仍缺节点，而且从 <code>af5c8a9d</code> 起 CEO 角色不能再改（本条因此更严重）。</p>
@@ -223,6 +224,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
       <p><b>还没解决的高危 4 条（三库数据核实后剩 N140、N129 两条，H5 降为中危、H6 降为低危）</b>：N140（Bill To 取餐厅 CEO 的登录邮箱和手机号，本轮没改，也不在团队答复范围内）、N129（部分修复：INVITED 母公司已恢复，订阅和主发票问题仍在；团队「母公司全删」的说法和代码不一致）、H5、H6。<b>新问题</b>：N148（原中危，按数据降为低危）<code>8b980708773e</code> 恢复范围过宽，系列之前删掉的 INVITED 公司也会回来；N149–N152（低）。不成立的答复里最需要回问的是 F73、F127：答复说「全部按新权限结构控制」，后端写损和分类写接口其实仍不校验权限。</p>
       <p><b>第 9 版补充（2026-11-20）</b>：你在 test 上实测发现「挂了好几家公司的账号只能看到管理端」，补记 <b>N153（中危）</b>：当前账号是 Admin 公司时进管理端，管理端侧边栏没有公司切换器，切不回其他公司。只核对了这一条（后端 <code>0aafd5a6</code>、前端 <code>5454caed</code>），未关闭 107 → 108。</p>
     </div>
+    <p class="correction prose"><b>uat 已合入 sprint6（第 14 版，请先看）：</b>11-25 09:47 <code>origin/uat</code> 合入了 sprint6，后端只到 <code>312f5db3</code>，前端到 <code>9b3c6f65</code>。push uat 会自动执行迁移，uat 很可能已经升级到 <code>2f0e0864c7d5</code>（未连库核实）。uat 缺 <code>c0148e1e</code>，门店商品读取和 Team 成员姓名接口会 500，请尽快把 sprint6 最新代码合入 uat；报告「〇-G」的升级前核对，uat 已错过，只剩 prod。<code>origin/test</code> 后端与 sprint6 相同，前端缺 <code>9b3c6f65</code>。</p>
     <p class="correction prose"><b>test 环境（第 13 版）：</b><code>origin/test</code> 还停在前端 <code>307bc0a3</code>，没有 <code>64cc63cc</code>；后端与 sprint6 相同。</p>
     <p class="correction prose"><b>test 环境（第 12 版）：</b><code>origin/test</code> 已合入 <code>7818612c</code>，test 部署时会执行 4 个新迁移（<code>b7f3d1e9a2c6</code>、<code>c2d8f4a1e6b9</code>、<code>d9a3c7e5f1b4</code>、<code>e4b8d2a6c1f7</code>）。<code>af5c8a9d</code> 对 <code>36cd67a87d67</code>、<code>d51500b2df5e</code> 的改写到不了 test，test 上多恢复的 3 家厂商要单独处理（N133）；如果 test 部署停在 <code>b7f3d1e9a2c6</code>、报「run a4c9e2f7b1d3 first」，原因是 N164。迁移链单一 head <code>e4b8d2a6c1f7</code>，共 427 个，从 uat/prod 的 <code>731ddff784cc</code> 升级执行 97 个。本版没有连接数据库，也没有运行测试。</p>
     <p class="correction prose"><b>test 环境（第 9 版）：</b>这些提交都已在 test 上。<code>b176ff9a</code> 推送的 <code>476ff599ad47</code> 旧版在所有库上都会失败，test 部署曾因此中断，<code>e050bab3</code> 修正后才继续；建议在 test 上查一下有没有公司被设成 admin 类型。本版没有连接任何数据库，也没有运行测试；迁移链单一 head <code>8b980708773e</code>，从 uat/prod 的 <code>731ddff784cc</code> 升级执行 92 个，不重跑。</p>
@@ -231,26 +233,27 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section aria-label="复核数字">
     <div class="stats">
-      <div class="stat"><b>59</b><span>当前未关闭（第 12 版 68 条：关闭 9、没有新增）</span></div>
-      <div class="stat h"><b>2</b><span>高危（N140、N129，本版没有变化）</span></div>
-      <div class="stat m"><b>16</b><span>中危（N142 按设计关闭；N67 答复不成立）</span></div>
-      <div class="stat l"><b>41</b><span>低危（关闭 8 条）</span></div>
-      <div class="stat n"><b>17</b><span>第 5 批团队答复已逐条核实</span></div>
+      <div class="stat"><b>28</b><span>当前未关闭（第 13 版 59 条：关闭 37、新增 6）</span></div>
+      <div class="stat h"><b>2</b><span>高危（N129、N140，等你决定）</span></div>
+      <div class="stat m"><b>10</b><span>中危（新增 N169、N170）</span></div>
+      <div class="stat l"><b>16</b><span>低危（新增 N171–N174）</span></div>
+      <div class="stat n"><b>58</b><span>第 6 批团队答复已逐条核实</span></div>
     </div>
-    <h2>全部 273 条问题的现状（第 13 版）</h2>
+    <h2>全部 279 条问题的现状（第 14 版）</h2>
     <div class="flow">
-      <div class="fx"><b>214</b><span>已关闭或不计入</span><ul><li>第 13 版关闭 9 条：已修复 2、按设计接受 7</li><li>累计：已修复 103、不再适用 23、按设计接受 37、按前提不计入 51</li></ul></div>
-      <div class="pt"><b>34</b><span>部分修复</span><ul><li>N56、N57、N87 第 5 批答复部分成立</li><li>每条下面写了已修好什么、还剩什么</li></ul></div>
-      <div class="wr"><b>2</b><span>更严重</span><ul><li>F6 原地改写了 test 已执行的迁移</li><li>N119 存量 CEO 缺的节点只能靠迁移补</li></ul></div>
-      <div class="op"><b>23</b><span>仍存在</span><ul><li>N140（高）、N161（中）</li><li>N163–N168（第 12 版新增）</li><li>N99、N102、N103 你已决定不接受（D23）</li></ul></div>
+      <div class="fx"><b>251</b><span>已关闭或不计入</span><ul><li>第 14 版关闭 37 条：已修复 25、按设计接受 9、按前提不计入 3</li><li>累计：已修复 128、不再适用 23、按设计接受 46、按前提不计入 54</li></ul></div>
+      <div class="pt"><b>17</b><span>部分修复</span><ul><li>N102 还有 4 组写接口没补权限码</li><li>每条下面写了已修好什么、还剩什么</li></ul></div>
+      <div class="wr"><b>1</b><span>更严重</span><ul><li>N140：Add Company 也写入 CEO 的登录邮箱和手机号</li></ul></div>
+      <div class="op"><b>10</b><span>仍存在或本版新增</span><ul><li>新增 N169–N174</li><li>N99、N103（D23）、N150（D27）、F6</li></ul></div>
     </div>
+    <p class="count prose">第 14 版复核方法：全部 273 条按最新代码复核。未关闭的 59 条和有答复的 2 条已关闭条目分 8 批逐条复核，同时判断第 6 批答复是否属实、重写建议（每条建议由另一个代理独立复核）；其余已关闭的 212 条分 11 批只查回归。15 个新提交从 6 个方向审查，33 条候选对抗式验证后新增 6 条、并入已知问题 18 条、驳回 4 条（3 条是 main 上就有的问题，记为范围外 X5、X6）。最后另起 8 个代理以推翻为目标复核 58 条答复的结论。没有连接数据库，也没有运行测试。</p>
     <p class="count prose">第 13 版复核方法：第 5 批答复涉及的 17 条按最新代码逐条复核状态、判断答复是否属实、重写建议（每条建议由另一个代理独立复核），并审查 <code>64cc63cc</code>（1 条候选并入 N158）；再另起 3 个代理以推翻为目标复核 17 条答复的结论：同意 15 条，2 条采纳更正。其余 256 条代码没有变化，沿用第 12 版结论。</p>
     <p class="count prose">第 12 版复核方法：第一段在后端 <code>36625260</code>、前端 <code>4bb6985a</code> 上，未关闭的 116 条分 13 批逐条复核，同时判断第 4 批答复是否属实、按新代码重写建议并由另一个代理独立复核；已关闭的 149 条只查回归；新提交从 6 个方向审查，21 条候选验证后新增 5 条。复核期间 Lily 又合入 7 个提交，第二段在 <code>7818612c</code> / <code>e268bfcc</code> 上增量复核受影响的 44 条，新增 1 条、N128 重新打开。最后另起 13 个代理，以推翻为目标按最新代码把 98 条答复的核实结论再核一遍。人工核对了 N133、N161、N164、N129 的数字差异和迁移链。没有连接数据库，没有运行测试；数据结论来自 D25。</p>
     <p class="count prose">第 10 版复核方法：第一段在后端 <code>0aafd5a6</code>、前端 <code>d076e5b5</code> 上，未关闭的 107 条分 14 批逐条复核并写建议，每批由另一个代理独立复核；已关闭的 150 条只查新提交有没有造成回归。合并另一台电脑的 D24、D25 之后，在 <code>160638ae</code> / <code>5e43ea47</code> 上做增量：受新提交或数据结论影响的 44 条重新复核，13 个新提交从后端、前端两个方向审查。共 19 条候选，新增 6 条、补记 1 条、并入 8 条、驳回 1 条（记为范围外）。人工核对了 N37、N153 的修复、N56 的回退和 N140 的新同步路径。本机没有连接数据库，没有运行测试；数据结论来自 D25。</p>
   </section>
 
   <section>
-    <h2>团队答复（2026-11-19 至 11-24）</h2>
+    <h2>团队答复（2026-11-19 至 11-25）</h2>
     <p class="prose">开发团队对 48 条问题给了书面答复（两批）。每条都对照 sprint6 最新代码（后端 <code>dd2e1556</code>、前端 <code>f2619ea2</code>）核实过（D19）：设计或需求取舍按设计接受；环境数据和发布流程方面的说法没法连库验证，按团队确认的前提不计入；「已修复」「接口已不再使用」「表已废弃」必须在代码里找到证据；答复没答到点或和代码不符的，状态不变并回问团队。在「全部问题」表里，每条下面直接列出团队原话和一句话核实结论，点状态筛选里的「有团队答复」可以只看这 48 条；详细证据在该条的「复核说明」里。</p>
     <div class="cats">
       <div class="cat"><h3>关闭 <span>22</span></h3><ul>
@@ -264,6 +267,12 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
         <li><b>F67、F68、F69</b> 「接口已不再使用」：前端仍在调 /me/accounts</li>
         <li><b>F15</b> 没有迁移会删 order_comment 的空行；<b>F9</b> 9 个迁移仍没有 lock_timeout；<b>F13</b> 兜底类型和答复不一致</li>
         <li><b>F19、F23、F25、F30、F32、F41、F47、F52</b> 见报告「〇-B」的回问问题</li>
+      </ul></div>
+      <div class="cat"><h3>第 6 批答复（11-25） <span>58 条</span></h3><ul>
+        <li><b>成立 24</b>：N119、N43、N67、N57、N163 等已修复，本版关闭</li>
+        <li><b>部分成立 11</b>：N7（修它时引入 N169）、N102（还有 4 组接口）、N105、N161、N141、F146、N89 等</li>
+        <li><b>不成立 1</b>：F72 发票识别按名称或邮箱任取一家，并不是按「名称 + 地址」</li>
+        <li><b>按设计接受 18、按前提不计入 4</b>：N129、N140、N99、N101、N103、N2、F57、N150 等你拍板；其余 12 条随答复关闭</li>
       </ul></div>
       <div class="cat"><h3>第 5 批答复（11-24） <span>17 条</span></h3><ul>
         <li><b>成立 5</b>：N158、N137（已修复，本版关闭）；N79、N138、N159（早已关闭）</li>
@@ -331,6 +340,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
           <tr><td>修审查问题第二轮</td><td class="mono">b176ff9a 5ca4bbbd 5d035298 3b205c7c 27b92211 ad0cebdc 8d520099 be60cb05 e050bab3</td><td class="mono">94309405 fa528e21 47cbf964 76273f00</td><td>Felix：去掉 dev admin 全公司放行，多公司账号权限、onboarding、文件访问策略；迁移补 admin 类型、采购组名唯一、节点改名、恢复 INVITED 母公司。Lily、lucy：修 N122、N128、N123、N117、N114、N111 等；<code>3b205c7c</code> 原地改写了 test 已执行的迁移</td></tr>
           <tr class="newphase"><td>修审查问题第三轮（第 12 版）</td><td class="mono">dfdab199 59fc67be af5c8a9d 4c658ae4 36625260</td><td class="mono">31fff1dc 4bb6985a e9f86328 c75a4777 5c5bc002</td><td>Felix：删除 <code>/account/*</code>、补权限校验、平台公司去掉 Admin 角色（<code>b7f3d1e9a2c6</code>）、新迁移 3 个，<b>并原地改写了 <code>36cd67a87d67</code>、<code>d51500b2df5e</code></b>。lucy：删除 Master Database 批量编辑，隐藏被邀请未完成的公司，停用公司的邀请码失效，Bill To 必填，Activate 保留 logo</td></tr>
           <tr class="newphase"><td>平台用户管理和 Team 第二邮箱（第 12 版）</td><td class="mono">c5412e53 c6598563 c600f33d 0fb7d246</td><td class="mono">a89a066e 1bee2a8f d05018ef</td><td>Lily：注册时记登录日志；最后一名 CEO 按 id 判定；CSS Admin 员工可以退出自己加入的公司；按手机号加的成员可带第二邮箱；停用公司的 Team 只读</td></tr>
+          <tr class="newphase"><td>修审查问题第四轮（第 14 版）</td><td class="mono">312f5db3 c0148e1e f42710af 05ac2e86 c56a2b61 f89d6800 8970d921 026a9934</td><td class="mono">e89748a0 9b3c6f65 a170a9b1 683caee4 1637048b 8a6f5291 b334f5bf</td><td>Felix：订单、拣货、报价写接口补权限码，CEO 角色不能删，Account 去掉姓名映射（引入 N169）；迁移 <code>fc545a0aa9c2</code>（三类供应商去掉报价和厂商菜单，引入 N170）、<code>2f0e0864c7d5</code>（存量 CEO 补齐节点）；聊天列表去重（引入 N171）。lucy：Add Company 先建 CEO 再关联客户，未注册客户 Bill To 默认取 Invitation Contact（迁移 <code>b1e7c4a9d2f8</code>），CEO 模板锁定。Lily：Team 日志、成员校验和每日上限</td></tr>
         </tbody>
       </table>
     </div>
@@ -338,6 +348,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>高危问题</h2>
+    <p class="prose count">第 14 版（<code>05ac2e86</code> / <code>9b3c6f65</code>）：N129 代码没有改；N140 更严重，<code>c56a2b61</code> 修 N163 后，Add Company 新建餐厅也会把 CEO 的登录邮箱和手机号写进供应商的客户 Bill To。团队第 6 批对两条都答复按需求接受，需要你决定。</p>
     <p class="prose count">卡片是第 9 版写的（后端 <code>e050bab3</code>、前端 <code>fa528e21</code>）。第 12 版（<code>7818612c</code> / <code>e268bfcc</code>）：N140、N129 代码都没有改，团队答复都是部分成立（见上方结论）；H5（F3）按团队答复按设计接受，H6（F5）按前提不计入。第 11 版（<code>b949d18b</code> / <code>246036f0</code>）：N140、N129 都没有改动。第 10 版（<code>160638ae</code> / <code>5e43ea47</code>）：未关闭的高危是 N140、N129 两条；H5、H6 已按 D25 的数据降为中危、低危；N140 因 <code>160638ae</code> 新增的自动同步更严重。每条的建议解决方案见「全部问题」表。</p>
     <div class="issues">
       <article class="issue"><div class="id">N140</div><div class="body"><h3>Bill To 默认取餐厅 CEO 的登录邮箱和手机号，写进供应商的客户行</h3><p>lucy 的 <code>3769e44a</code>：<code>bill_to.py:56-72</code> 取餐厅最早一个 CEO 账号对应 <code>system_user</code> 的 email 和 phone_number，只过滤账号是否删除，不排除停用的人；供应商凭 <code>clients:view</code> 就能在客户详情读到。供应商可以通过客户导入单方面关联已注册餐厅；迁移 <code>fe799a734a27</code> 用同样口径给 uat/prod 的全部存量客户回填。与刚修好的 N118 同类（人工核对）。</p></div><div class="side"><span class="by">3769e44a · lucy</span><span class="chip new">新问题</span><small>默认值改取公司对外邮箱和电话，至少排除停用账号；回填前确认口径</small></div></article>
@@ -381,6 +392,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>中危问题</h2>
+    <p class="prose count">第 14 版：新增 N169（Account 去掉姓名映射后，FV/LV 固定模板客户导入、餐厅表格导入供应商、酒牌收件人列表一律 500）、N170（<code>fc545a0aa9c2</code> 之后三类供应商的 CEO 角色连改描述都返回 400）；N7、N43、N67、N119 已修复，N74、N136 按设计接受，N105、N161 降为低危。</p>
     <p class="prose count">第 13 版：N142 按团队确认按设计关闭（删除多公司用户会连带删掉他自家 INVITED 公司的账号）；N67 第 5 批答复不成立，维持中危。</p>
     <p class="prose count">第 12 版：没有新的中危。N119 更严重（<code>af5c8a9d</code> 起 CEO 角色的权限不能改，存量供应商 CEO 缺的 5 个节点只能靠新迁移回填）；F13、F51、F67、N70、N89、N107 降为低危；F3、N22、N92 按答复关闭。下面的卡片保留前几版的描述，当前状态以「全部问题」表为准。</p>
     <h3 class="sub">第 11 版新发现的中危 1 条</h3>
@@ -437,6 +449,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>低危问题</h2>
+    <p class="prose count">第 14 版：新增 N171（<code>05ac2e86</code> 后，成员行挂在别家公司账号上的聊天从门店、餐厅的聊天列表消失）、N172（切换账号时「未保存修改」弹窗不起作用）、N173（logo 签名链接可能过期后仍被复用）、N174（加人超限只显示通用错误）；F146 因漏登记 MFR Contact 仍是部分修复。</p>
     <p class="prose count">第 12 版：新增 6 条低危（N163、N164、N165、N166、N167、N168，见「全部问题」表选「本版新增」）；N128 重新打开；修好 32 条，按答复关闭 23 条。第 11 版：新增 N162（Company Types 的写接口在 <code>b949d18b</code> 之后只靠硬编码只读开关挡住平台公司类型，开关改回 False 后 dev admin 能清空全体平台管理员的菜单）；N151 部分修复（平台管理员选 admin 必然 400 的那一半已修好）。第 8 版：已修复 N27、N55、N56、N59、N60、N66、N76、N78、N80、N81、N127；N61、N65 部分修复；N68、N106 降为低危；F6 重新计入。第 7 版：F63、N112 更严重（删掉约 800 行测试）。第 5–8 版共新增 27 条，类别如下。</p>
     <div class="cats">
       <div class="cat"><h3>新权限体系 <span>Felix · 新 9</span></h3><ul><li><b>N100</b> 改公司类型后角色不补种（零权限主路径已修）</li><li><b>N108</b> 鉴权读缓存，撤权最长约 3 分钟滞后</li><li><b>N109</b> dev admin 分配其他公司的角色返回 500；GET 会写库</li><li><b>N111</b> 配送设置同时按权限码和角色名判断</li><li><b>N114</b> Statement 和条款模板的前后端权限码不一致</li><li><b>N115</b> 已登录用户打不开 Terms / Privacy / Cookies 和内部运维页</li><li><b>N116</b> 恢复上次账号失败就静默改开第一个账号</li><li><b>N117</b> 账号访问接口不带城市、州、邮编</li><li><b>N127</b> 编辑权限树会顺带写入未选的默认范围</li></ul></div>
@@ -450,7 +463,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
   <section>
     <h2>全部问题</h2>
-    <p class="prose count">前十一版的 267 条加第 12 版新问题 6 条（N163、N164、N165、N166、N167、N168），共 273 条。X1–X4 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。<b>每条未关闭的问题下面有绿色的「建议解决方案」</b>（点状态筛选的「未关闭」可以只看这 59 条）；「部分修复」的条目另有「已修好 / 还剩」两行；团队答复过的 226 条（第 1–5 批）显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
+    <p class="prose count">前十三版的 273 条加第 14 版新问题 6 条（N169–N174），共 279 条。X1–X6 是范围外的问题，不在表内；按设计接受、按前提不计入的都归入「已关闭」。<b>每条未关闭的问题下面有绿色的「建议解决方案」</b>（点状态筛选的「未关闭」可以只看这 28 条）；「部分修复」的条目另有「已修好 / 还剩」两行；团队答复过的 235 条（第 1–6 批）显示团队原话和核实结论。级别是复核后的当前级别（已关闭的显示关闭前级别）；点开说明可以看到各版复核的结论和证据行号。</p>
     <div class="controls" role="group" aria-label="按级别筛选">
       <span class="lbl">级别</span>
       <button type="button" data-k="sev" data-v="all" aria-pressed="true">全部</button>
@@ -487,41 +500,38 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     <div style="display:grid;gap:12px;min-width:0">
       <h2>上线前必须处理</h2>
       <ol class="steps">
-        <li><b>回问团队（第 13 版）</b>：报告「〇-H」里的 N67、N56、N87、N57，「核实」一栏就是要问的问题。</li>
-        <li><b>回问团队</b>：报告「〇-F」里不成立和部分成立的条目，「核实」一栏就是要问的问题（页面上选「有团队答复」逐条看）。重点：N129 的数字、N140 的跨租户暴露、N133 和 F6 的原地改写对 test 无效、N119 的回填迁移、N136 的三处回退。</li>
-        <li><b>N161</b>：管理员邀请码的校验拒绝平台公司，Master Database 的单公司订阅和发码接口排除平台公司；修好前先在 test 只读查一下有没有指向平台公司的邀请码和多出来的 dev admin。</li>
-        <li><b>N140</b>：Bill To 默认联系人改取公司对外的邮箱和电话，至少排除停用的人；<code>fe799a734a27</code> 回填前确认口径；CEO 保存资料后的自动重填也一起去掉或只同步姓名。</li>
-        <li><b>N129</b>：先由你决定是否接受放弃在用的客户、供应商母公司；接受就写进发布清单（订阅在用的几家怎么处理、由谁通知），不接受就按「〇-A」新增幂等迁移改挂订阅和商品。</li>
-        <li><b>N119</b>：新增迁移，给存量公司的 CEO 角色补齐模板里的节点（CEO 角色现在不能在应用里改）。</li>
-        <li><b>迁移不再原地改</b>（F6）：test 已执行旧版的，写幂等的修复迁移；N133 在 test 上多恢复的 3 家厂商单独处理。</li>
-        <li><b>发布清单</b>：报告「〇-G」列了升级前紧挨着跑的只读核查（F5、F9、F15、F25、F30、F32、F35、N41、N44、N97、N148、N164 等），在 prod 备份恢复出的库上跑一遍，以那次结果为准；维护窗口内执行升级。</li>
-        <li><b>N136</b>：不要把现在的 sprint6 直接合进 uat/main，先确认 test 带进来的三处回退（必败测试、报价开关、发票标题）是否随 sprint6 上线。</li>
-        <li><b>其余中危</b>：N7、N67、N74、N105、N141、N142（见「全部问题」表的建议解决方案）；低危按模块和相关条目一起修。</li>
-        <li><b>在 prod 副本上演练整条迁移链</b>（从 <code>731ddff784cc</code> 起 97 个），重点看 N119、N129、N133、N164 和「〇-G」的核查项。</li>
+        <li><b>uat（第 14 版）</b>：把 sprint6 最新代码（至少 <code>c0148e1e</code>、<code>f42710af</code>、<code>05ac2e86</code>）合入 uat，再确认 uat 的 <code>alembic_version</code>。</li>
+        <li><b>N169、N170（中危）</b>：上 prod 前必须修。N169 三处改读 user 的姓名并补走真实仓储的测试；N170 新增一个清理迁移，删掉三类供应商角色和角色模板里的报价、厂商节点。</li>
+        <li><b>回问团队（第 14 版）</b>：报告「〇-I」里不成立和部分成立的条目，「核实」一栏就是要问的问题。重点：N102 还有 4 组写接口没补权限码；F72 的答复与代码不符；N2 第二段「已修复」只对邀请码成立；N129 的「最近交易」按 vendor_id 过滤仍没回应。</li>
+        <li><b>N129、N140 等 8 条</b>：团队都答复按需求接受，等你决定（见右侧）。</li>
+        <li><b>其余部分修复</b>：N105、N161、N141、F146、N89、F51、F65、N121、N146、N151、N167，以及低危新问题 N171–N174（见「全部问题」表的建议解决方案）。</li>
+        <li><b>迁移不再原地改</b>（F6）：本轮没有改写已推送的迁移；CI 里加一道拦截。</li>
+        <li><b>发布清单</b>：报告「〇-G」列了升级前紧挨着跑的只读核查，现在只能在 prod 升级前做；在 prod 备份恢复出的库上跑一遍，维护窗口内执行升级。</li>
+        <li><b>在 prod 副本上演练整条迁移链</b>（从 <code>731ddff784cc</code> 起 100 个），重点看 N129、N170（<code>fc545a0aa9c2</code> 之后角色能否保存）和「〇-G」的核查项。</li>
       </ol>
     </div>
     <div style="display:grid;gap:12px;align-content:start;min-width:0">
       <h2>范围外，建议立即处理</h2>
       <ul class="steps">
+        <li><b>X5（第 14 版，高危）</b>：门店订单的发票交易、旧退款入口、拣货单 pickup、gallonage 不校验订单是否属于路径里的门店，和 X1 一起在 main 上热修。</li>
+        <li><b>X6（第 14 版）</b>：send-restaurant-invitations 不要权限码，门店任何在岗成员都能用 CSS 的发件地址群发自定义内容的邮件，也不受新加的每日上限；加权限码和数量限制。</li>
         <li><b>X3</b>：配送设置更新加上门店归属校验（main 上就能跨店改写）；<b>X4</b>：酒牌到期通知发信时按当前成员过滤。</li>
         <li><b>X1</b>：在 main 上热修三个订单接口的成员和归属校验。</li>
         <li><b>X2</b>：<code>sms_sender</code>、<code>email_sender</code> 不要打印消息正文。</li>
       </ul>
       <h2 style="margin-top:12px">需要你或产品确认</h2>
       <ul class="steps">
-        <li><b>N129</b>：是否接受升级后放弃在用的客户、供应商母公司（订阅和母公司上的商品随之作废）？先让团队把数字和 D25 对上。</li>
-        <li><b>N140</b>：是否接受把餐厅 CEO 的登录邮箱和手机号作为 Bill To 默认值给供应商看？推荐不接受。</li>
-        <li><b>N99、N101、N102、N103（D23）</b>：团队仍说是设计，新事实只有「CEO 角色的节点不能清空」已做到；是否维持不接受？</li>
+        <li><b>N129</b>：是否接受升级后放弃在用的客户、供应商母公司？团队第 6 批说删几家无所谓、订阅没有实际业务；母公司上的「最近交易」等数据团队没回应。</li>
+        <li><b>N140</b>：是否接受把餐厅 CEO 的登录邮箱和手机号作为 Bill To 默认值给供应商看？团队说需求就是这样；本版 Add Company 也开始写入。推荐不接受。</li>
+        <li><b>N99、N101、N103（D23）</b>：你此前决定不接受，团队第 6 批仍说接受；是否维持？N102 团队说已修复，实际还有 4 组接口没补，继续跟踪。</li>
         <li><b>N2（D6）</b>：dev admin 给任何人开账号不记日志，是否接受？</li>
-        <li><b>团队说按设计、但有代价的 4 条</b>：F57（成员能把自己改成 CEO）、F72（同名或同邮箱的餐厅可能错挂订单和发票）、N43（任何人都能不限数量建公司并以 CSS 名义发短信、邮件）、N150（prod 752 个在用客户里 711 个要先补齐 Bill To 才能改其它字段）。接受的就按设计关闭。</li>
-        <li><b>早先提出的</b>：N87（日志页不显示 DB-IP 署名是否接受）仍待定；第 13 版 N156 已按团队确认的需求关闭、N158 已修复，N56 改为回问团队「本人能否自行退出」。</li>
-        <li><b>N142（第 13 版，知会）</b>：已按团队确认关闭，但删除多公司用户会连带删掉他自家 INVITED 公司的账号；不接受的话请告知。</li>
-        <li><b>N3、N145</b>：N3 的修复在删表前一次性读了 <code>deprecated_</code> 备份表（D22 的例外是否接受）；N145 升级后已注册餐厅历史发票上的 Bill To 会一次性变成餐厅自身的资料（团队说按设计，已按设计接受）。</li>
-        <li><b>本版新问题</b>：N165（被别家邀请、onboarding 未完成的公司是否从列表隐藏，隐藏后管理员怎么处理）、N168（被 CSS Admin 停用的成员，团队能否单独关掉本公司账号）。</li>
+        <li><b>F57、N150（D27）</b>：成员能把自己改成 CEO；Bill To 八项必填导致存量客户整页存不了。团队都说是需求。F72 答复不成立，继续跟踪。</li>
+        <li><b>N43</b>：已实现每日上限，只需确认每个操作人每天最多加 200 人、建 5 家公司这两个数值。</li>
+        <li><b>知会（第 14 版已按团队答复关闭）</b>：N106（CEO 的 New Order Email 锁死：新公司一律带，存量公司一律没有）、N136（E&amp;S Dealer 仍保留报价节点，合入 main 后其 CEO 能用报价）、N165、N168、N142；N3、N145 照旧。</li>
       </ul>
       <h2 style="margin-top:12px">冻结点之后</h2>
       <ul class="steps">
-        <li>第 13 版冻结在后端 <code>7818612c</code>、前端 <code>64cc63cc</code>；整理报告时（2026-11-24）<code>origin/sprint/sprint6</code> 没有更新的提交，<code>origin/test</code> 还没有 <code>64cc63cc</code>。</li>
+        <li>第 14 版冻结在后端 <code>05ac2e86</code>、前端 <code>9b3c6f65</code>；整理报告时（2026-11-25）<code>origin/sprint/sprint6</code> 没有更新的提交。<code>origin/uat</code> 已合入 sprint6（后端到 <code>312f5db3</code>），<code>origin/test</code> 前端缺 <code>9b3c6f65</code>。</li>
       </ul>
       <h2 style="margin-top:12px">已推送、未合入 sprint6</h2>
       <ul class="steps">
